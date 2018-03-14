@@ -1,0 +1,4 @@
+in in_position 0
+in in_normal 1
+in in_color 2
+out color 0
