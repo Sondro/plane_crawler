@@ -1070,6 +1070,7 @@ static void stbi__vertical_flip(void *image, int w, int h, int bytes_per_pixel)
    }
 }
 
+/*
 static void stbi__vertical_flip_slices(void *image, int w, int h, int z, int bytes_per_pixel)
 {
    int slice;
@@ -1081,6 +1082,7 @@ static void stbi__vertical_flip_slices(void *image, int w, int h, int z, int byt
       bytes += slice_size;
    }
 }
+*/
 
 static unsigned char *stbi__load_and_postprocess_8bit(stbi__context *s, int *x, int *y, int *comp, int req_comp)
 {
@@ -1132,6 +1134,7 @@ static stbi__uint16 *stbi__load_and_postprocess_16bit(stbi__context *s, int *x, 
 }
 
 #if !defined(STBI_NO_HDR) || !defined(STBI_NO_LINEAR)
+/*
 static void stbi__float_postprocess(float *result, int *x, int *y, int *comp, int req_comp)
 {
    if (stbi__vertically_flip_on_load && result != NULL) {
@@ -1139,6 +1142,7 @@ static void stbi__float_postprocess(float *result, int *x, int *y, int *comp, in
       stbi__vertical_flip(result, *x, *y, channels * sizeof(float));
    }
 }
+*/
 #endif
 
 #ifndef STBI_NO_STDIO

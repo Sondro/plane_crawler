@@ -8,8 +8,9 @@
 #define              NOISE_SEED 123456
 //
 
+#include "gl_load.cpp"
+
 // External Libraries
-#include <GL/glew.h>
 #include <GLFW/glfw3.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -19,8 +20,10 @@
 
 // Internal Libraries
 #include "ext/rf_utils.h"
+
 #define HANDMADE_MATH_IMPLEMENTATION
 #include "ext/HandmadeMath.h"
+
 #define STB_IMAGE_IMPLEMENTATION
 #define STBI_ONLY_PNG
 #include "ext/stb_image.h"
@@ -51,7 +54,7 @@ int main() {
             glfwMakeContextCurrent(window);
             glfwSwapInterval(0);
 
-            if(!glewInit()) {
+            if(ogl_LoadFunctions()) {
                 init_draw();
 
                 srand((unsigned int)time(NULL));
@@ -98,8 +101,9 @@ int main() {
                 clean_up_draw();
             }
             else {
-                fprintf(log_file, "ERROR: GLEW initialization failed\n\n");
+                fprintf(log_file, "ERROR: OpenGL loading failed\n\n");
             }
+
             glfwDestroyWindow(window);
         }
         else {
