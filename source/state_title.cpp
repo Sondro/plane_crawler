@@ -22,6 +22,7 @@ void update_title() {
 
     look_at(0, 0, 0, 32, 32, 32);
 
+    bind_texture(tiles);
     reset_model();
     translate(32, 32, 32);
     scale(32, 32, 32);

@@ -7,31 +7,49 @@
 		<Option makefile_is_custom="1" />
 		<Option pch_mode="2" />
 		<Option compiler="gcc" />
+		<MakeCommands>
+			<Build command="$make -f $makefile" />
+			<CompileFile command="" />
+			<Clean command="" />
+			<DistClean command="$make -f $makefile distclean$target" />
+			<AskRebuildNeeded command="" />
+			<SilentBuild command="$make -f $makefile &gt; $(CMD_NULL)" />
+		</MakeCommands>
 		<Build>
-			<Target title="">
+			<Target title="default">
 				<Option output="plane_crawler" prefix_auto="1" extension_auto="1" />
-				<Option type="0" />
+				<Option type="1" />
 				<Option compiler="gcc" />
+				<MakeCommands>
+					<Build command="$make -f $makefile" />
+					<CompileFile command="" />
+					<Clean command="" />
+					<DistClean command="$make -f $makefile distclean$target" />
+					<AskRebuildNeeded command="" />
+					<SilentBuild command="$make -f $makefile &gt; $(CMD_NULL)" />
+				</MakeCommands>
 			</Target>
-			<MakeCommands>
-				<Build command="$make -f $makefile" />
-				<CompileFile command="" />
-				<Clean command="$make -f $makefile clean" />
-				<DistClean command="$make -f $makefile distclean$target" />
-				<AskRebuildNeeded command="$make -f $makefile clean" />
-				<SilentBuild command="$make -f $makefile &gt; $(CMD_NULL)" />
-			</MakeCommands>
 		</Build>
 		<Compiler>
 			<Add option="-Wall" />
 		</Compiler>
+		<Unit filename="resource/shader/heightmap.frag" />
+		<Unit filename="resource/shader/heightmap.info" />
+		<Unit filename="resource/shader/heightmap.vert" />
+		<Unit filename="resource/shader/texture_quad.frag" />
+		<Unit filename="resource/shader/texture_quad.info" />
+		<Unit filename="resource/shader/texture_quad.vert" />
+		<Unit filename="source/draw.cpp" />
 		<Unit filename="source/ext/HandmadeMath.h" />
 		<Unit filename="source/ext/rf_utils.h" />
+		<Unit filename="source/ext/stb_image.h" />
 		<Unit filename="source/globals.cpp" />
 		<Unit filename="source/main.cpp" />
 		<Unit filename="source/noise.cpp" />
-		<Unit filename="source/resources.cpp" />
-		<Unit filename="source/viewer.cpp" />
+		<Unit filename="source/resource.cpp" />
+		<Unit filename="source/state.cpp" />
+		<Unit filename="source/state_game.cpp" />
+		<Unit filename="source/state_title.cpp" />
 		<Extensions>
 			<code_completion />
 			<envvars />

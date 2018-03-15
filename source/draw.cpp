@@ -4,6 +4,8 @@
 #define rotate(a, x, y, z)   { model = HMM_Multiply(model, HMM_Rotate(a, HMM_Vec3(x, y, z))); }
 #define look_at(e_x, e_y, e_z, t_x, t_y, t_z) { view = HMM_LookAt(HMM_Vec3(e_x, e_y, e_z), HMM_Vec3(t_x, t_y, t_z), HMM_Vec3(0, 1, 0)); }
 
+#define bind_texture(t)      { glBindTexture(GL_TEXTURE_2D, (t).id); }
+
 Texture small_font, tiles;
 Shader texture_quad_shader,
        heightmap_shader;
