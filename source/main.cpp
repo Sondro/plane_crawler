@@ -47,8 +47,13 @@ int main() {
 
         window_w = 1600;
         window_h = 900;
-        window = glfwCreateWindow(window_w, window_h, "Stream Program That Is Cool", 0, 0);
+        window = glfwCreateWindow(window_w, window_h, "Plane Crawler", 0, 0);
         if(window) {
+            {
+                const GLFWvidmode *mode = glfwGetVideoMode(glfwGetPrimaryMonitor());
+                glfwSetWindowPos(window, mode->width/2 - window_w/2, mode->height/2 - window_h/2);
+            }
+
             glfwMakeContextCurrent(window);
             glfwSwapInterval(0);
 
