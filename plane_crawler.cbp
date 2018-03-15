@@ -33,16 +33,21 @@
 		<Compiler>
 			<Add option="-Wall" />
 		</Compiler>
+		<Unit filename="Makefile_linux" />
+		<Unit filename="Makefile_windows" />
 		<Unit filename="resource/shader/heightmap.frag" />
 		<Unit filename="resource/shader/heightmap.info" />
 		<Unit filename="resource/shader/heightmap.vert" />
 		<Unit filename="resource/shader/texture_quad.frag" />
 		<Unit filename="resource/shader/texture_quad.info" />
 		<Unit filename="resource/shader/texture_quad.vert" />
+		<Unit filename="source/camera.cpp" />
 		<Unit filename="source/draw.cpp" />
 		<Unit filename="source/ext/HandmadeMath.h" />
 		<Unit filename="source/ext/rf_utils.h" />
 		<Unit filename="source/ext/stb_image.h" />
+		<Unit filename="source/gl_load.cpp" />
+		<Unit filename="source/gl_load.h" />
 		<Unit filename="source/globals.cpp" />
 		<Unit filename="source/main.cpp" />
 		<Unit filename="source/noise.cpp" />

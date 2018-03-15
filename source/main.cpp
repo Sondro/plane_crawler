@@ -8,9 +8,8 @@
 #define              NOISE_SEED 123456
 //
 
+// External Libraries/Related Code
 #include "gl_load.cpp"
-
-// External Libraries
 #include <GLFW/glfw3.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -23,6 +22,10 @@
 
 #define HANDMADE_MATH_IMPLEMENTATION
 #include "ext/HandmadeMath.h"
+typedef hmm_v3 v3;
+typedef hmm_m4 m4;
+#define v3(x, y, z) HMM_Vec3(x, y, z)
+#define m4(d)       HMM_Mat4d(d)
 
 #define STB_IMAGE_IMPLEMENTATION
 #define STBI_ONLY_PNG

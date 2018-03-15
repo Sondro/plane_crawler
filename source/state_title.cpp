@@ -1,5 +1,5 @@
 struct Title {
-
+    Camera camera;
 };
 
 State init_title() {
@@ -7,6 +7,10 @@ State init_title() {
     s.type = STATE_TITLE;
     s.mem = malloc(sizeof(Title));
     Title *t = (Title *)s.mem;
+
+    t->camera.pos = v3(0, 0, 0);
+    t->camera.orientation = t->camera.target_orientation = v3(0, 0, 0);
+
     return s;
 }
 
@@ -20,7 +24,16 @@ void clean_up_title(State *s) {
 void update_title() {
     Title *t = (Title *)state.mem;
 
-    look_at(0, 0, 0, 32, 32, 32);
+    update_camera(&t->camera);
+    {
+        v3 target = t->camera.pos +
+                    v3(
+                        cos(t->camera.orientation.x),
+                        sin(t->camera.orientation.y),
+                        sin(t->camera.orientation.x)
+                    );
+        look_at(t->camera.pos, target);
+    }
 
     bind_texture(tiles);
     reset_model();

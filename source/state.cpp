@@ -11,6 +11,7 @@ global struct State {
 } state, next_state;
 
 #include "noise.cpp"
+#include "camera.cpp"
 
 State init_title();
 State init_game();

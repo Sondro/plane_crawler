@@ -1,5 +1,5 @@
 struct Game {
-
+    Camera camera;
 };
 
 State init_game() {
@@ -7,6 +7,10 @@ State init_game() {
     s.type = STATE_GAME;
     s.mem = malloc(sizeof(Game));
     Game *g = (Game *)s.mem;
+
+    g->camera.pos = v3(0, 0, 0);
+    g->camera.orientation = g->camera.target_orientation = v3(0, 0, 0);
+
     return s;
 }
 

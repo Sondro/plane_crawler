@@ -2,9 +2,11 @@
 #define translate(x, y, z)   { model = HMM_Multiply(model, HMM_Translate(HMM_Vec3(x, y, z))); }
 #define scale(x, y, z)       { model = HMM_Multiply(model, HMM_Scale(HMM_Vec3(x, y, z))); }
 #define rotate(a, x, y, z)   { model = HMM_Multiply(model, HMM_Rotate(a, HMM_Vec3(x, y, z))); }
-#define look_at(e_x, e_y, e_z, t_x, t_y, t_z) { view = HMM_LookAt(HMM_Vec3(e_x, e_y, e_z), HMM_Vec3(t_x, t_y, t_z), HMM_Vec3(0, 1, 0)); }
+#define look_at(p, t   )     { view = HMM_LookAt(p, t, HMM_Vec3(0, 1, 0)); }
 
 #define bind_texture(t)      { glBindTexture(GL_TEXTURE_2D, (t).id); }
+
+global m4 model, view, projection;
 
 Texture small_font, tiles;
 Shader texture_quad_shader,

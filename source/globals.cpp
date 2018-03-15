@@ -4,8 +4,6 @@ global GLFWwindow *window = 0;
 global i32 window_w, window_h;
 global r64 mouse_x, mouse_y;
 
-global hmm_m4 model, view, projection;
-
 global r64 current_time = 0;
 
 r32 random32(r32 low, r32 high) {
