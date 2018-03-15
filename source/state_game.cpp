@@ -4,6 +4,7 @@ struct Game {
 
 State init_game() {
     State s;
+    s.type = STATE_GAME;
     s.mem = malloc(sizeof(Game));
     Game *g = (Game *)s.mem;
     return s;

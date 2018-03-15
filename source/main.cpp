@@ -1,8 +1,10 @@
 // Program Options
 #define                     FPS 60.0
+#define           FIELD_OF_VIEW 85.0
 #define                   MAP_W 100
 #define                   MAP_H 100
 #define            RESOURCE_DIR "./resource/"
+#define              SHADER_DIR "shader/"
 #define              NOISE_SEED 123456
 //
 
@@ -68,6 +70,7 @@ int main() {
                     glClearColor(0, 0, 0, 1);
                     glViewport(0, 0, window_w, window_h);
                     { // @Update
+                        projection = HMM_Perspective(FIELD_OF_VIEW, (r32)window_w/window_h, 1.f, 1000.f);
                         update_state();
                     }
                     glfwSwapBuffers(window);

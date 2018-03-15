@@ -160,9 +160,9 @@ Shader load_shader(const char *filename) {
          frag_filename[64] = { 0 },
          info_filename[64] = { 0 };
 
-    sprintf(vert_filename, "%s%s.%s", RESOURCE_DIR, filename, "vert");
-    sprintf(frag_filename, "%s%s.%s", RESOURCE_DIR, filename, "frag");
-    sprintf(info_filename, "%s%s.%s", RESOURCE_DIR, filename, "info");
+    sprintf(vert_filename, "%s%s%s.%s", RESOURCE_DIR, SHADER_DIR, filename, "vert");
+    sprintf(frag_filename, "%s%s%s.%s", RESOURCE_DIR, SHADER_DIR, filename, "frag");
+    sprintf(info_filename, "%s%s%s.%s", RESOURCE_DIR, SHADER_DIR, filename, "info");
 
     Shader s;
     s.id = 0;
