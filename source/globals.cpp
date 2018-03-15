@@ -13,12 +13,3 @@ global r64 current_time = 0;
 r32 random32(r32 low, r32 high) {
     return low + (((r32)((unsigned int)rand() % 1000) / 1000.f) * (high - low));
 }
-
-void print_matrix(hmm_m4 mat) {
-    foreach(j, 4) {
-        foreach(i, 4) {
-            printf("%f ", mat.Elements[i][j]);
-        }
-        printf("\n");
-    }
-}

@@ -2,6 +2,11 @@ struct Shader {
     GLuint id;
 };
 
+struct Texture {
+    GLuint id;
+    i32 w, h;
+};
+
 Shader init_shader_from_data(void *vert, i64 vert_len,
                              void *frag, i64 frag_len,
                              void *info, i64 info_len) {
@@ -155,9 +160,9 @@ Shader load_shader(const char *filename) {
          frag_filename[64] = { 0 },
          info_filename[64] = { 0 };
 
-    sprintf(vert_filename, "%s%s.%s", RESOURCES_DIRECTORY, filename, "vert");
-    sprintf(frag_filename, "%s%s.%s", RESOURCES_DIRECTORY, filename, "frag");
-    sprintf(info_filename, "%s%s.%s", RESOURCES_DIRECTORY, filename, "info");
+    sprintf(vert_filename, "%s%s.%s", RESOURCE_DIR, filename, "vert");
+    sprintf(frag_filename, "%s%s.%s", RESOURCE_DIR, filename, "frag");
+    sprintf(info_filename, "%s%s.%s", RESOURCE_DIR, filename, "info");
 
     Shader s;
     s.id = 0;
@@ -250,4 +255,40 @@ void clean_up_shader(Shader *s) {
         glDeleteProgram(s->id);
         s->id = 0;
     }
+}
+
+Texture load_texture(const char *filename) {
+    char pathed_filename[strlen(RESOURCE_DIR) + strlen(filename) + 1] = { 0 };
+    sprintf(pathed_filename, "%s%s.png", RESOURCE_DIR, filename);
+
+    Texture t = { 0, 0, 0 };
+
+    i32 n = 0;
+    u8 *data = stbi_load(pathed_filename, &t.w, &t.h, &n, 0);
+
+    glGenTextures(1, &t.id);
+    glBindTexture(GL_TEXTURE_2D, t.id);
+    {
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
+
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA,
+                     t.w, t.h,
+                     0, GL_RGBA, GL_UNSIGNED_BYTE,
+                     data);
+    }
+    glBindTexture(GL_TEXTURE_2D, 0);
+
+    stbi_image_free(data);
+
+    return t;
+}
+
+void clean_up_texture(Texture *t) {
+    glDeleteTextures(1, &t->id);
+    t->id = 0;
+    t->w = 0;
+    t->h = 0;
 }

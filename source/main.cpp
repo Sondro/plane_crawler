@@ -1,19 +1,8 @@
-/*
-
-TODO:
-
- * Figure out why FPS limiting messes up drawing
- * Depth test issues?
- * Figure out why only half (or less) of the heightmap is drawing
-
-*/
-
 // Program Options
 #define                     FPS 60.0
-#define             HEIGHTMAP_W 100
-#define             HEIGHTMAP_H 100
-#define     HEIGHTMAP_CELL_SIZE 1.0
-#define     RESOURCES_DIRECTORY "./resource/"
+#define                   MAP_W 100
+#define                   MAP_H 100
+#define            RESOURCE_DIR "./resource/"
 #define              NOISE_SEED 123456
 //
 
@@ -30,11 +19,15 @@ TODO:
 #include "ext/rf_utils.h"
 #define HANDMADE_MATH_IMPLEMENTATION
 #include "ext/HandmadeMath.h"
+#define STB_IMAGE_IMPLEMENTATION
+#define STBI_ONLY_PNG
+#include "ext/stb_image.h"
 //
 
-// Viewer Code
+// Game Code
 #include "globals.cpp"
-#include "resources.cpp"
+#include "resource.cpp"
+#include "draw.cpp"
 #include "state.cpp"
 //
 
@@ -57,13 +50,7 @@ int main() {
             glfwSwapInterval(0);
 
             if(!glewInit()) {
-                //glEnable(GL_TEXTURE_2D);
-                //glEnable(GL_CULL_FACE);
-                //glAlphaFunc(GL_GREATER, 1);
-                //glEnable(GL_BLEND);
-                //glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-                //glEnable(GL_DEPTH_TEST);
-                //glDepthFunc(GL_LESS);
+                init_draw();
 
                 srand((unsigned int)time(NULL));
 
@@ -92,6 +79,7 @@ int main() {
                         }
                     }
 
+                    // @State change
                     if(next_state.type) {
                         clean_up_state();
                         state.mem = next_state.mem;
@@ -104,6 +92,7 @@ int main() {
                 }
 
                 clean_up_state();
+                clean_up_draw();
             }
             else {
                 fprintf(log_file, "ERROR: GLEW initialization failed\n\n");

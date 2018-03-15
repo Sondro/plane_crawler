@@ -18,4 +18,3 @@ void clean_up_title(State *s) {
 void update_title() {
     Title *t = (Title *)state.mem;
 }
-
