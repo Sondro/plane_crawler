@@ -49,6 +49,7 @@
 		<Unit filename="source/gl_load.cpp" />
 		<Unit filename="source/gl_load.h" />
 		<Unit filename="source/globals.cpp" />
+		<Unit filename="source/input.cpp" />
 		<Unit filename="source/main.cpp" />
 		<Unit filename="source/noise.cpp" />
 		<Unit filename="source/resource.cpp" />
