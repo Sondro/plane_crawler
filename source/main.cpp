@@ -22,8 +22,10 @@
 
 #define HANDMADE_MATH_IMPLEMENTATION
 #include "ext/HandmadeMath.h"
+typedef hmm_v2 v2;
 typedef hmm_v3 v3;
 typedef hmm_m4 m4;
+#define v2(x, y)    HMM_Vec2(x, y)
 #define v3(x, y, z) HMM_Vec3(x, y, z)
 #define m4(d)       HMM_Mat4d(d)
 
@@ -34,6 +36,7 @@ typedef hmm_m4 m4;
 
 // Game Code
 #include "globals.cpp"
+#include "input.cpp"
 #include "resource.cpp"
 #include "draw.cpp"
 #include "state.cpp"
@@ -45,11 +48,11 @@ int main() {
         glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
         glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
 
-        window_w = 1600;
-        window_h = 900;
+        window_w = 1024;
+        window_h = 600;
         window = glfwCreateWindow(window_w, window_h, "Plane Crawler", 0, 0);
         if(window) {
-            { // center window
+            { // @Note (Ryan) This centers the window...
                 const GLFWvidmode *mode = glfwGetVideoMode(glfwGetPrimaryMonitor());
                 glfwSetWindowPos(window, mode->width/2 - window_w/2, mode->height/2 - window_h/2);
             }
@@ -58,6 +61,7 @@ int main() {
             glfwSwapInterval(0);
 
             if(ogl_LoadFunctions()) {
+                init_input();
                 init_draw();
 
                 srand((unsigned int)time(NULL));
@@ -70,7 +74,7 @@ int main() {
 
                     glfwPollEvents();
                     glfwGetWindowSize(window, &window_w, &window_h);
-                    glfwGetCursorPos(window, &mouse_x, &mouse_y);
+                    update_input();
 
                     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
                     glClearColor(0, 0, 0, 1);

@@ -4,13 +4,16 @@
 #define rotate(a, x, y, z)   { model = HMM_Multiply(model, HMM_Rotate(a, HMM_Vec3(x, y, z))); }
 #define look_at(p, t   )     { view = HMM_LookAt(p, t, HMM_Vec3(0, 1, 0)); }
 
-#define bind_texture(t)      { glBindTexture(GL_TEXTURE_2D, (t).id); }
-
 global m4 model, view, projection;
 
-Texture small_font, tiles;
-Shader texture_quad_shader,
-       heightmap_shader;
+global v2 uv_offset,
+          uv_range;
+
+global Texture small_font,
+               tiles;
+
+global Shader texture_quad_shader,
+              heightmap_shader;
 
 GLuint active_shader = 0,
 
@@ -85,6 +88,21 @@ void set_shader(Shader *s) {
     glUseProgram(active_shader);
 }
 
+void bind_texture(Texture *t) {
+    glBindTexture(GL_TEXTURE_2D, t ? t->id : 0);
+    uv_offset = v2(0, 0);
+    uv_range = v2(1, 1);
+    glUniform2f(glGetUniformLocation(active_shader, "uv_offset"), uv_offset.x, uv_offset.y);
+    glUniform2f(glGetUniformLocation(active_shader, "uv_range"), uv_range.x, uv_range.y);
+}
+
+void bind_texture(Texture *t, i32 tx, i32 ty, i32 tw, i32 th) {
+    uv_offset = v2((r32)tx/t->w, (r32)ty/t->h);
+    uv_range = v2((r32)tw/t->w, (r32)th/t->h);
+    glUniform2f(glGetUniformLocation(active_shader, "uv_offset"), uv_offset.x, uv_offset.y);
+    glUniform2f(glGetUniformLocation(active_shader, "uv_range"), uv_range.x, uv_range.y);
+}
+
 void draw_quad() {
     glUniformMatrix4fv(glGetUniformLocation(active_shader, "model"), 1, GL_FALSE, &model.Elements[0][0]);
     glUniformMatrix4fv(glGetUniformLocation(active_shader, "view"), 1, GL_FALSE, &view.Elements[0][0]);
@@ -110,5 +128,37 @@ void draw_quad() {
         glDisableVertexAttribArray(1);
         glDisableVertexAttribArray(0);
     }
+    glBindVertexArray(0);
+}
+
+void draw_text(const char *text) {
+    glUniformMatrix4fv(glGetUniformLocation(active_shader, "view"), 1, GL_FALSE, &view.Elements[0][0]);
+    glUniformMatrix4fv(glGetUniformLocation(active_shader, "projection"), 1, GL_FALSE, &projection.Elements[0][0]);
+
+    glBindVertexArray(quad_vao);
+
+    glEnableVertexAttribArray(0);
+    glBindBuffer(GL_ARRAY_BUFFER, quad_vertex_vbo);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, NULL);
+
+    glEnableVertexAttribArray(1);
+    glBindBuffer(GL_ARRAY_BUFFER, quad_uv_vbo);
+    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 0, NULL);
+
+    glEnableVertexAttribArray(2);
+    glBindBuffer(GL_ARRAY_BUFFER, quad_normal_vbo);
+    glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, 0, NULL);
+
+    char c;
+    while((c = *text++)) {
+        glUniformMatrix4fv(glGetUniformLocation(active_shader, "model"), 1, GL_FALSE, &model.Elements[0][0]);
+        glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+        translate(18, 0, 0);
+    }
+
+    glDisableVertexAttribArray(2);
+    glDisableVertexAttribArray(1);
+    glDisableVertexAttribArray(0);
+
     glBindVertexArray(0);
 }

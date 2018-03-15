@@ -10,6 +10,7 @@ State init_title() {
 
     t->camera.pos = v3(0, 0, 0);
     t->camera.orientation = t->camera.target_orientation = v3(0, 0, 0);
+    t->camera.interpolation_rate = 0.1;
 
     return s;
 }
@@ -24,22 +25,31 @@ void clean_up_title(State *s) {
 void update_title() {
     Title *t = (Title *)state.mem;
 
+    if(left_mouse_down) {
+        t->camera.target_orientation.x += 3;
+    }
+    if(right_mouse_down) {
+        t->camera.target_orientation.x -= 3;
+    }
+
     update_camera(&t->camera);
     {
         v3 target = t->camera.pos +
                     v3(
-                        cos(t->camera.orientation.x),
-                        sin(t->camera.orientation.y),
-                        sin(t->camera.orientation.x)
+                        cos(deg2rad(t->camera.orientation.x)),
+                        sin(deg2rad(t->camera.orientation.y)),
+                        sin(deg2rad(t->camera.orientation.x))
                     );
         look_at(t->camera.pos, target);
     }
 
-    bind_texture(tiles);
-    reset_model();
-    translate(32, 32, 32);
-    scale(32, 32, 32);
     set_shader(&texture_quad_shader);
-    draw_quad();
+    {
+        bind_texture(&tiles);
+        reset_model();
+        translate(32, 32, 32);
+        scale(32, 32, 32);
+        draw_quad();
+    }
     set_shader(0);
 }

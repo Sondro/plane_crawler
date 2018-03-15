@@ -298,6 +298,11 @@ typedef union hmm_vec2
 
     struct
     {
+        float x, y;
+    };
+
+    struct
+    {
         float U, V;
     };
 
