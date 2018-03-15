@@ -6,6 +6,7 @@ State init_game() {
     State s;
     s.mem = malloc(sizeof(Game));
     Game *g = (Game *)s.mem;
+    return s;
 }
 
 void clean_up_game(State *s) {

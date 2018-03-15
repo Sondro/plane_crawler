@@ -6,6 +6,7 @@ State init_title() {
     State s;
     s.mem = malloc(sizeof(Title));
     Title *t = (Title *)s.mem;
+    return s;
 }
 
 void clean_up_title(State *s) {

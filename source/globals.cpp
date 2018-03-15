@@ -6,8 +6,6 @@ global r64 mouse_x, mouse_y;
 
 global hmm_m4 model, view, projection;
 
-global void *memory = 0;
-
 global r64 current_time = 0;
 
 r32 random32(r32 low, r32 high) {
