@@ -1,4 +1,4 @@
-C := g++
+CC := g++
 CC_FLAGS := -Wall -g -msse4.1 -std=c++11
 LIB := -lglfw3 -lglew32 -lopengl32 -lgdi32
 

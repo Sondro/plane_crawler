@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes" ?>
+<CodeBlocks_project_file>
+	<FileVersion major="1" minor="6" />
+	<Project>
+		<Option title="plane_crawler" />
+		<Option makefile="Makefile_windows" />
+		<Option makefile_is_custom="1" />
+		<Option pch_mode="2" />
+		<Option compiler="gcc" />
+		<Build>
+			<Target title="">
+				<Option output="plane_crawler" prefix_auto="1" extension_auto="1" />
+				<Option type="0" />
+				<Option compiler="gcc" />
+			</Target>
+			<MakeCommands>
+				<Build command="$make -f $makefile" />
+				<CompileFile command="" />
+				<Clean command="$make -f $makefile clean" />
+				<DistClean command="$make -f $makefile distclean$target" />
+				<AskRebuildNeeded command="$make -f $makefile clean" />
+				<SilentBuild command="$make -f $makefile &gt; $(CMD_NULL)" />
+			</MakeCommands>
+		</Build>
+		<Compiler>
+			<Add option="-Wall" />
+		</Compiler>
+		<Unit filename="source/ext/HandmadeMath.h" />
+		<Unit filename="source/ext/rf_utils.h" />
+		<Unit filename="source/globals.cpp" />
+		<Unit filename="source/main.cpp" />
+		<Unit filename="source/noise.cpp" />
+		<Unit filename="source/resources.cpp" />
+		<Unit filename="source/viewer.cpp" />
+		<Extensions>
+			<code_completion />
+			<envvars />
+			<debugger />
+		</Extensions>
+	</Project>
+</CodeBlocks_project_file>
