@@ -10,8 +10,8 @@ TODO:
 
 // Program Options
 #define                     FPS 60.0
-#define             HEIGHTMAP_W 500
-#define             HEIGHTMAP_H 500
+#define             HEIGHTMAP_W 100
+#define             HEIGHTMAP_H 100
 #define     HEIGHTMAP_CELL_SIZE 1.0
 #define     RESOURCES_DIRECTORY "./resource/"
 #define              NOISE_SEED 123456
@@ -35,8 +35,7 @@ TODO:
 // Viewer Code
 #include "globals.cpp"
 #include "resources.cpp"
-#include "noise.cpp"
-#include "viewer.cpp"
+#include "state.cpp"
 //
 
 int main() {
@@ -49,7 +48,7 @@ int main() {
         window_h = 900;
         window = glfwCreateWindow(window_w, window_h, "Plane Crawler", 0, 0);
         if(window) {
-            {
+            { // center window
                 const GLFWvidmode *mode = glfwGetVideoMode(glfwGetPrimaryMonitor());
                 glfwSetWindowPos(window, mode->width/2 - window_w/2, mode->height/2 - window_h/2);
             }
@@ -58,17 +57,18 @@ int main() {
             glfwSwapInterval(0);
 
             if(!glewInit()) {
-                glEnable(GL_TEXTURE_2D);
-                glEnable(GL_CULL_FACE);
-                glAlphaFunc(GL_GREATER, 1);
-                glEnable(GL_BLEND);
-                glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-                glEnable(GL_DEPTH_TEST);
-                glDepthFunc(GL_LESS);
+                //glEnable(GL_TEXTURE_2D);
+                //glEnable(GL_CULL_FACE);
+                //glAlphaFunc(GL_GREATER, 1);
+                //glEnable(GL_BLEND);
+                //glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+                //glEnable(GL_DEPTH_TEST);
+                //glDepthFunc(GL_LESS);
 
                 srand((unsigned int)time(NULL));
 
-                init_viewer();
+                state = init_title();
+                next_state.type = 0;
 
                 while(!glfwWindowShouldClose(window)) {
                     current_time = glfwGetTime();
@@ -81,7 +81,7 @@ int main() {
                     glClearColor(0, 0, 0, 1);
                     glViewport(0, 0, window_w, window_h);
                     { // @Update
-                        update_viewer();
+                        update_state();
                     }
                     glfwSwapBuffers(window);
 
@@ -92,10 +92,18 @@ int main() {
                         }
                     }
 
+                    if(next_state.type) {
+                        clean_up_state();
+                        state.mem = next_state.mem;
+                        state.type = next_state.type;
+                        next_state.mem = 0;
+                        next_state.type = 0;
+                    }
+
                     while(glfwGetTime() < current_time + (1.0 / FPS));
                 }
 
-                clean_up_viewer();
+                clean_up_state();
             }
             else {
                 fprintf(log_file, "ERROR: GLEW initialization failed\n\n");
