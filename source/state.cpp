@@ -16,6 +16,7 @@ global struct State {
 State init_title();
 State init_game();
 
+#include "map.cpp"
 #include "state_title.cpp"
 #include "state_game.cpp"
 
