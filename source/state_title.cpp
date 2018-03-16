@@ -48,8 +48,20 @@ void update_title() {
         }
     }
 
+    begin_block(0, 256, 64*3);
+    {
+        if(do_button(0, 256, 64, "Play")) {
+
+        }
+        if(do_button(1, 256, 64, "Settings")) {
+
+        }
+        if(do_button(2, 256, 64, "Quit")) {
+
+        }
+    }
+    end_block();
+
     // @UI Render
     prepare_for_ui_render();
-    //draw_ui_rect(v4(1, 0, 0, 1), v4(mouse_x, mouse_y, 64, 64), 4);
-    draw_ui_text("Hello, World!", 0, v2(mouse_x, mouse_y + 64));
 }

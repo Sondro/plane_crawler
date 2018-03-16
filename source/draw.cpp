@@ -185,6 +185,7 @@ void draw_ui_rect(v4 color, v4 bb, r32 thickness) {
         reset_model();
         translate(pos.x, pos.y, 0);
         scale(size.x, size.y, 1);
+        translate(1, -1, 0);
         draw_quad();
     }
     set_shader(0);
@@ -205,6 +206,7 @@ void draw_ui_filled_rect(v4 color, v4 bb, r32 thickness) {
         reset_model();
         translate(pos.x, pos.y, 0);
         scale(size.x, size.y, 1);
+        translate(1, -1, 0);
         draw_quad();
     }
     set_shader(0);

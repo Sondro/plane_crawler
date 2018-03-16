@@ -112,31 +112,13 @@ void ui_end() {
             }
 
             { // @UI Element Rendering
-                printf("%f %f\n", ui.renders[i].bb.x, ui.renders[i].bb.y);
+                v4 bb = ui.renders[i].bb;
 
-                v4 screen_pos = v4((ui.renders[i].bb.x/window_w)*2 - 1,
-                                   ((-ui.renders[i].bb.y + sin(current_time*10)*ui.renders[i].t_hot*10)/window_h)*2,
-                                   0, 1);
+                bb.y += sin(current_time*15) * 2 * ui.renders[i].t_hot * (1-ui.renders[i].t_active);
+                bb.y += ui.renders[i].t_active * 10;
 
-                v4 size = v4(ui.renders[i].bb.z, ui.renders[i].bb.w, 0, 0);
-
-                m4 view_inverse = m4_inverse(view),
-                   proj_inverse = m4_inverse(projection);
-
-                v4 world_pos = view_inverse * (proj_inverse * screen_pos);
-                size = view_inverse * (proj_inverse * size);
-
-                set_shader(&texture_quad_shader);
-                {
-                    bind_texture(&tiles);
-                    reset_model();
-                    translate(world_pos.x, world_pos.y, 0);
-                    scale(size.x, size.y, 1);
-                    draw_quad();
-                }
-                set_shader(0);
-
-                //draw_text(ui.renders[i].text, ALIGN_LEFT, v3(world_pos.x, world_pos.y, world_pos.z), 0.1, 0);
+                draw_ui_rect(v4(0.3, 0.3, 0.3, 1), bb, 4);
+                draw_ui_text(ui.renders[i].text, 0, v2(bb.x, bb.y));
             }
             ui.renders[i].updated = 0;
         }
