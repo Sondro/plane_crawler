@@ -10,4 +10,5 @@ uniform vec2 uv_offset, uv_range;
 
 void main() {
     color = texture(tex, uv_offset + uv*uv_range);
+    color = vec4(1, 0, 0, 1);
 }

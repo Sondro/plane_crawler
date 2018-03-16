@@ -379,9 +379,17 @@ typedef union hmm_vec4
             {
                 float X, Y, Z;
             };
+            
+            struct 
+            {
+                float x, y, z;
+            };
         };
-
-        float W;
+        
+        union {
+            float W;
+            float w;
+        };
     };
     struct
     {

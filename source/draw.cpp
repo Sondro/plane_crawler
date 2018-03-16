@@ -132,6 +132,8 @@ void draw_quad() {
 }
 
 void draw_text(const char *text) {
+    set_shader(&texture_quad_shader);
+    
     glUniformMatrix4fv(glGetUniformLocation(active_shader, "view"), 1, GL_FALSE, &view.Elements[0][0]);
     glUniformMatrix4fv(glGetUniformLocation(active_shader, "projection"), 1, GL_FALSE, &projection.Elements[0][0]);
 
@@ -150,15 +152,33 @@ void draw_text(const char *text) {
     glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, 0, NULL);
 
     char c;
+    i32 tx = 0,
+        ty = 0;
+
+    bind_texture(&small_font, 0, 0, 6, 8);
+
     while((c = *text++)) {
+        c = toupper(c);
+        if(c >= 65 && c <= 91) {
+            tx = 6*(c-65);
+            ty = 0;
+        }
+
+        uv_offset = v2((r32)tx/small_font.w, (r32)ty/small_font.h); 
+        glUniform2f(glGetUniformLocation(active_shader, "uv_offset"), uv_offset.x, uv_offset.y);
+        
         glUniformMatrix4fv(glGetUniformLocation(active_shader, "model"), 1, GL_FALSE, &model.Elements[0][0]);
         glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
         translate(18, 0, 0);
     }
+
+    bind_texture(0);
 
     glDisableVertexAttribArray(2);
     glDisableVertexAttribArray(1);
     glDisableVertexAttribArray(0);
 
     glBindVertexArray(0);
+    
+    set_shader(0);
 }

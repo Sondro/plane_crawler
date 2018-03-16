@@ -45,11 +45,16 @@ void update_title() {
 
     set_shader(&texture_quad_shader);
     {
-        bind_texture(&tiles);
+        //bind_texture(&tiles);
         reset_model();
-        translate(32, 32, 32);
-        scale(32, 32, 32);
-        draw_quad();
+        translate(-32, 32, -32);
+        scale(3, 3, 3);
+        //draw_quad();
     }
     set_shader(0);
+
+    reset_model();
+    translate(32, 32, 32);
+    scale(32, 32, 32);
+    draw_text("Hello, World!");
 }
