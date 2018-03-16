@@ -69,7 +69,7 @@ int main() {
             if(ogl_LoadFunctions()) {
                 init_input();
                 init_draw();
-                init_ui();   
+                init_ui();
 
                 srand((unsigned int)time(NULL));
 
@@ -87,8 +87,6 @@ int main() {
                     glClearColor(0, 0, 0, 1);
                     glViewport(0, 0, window_w, window_h);
                     { // @Update
-                        projection = HMM_Perspective(FIELD_OF_VIEW, (r32)window_w/window_h, 1.f, 1000.f);
-                        
                         ui_begin();
                         update_state();
                         ui_end();

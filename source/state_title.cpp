@@ -33,28 +33,23 @@ void update_title() {
     }
 
     update_camera(&t->camera);
+
+    // @World Render
+    prepare_for_world_render();
     {
-        v3 target = t->camera.pos +
-                    v3(
-                        cos(deg2rad(t->camera.orientation.x)),
-                        sin(deg2rad(t->camera.orientation.y)),
-                        sin(deg2rad(t->camera.orientation.x))
-                    );
-        look_at(t->camera.pos, target);
+        {
+            v3 target = t->camera.pos +
+                        v3(
+                            cos(deg2rad(t->camera.orientation.x)),
+                            sin(deg2rad(t->camera.orientation.y)),
+                            sin(deg2rad(t->camera.orientation.x))
+                        );
+            look_at(t->camera.pos, target);
+        }
     }
 
-    set_shader(&texture_quad_shader);
-    {
-        //bind_texture(&tiles);
-        reset_model();
-        translate(-32, 32, -32);
-        scale(3, 3, 3);
-        //draw_quad();
-    }
-    set_shader(0);
-
-    reset_model();
-    translate(32, 32, 32);
-    scale(32, 32, 32);
-    draw_text("Hello, World!");
+    // @UI Render
+    prepare_for_ui_render();
+    //draw_ui_rect(v4(1, 0, 0, 1), v4(mouse_x, mouse_y, 64, 64), 4);
+    draw_ui_text("Hello, World!", 0, v2(mouse_x, mouse_y + 64));
 }

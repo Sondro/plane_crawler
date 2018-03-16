@@ -28,7 +28,7 @@ struct UIRender {
         struct { // @Toggler (checkbox or radio button)
             i8 checked;
         };
-        
+
         struct { // @Slider
             r32 slider_val;
         };
@@ -41,10 +41,10 @@ struct UIRender {
 
 global struct {
     ui_id hot, active;
-    
+
     u32 render_count;
     UIRender renders[MAX_UI_RENDER];
-    
+
     i8 focusing;
     u32 focus_count;
     ui_id focus_ids[MAX_UI_RENDER];
@@ -74,11 +74,11 @@ void init_ui() {
     ui.hot = -1;
     ui.active = -1;
     ui.render_count = 0;
-    
+
     ui.focusing = 0;
     ui.focus_count = 0;
-    ui.current_focus = 0;
-    
+    ui.current_focus = -1;
+
     ui.block_mode = BLOCK_MODE_VERTICAL;
     ui.current_block = 0;
     ui.current_element_pos = v2(0, 0);
@@ -88,23 +88,55 @@ void init_ui() {
 
 void ui_begin() {
     ui.update_pos = 0;
+    ui.current_element_pos = v2(0, 0);
+    ui.focus_count = 0;
 }
 
 void ui_end() {
+    prepare_for_ui_render();
+
     for(u32 i = ui.render_count - 1; i >= 0 && i < ui.render_count; --i) {
         if(ui.renders[i].updated) {
             if(ui_id_equ(ui.hot, ui.renders[i].id)) {
                 ui.renders[i].t_hot += (1-ui.renders[i].t_hot) * 0.15;
             }
             else {
-                ui.renders[i].t_active *= 0.95;
+                ui.renders[i].t_hot *= 0.8;
             }
 
             if(ui_id_equ(ui.active, ui.renders[i].id)) {
                 ui.renders[i].t_active += (1-ui.renders[i].t_active) * 0.15;
             }
             else {
-                ui.renders[i].t_active *= 0.95;
+                ui.renders[i].t_active *= 0.8;
+            }
+
+            { // @UI Element Rendering
+                printf("%f %f\n", ui.renders[i].bb.x, ui.renders[i].bb.y);
+
+                v4 screen_pos = v4((ui.renders[i].bb.x/window_w)*2 - 1,
+                                   ((-ui.renders[i].bb.y + sin(current_time*10)*ui.renders[i].t_hot*10)/window_h)*2,
+                                   0, 1);
+
+                v4 size = v4(ui.renders[i].bb.z, ui.renders[i].bb.w, 0, 0);
+
+                m4 view_inverse = m4_inverse(view),
+                   proj_inverse = m4_inverse(projection);
+
+                v4 world_pos = view_inverse * (proj_inverse * screen_pos);
+                size = view_inverse * (proj_inverse * size);
+
+                set_shader(&texture_quad_shader);
+                {
+                    bind_texture(&tiles);
+                    reset_model();
+                    translate(world_pos.x, world_pos.y, 0);
+                    scale(size.x, size.y, 1);
+                    draw_quad();
+                }
+                set_shader(0);
+
+                //draw_text(ui.renders[i].text, ALIGN_LEFT, v3(world_pos.x, world_pos.y, world_pos.z), 0.1, 0);
             }
             ui.renders[i].updated = 0;
         }
@@ -116,6 +148,7 @@ void ui_end() {
 
 void begin_block(u32 block_number, r32 w, r32 h) {
     ui.focusing = (ui.current_block == block_number);
+    ui.current_element_pos = v2(window_w/2 - w/2, window_h/2 - h/2);
 }
 
 void end_block() {
@@ -157,7 +190,7 @@ i8 do_button(ui_id id, r32 w, r32 h, const char *text) {
 
         if(ui.current_focus >= 0) { // @Keyboard controls
             if(ui_fire_pressed) {
-                fired = 1; 
+                fired = 1;
             }
         }
         else { // @Mouse controls
