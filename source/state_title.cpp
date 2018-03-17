@@ -46,7 +46,7 @@ void update_title() {
         end_block();
     }
     else if(t->state == TITLE_SAVES) {
-        begin_block(0, 256, 64*4 + 24);
+        begin_block(0, UI_STANDARD_W, UI_STANDARD_H*4 + 24);
         {
             i8 slots_full[] = {
                 file_exists("./save/save1"),
@@ -54,13 +54,13 @@ void update_title() {
                 file_exists("./save/save3")
             };
             
-            if(do_button(GEN_ID, 256, 64, slots_full[0] ? "Slot 1" : "Slot 1 (Empty)")) {
+            if(do_button(GEN_ID, UI_STANDARD_W, UI_STANDARD_H, slots_full[0] ? "Slot 1" : "Slot 1 (Empty)")) {
                 next_state = init_game();
             }
-            if(do_button(GEN_ID, 256, 64, slots_full[1] ? "Slot 2" : "Slot 2 (Empty)")) {
+            if(do_button(GEN_ID, UI_STANDARD_W, UI_STANDARD_H, slots_full[1] ? "Slot 2" : "Slot 2 (Empty)")) {
                 
             }
-            if(do_button(GEN_ID, 256, 64, slots_full[2] ? "Slot 3" : "Slot 3 (Empty)")) {
+            if(do_button(GEN_ID, UI_STANDARD_W, UI_STANDARD_H, slots_full[2] ? "Slot 3" : "Slot 3 (Empty)")) {
                 
             } 
 

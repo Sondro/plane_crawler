@@ -8,6 +8,11 @@
 #define rotate(a, x, y, z)   { model = HMM_Multiply(model, HMM_Rotate(a, HMM_Vec3(x, y, z))); }
 #define look_at(p, t)        { view = HMM_LookAt(p, t, HMM_Vec3(0, 1, 0)); }
 
+struct FBO {
+    GLuint id, texture;
+    i32 w, h;
+};
+
 global m4 model, view, projection,
           view_inv, projection_inv;
 
@@ -27,6 +32,8 @@ GLuint active_shader = 0,
        quad_vertex_vbo = 0,
        quad_uv_vbo = 0,
        quad_normal_vbo = 0;
+
+FBO *active_fbo = 0;
 
 void init_draw() {
     glEnable(GL_BLEND);
@@ -92,6 +99,43 @@ void clean_up_draw() {
     clean_up_texture(&tiles);
 }
 
+FBO init_fbo(i32 w, i32 h) {
+    FBO f;
+    f.w = w;
+    f.h = h;
+
+    glGenFramebuffers(1, &f.id);
+    glBindFramebuffer(GL_FRAMEBUFFER, f.id);
+
+    glGenTextures(1, &f.texture);
+    glBindTexture(GL_TEXTURE_2D, f.texture);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, w, h, 0, GL_RGBA, GL_UNSIGNED_BYTE, 0);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+
+    glFramebufferTexture(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, f.texture, 0);
+    GLenum draw_buffers[1] = { GL_COLOR_ATTACHMENT0 };
+    glDrawBuffers(1, draw_buffers);
+
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+    return f;
+}
+
+void clean_up_fbo(FBO *f) {
+    glDeleteTextures(1, &f->texture);
+    f->texture = 0;
+    glDeleteFramebuffers(1, &f->id);
+    f->id = 0;
+}
+
+void force_fbo_size(FBO *f, i32 w, i32 h) {
+    if(f->w != w || f->h != h) {
+        clean_up_fbo(f);
+        *f = init_fbo(w, h);
+    }
+}
+
 void prepare_for_world_render() {
     projection = HMM_Perspective(FIELD_OF_VIEW, (r32)window_w/window_h, 1.f, 1000.f);
     reset_model();
@@ -128,6 +172,28 @@ void bind_texture(Texture *t, i32 tx, i32 ty, i32 tw, i32 th) {
     uv_range = v2((r32)tw/t->w, (r32)th/t->h);
     glUniform2f(glGetUniformLocation(active_shader, "uv_offset"), uv_offset.x, uv_offset.y);
     glUniform2f(glGetUniformLocation(active_shader, "uv_range"), uv_range.x, uv_range.y);
+}
+
+void bind_fbo(FBO *fbo) {
+    if(fbo) {
+        glBindFramebuffer(GL_FRAMEBUFFER, fbo->id);
+        glViewport(0, 0, fbo->w, fbo->h);
+    }
+    else {
+        glBindFramebuffer(GL_FRAMEBUFFER, 0);
+        glViewport(0, 0, window_w, window_h);
+    }
+
+    active_fbo = fbo;
+}
+
+void clear_fbo(FBO *fbo) {
+    bind_fbo(fbo);
+    {
+        glClearColor(0, 0, 0, 0);
+        glClear(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
+    }
+    bind_fbo(NULL);
 }
 
 //
@@ -203,6 +269,60 @@ void draw_ui_filled_rect(v4 color, v4 bb) {
         glUniform4f(glGetUniformLocation(active_shader, "rect_color"), color.x, color.y, color.z, color.w);
         glUniform2f(glGetUniformLocation(active_shader, "thickness"), -1, -1);
 
+        reset_model();
+        translate(pos.x, pos.y, 0);
+        scale(size.x, size.y, 1);
+        translate(1, -1, 0);
+        draw_quad();
+    }
+    set_shader(0);
+}
+
+//
+// @Note (Ryan)
+//
+// "tbb" is short for "texture bounding box", which
+// is just the rectangle from the texture that you'd
+// like to draw. The bounding boxes expect x/y position
+// and width and height (as opposed to a secondary x/y
+// positions).
+//
+
+void draw_ui_texture(Texture *texture, v4 tbb, v4 bb) {
+    set_shader(&texture_quad_shader);
+    {
+        bind_texture(texture, tbb.x, tbb.y, tbb.z, tbb.w);
+
+        v4 pos = v4((bb.x/window_w)*2 - 1, -(bb.y/window_h)*2 + 1, 0, 1);
+        v4 size = v4(bb.z/window_w, bb.w/window_h, 0, 0);
+
+        pos = view_inv * projection_inv * pos;
+        size = view_inv * projection_inv * size;
+        
+        reset_model();
+        translate(pos.x, pos.y, 0);
+        scale(size.x, size.y, 1);
+        translate(1, -1, 0);
+        draw_quad();
+    }
+    set_shader(0);
+}
+
+void draw_ui_fbo(FBO *fbo, v4 tbb, v4 bb) {
+    set_shader(&texture_quad_shader);
+    {
+        Texture texture;
+        texture.id = fbo->texture;
+        texture.w = fbo->w;
+        texture.h = -fbo->h;
+        bind_texture(&texture, tbb.x, tbb.y + texture.h, tbb.z, tbb.w);
+
+        v4 pos = v4((bb.x/window_w)*2 - 1, -(bb.y/window_h)*2 + 1, 0, 1);
+        v4 size = v4(bb.z/window_w, bb.w/window_h, 0, 0);
+
+        pos = view_inv * projection_inv * pos;
+        size = view_inv * projection_inv * size;
+        
         reset_model();
         translate(pos.x, pos.y, 0);
         scale(size.x, size.y, 1);

@@ -39,6 +39,12 @@ void generate_map(Map *m) {
         }   
     }
 
+    foreach(i, MAP_W) {
+        foreach(j, MAP_H) {
+            m->tiles[i][j] = TILE_DIRT;
+        }
+    }
+
     r32 *vertices = heap_alloc(r32, (MAP_W) * (MAP_H) * 2 * 9),
         *uvs = vertices,
         *normals = vertices;
@@ -89,25 +95,33 @@ void generate_map(Map *m) {
     { // @Vertex UV Generation
         u32 write_x = 0,
             write_z = 0;
-
+        
+        r32 uv_offset_x = 0,
+            uv_offset_y = 0,
+            uv_range_x = 16.f/tiles.w,
+            uv_range_y = 16.f/tiles.h;
+        
         for(u32 i = 0; i < (MAP_W*MAP_H) * 2 * 6; i += 12) {
-            uvs[i]     = 0;
-            uvs[i+1]   = 0;
+            uv_offset_x = tile_data[m->tiles[write_x][write_z]].tx / (r32)tiles.w;
+            uv_offset_y = tile_data[m->tiles[write_x][write_z]].ty / (r32)tiles.h;
 
-            uvs[i+2]   = 0;
-            uvs[i+3]   = 1;
+            uvs[i]     = uv_offset_x;
+            uvs[i+1]   = uv_offset_y;
 
-            uvs[i+4]   = 1;
-            uvs[i+5]   = 0;
+            uvs[i+2]   = uv_offset_x;
+            uvs[i+3]   = uv_offset_y + uv_range_y;
 
-            uvs[i+6]   = 1;
-            uvs[i+7]   = 0;
+            uvs[i+4]   = uv_offset_x + uv_range_x;
+            uvs[i+5]   = uv_offset_y;
 
-            uvs[i+8]   = 0;
-            uvs[i+9]   = 1;
+            uvs[i+6]   = uv_offset_x + uv_range_x;
+            uvs[i+7]   = uv_offset_y;
 
-            uvs[i+10]  = 1;
-            uvs[i+11]  = 1;
+            uvs[i+8]   = uv_offset_x;
+            uvs[i+9]   = uv_offset_y + uv_range_y;
+
+            uvs[i+10]  = uv_offset_x + uv_range_x;
+            uvs[i+11]  = uv_offset_y + uv_range_y;
 
             if(++write_x >= MAP_W) {
                 write_x = 0;

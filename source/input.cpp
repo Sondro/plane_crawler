@@ -26,6 +26,9 @@ global i16 last_key = 0, last_char_mods = 0;
 #define left_mouse_pressed      (!(mouse_state & 1<<7) && (mouse_state & 1<<5))
 #define right_mouse_pressed     (!(mouse_state & 1<<6) && (mouse_state & 1<<4))
 
+#define key_control_down(i)     (key_down[key_control_maps[i]])
+#define key_control_pressed(i)  (key_pressed[key_control_maps[i]])
+
 enum {
     KEY_SPACE               = GLFW_KEY_SPACE,
     KEY_APOSTROPHE          = GLFW_KEY_APOSTROPHE,
@@ -147,6 +150,23 @@ enum {
     KEY_RIGHT_ALT           = GLFW_KEY_RIGHT_ALT,
     KEY_RIGHT_SUPER         = GLFW_KEY_RIGHT_SUPER,
     KEY_MENU                = GLFW_KEY_MENU
+};
+
+enum { // @Key Controls
+    KC_MOVE_FORWARD,
+    KC_MOVE_BACKWARD,
+    KC_MOVE_LEFT,
+    KC_MOVE_RIGHT,
+    KC_PAUSE,
+    MAX_KC
+};
+
+i16 key_control_maps[MAX_KC] = {
+    KEY_W,
+    KEY_S,
+    KEY_A,
+    KEY_D,
+    KEY_ESCAPE,
 };
 
 static void key_callback(GLFWwindow *window, int key, int scancode, int action, int mods) {

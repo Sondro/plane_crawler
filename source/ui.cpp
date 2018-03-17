@@ -114,7 +114,7 @@ void ui_end() {
             }
         }
         if(ui_down_pressed) {
-            if(++ui.current_focus >= ui.focus_count) {
+            if(++ui.current_focus >= (i32)ui.focus_count) {
                 ui.current_focus = 0;
             }
         }

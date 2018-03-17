@@ -6,8 +6,11 @@
 #define            RESOURCE_DIR "./resource/"
 #define              SHADER_DIR "shader/"
 #define              NOISE_SEED 123456
+
 #define           MAX_UI_RENDER 256
 #define MAX_UI_RENDER_TEXT_SIZE 32
+#define           UI_STANDARD_W 256
+#define           UI_STANDARD_H 64
 //
 
 // External Libraries/Related Code
