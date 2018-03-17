@@ -7,10 +7,6 @@ enum {
     MAX_TILE
 };
 
-/*struct Tile{
-    i8 MAX_TILE;
-};*/
-
-struct map{
+struct Map {
     i8 tile[MAP_W][MAP_H];
 };
