@@ -1,19 +1,20 @@
+#define GEN_ID (__LINE__ + UI_SRC_ID)
 #define ui_id_equ(id1, id2) ((int)(id1*1000) == (int)(id2*1000))
 
 #define BLOCK_MODE_VERTICAL     0
 #define BLOCK_MODE_HORIZONTAL   1
 
-#define ui_left_pressed         0
-#define ui_right_pressed        0
-#define ui_up_pressed           0
-#define ui_down_pressed         0
-#define ui_fire_pressed         0
+#define ui_left_pressed         (last_key == KEY_LEFT  || last_key == KEY_A)
+#define ui_right_pressed        (last_key == KEY_RIGHT || last_key == KEY_D)
+#define ui_up_pressed           (last_key == KEY_UP    || last_key == KEY_W)
+#define ui_down_pressed         (last_key == KEY_DOWN  || last_key == KEY_S)
+#define ui_fire_pressed         (key_pressed[KEY_SPACE] || key_pressed[KEY_ENTER])
 
-#define ui_left_down            0
-#define ui_right_down           0
-#define ui_up_down              0
-#define ui_down_down            0
-#define ui_fire_down            0
+#define ui_left_down            (key_down[KEY_LEFT]  || key_down[KEY_A])
+#define ui_right_down           (key_down[KEY_RIGHT] || key_down[KEY_D])
+#define ui_up_down              (key_down[KEY_UP]    || key_down[KEY_W])
+#define ui_down_down            (key_down[KEY_DOWN]  || key_down[KEY_S])
+#define ui_fire_down            (key_down[KEY_SPACE] || key_down[KEY_ENTER])
 
 typedef r64 ui_id;
 
@@ -93,6 +94,26 @@ void ui_begin() {
 }
 
 void ui_end() {
+    if(ui.current_focus >= 0) {
+        ui.hot = ui.active = ui.focus_ids[ui.current_focus];
+        if(ui_up_pressed) {
+            if(!ui.current_focus--) {
+                ui.current_focus = ui.focus_count - 1;
+            }
+        }
+        if(ui_down_pressed) {
+            if(++ui.current_focus >= ui.focus_count) {
+                ui.current_focus = 0;
+            }
+        }
+
+    }
+    else {
+        if(ui_left_pressed || ui_right_pressed || ui_up_pressed || ui_down_pressed) {
+            ui.current_focus = 0;
+        }
+    }
+
     prepare_for_ui_render();
 
     for(u32 i = ui.render_count - 1; i >= 0 && i < ui.render_count; --i) {
@@ -114,11 +135,18 @@ void ui_end() {
             { // @UI Element Rendering
                 v4 bb = ui.renders[i].bb;
 
-                bb.y += sin(current_time*15) * 2 * ui.renders[i].t_hot * (1-ui.renders[i].t_active);
-                bb.y += ui.renders[i].t_active * 10;
+                draw_ui_filled_rect(ui.renders[i].t_hot * v4(0.8, 0.8, 0.8, 1), 
+                                    v4(bb.x + bb.z/2 - (bb.z/2)*ui.renders[i].t_hot, 
+                                       bb.y + bb.w/2 + 24, 
+                                       (bb.z - 4)*ui.renders[i].t_hot, 4));
+                draw_ui_filled_rect(ui.renders[i].t_hot * v4(0.8, 0.8, 0.8, 1), 
+                                    v4(bb.x + bb.z/2 - (bb.z/2)*ui.renders[i].t_hot, 
+                                       bb.y + bb.w/2 - 24, 
+                                       (bb.z - 4)*ui.renders[i].t_hot, 4));
 
-                draw_ui_rect(v4(0.3, 0.3, 0.3, 1), bb, 4);
-                draw_ui_text(ui.renders[i].text, 0, v2(bb.x, bb.y));
+                bb.y += 4*ui.renders[i].t_active;
+
+                draw_ui_text(ui.renders[i].text, ALIGN_CENTER, v2(bb.x + bb.z/2, bb.y + bb.w/2));
             }
             ui.renders[i].updated = 0;
         }

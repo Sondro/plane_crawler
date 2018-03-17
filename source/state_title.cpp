@@ -1,3 +1,5 @@
+#define UI_SRC_ID 1000
+
 struct Title {
     Camera camera;
 };
@@ -50,18 +52,20 @@ void update_title() {
 
     begin_block(0, 256, 64*3);
     {
-        if(do_button(0, 256, 64, "Play")) {
+        if(do_button(GEN_ID, 256, 64, "Play")) {
+            next_state = init_game();
+        }
+        if(do_button(GEN_ID, 256, 64, "Settings")) {
 
         }
-        if(do_button(1, 256, 64, "Settings")) {
-
-        }
-        if(do_button(2, 256, 64, "Quit")) {
-
-        }
+        if(do_button(GEN_ID, 256, 64, "Quit")) {
+            glfwSetWindowShouldClose(window, 1);
+        } 
     }
     end_block();
 
     // @UI Render
     prepare_for_ui_render();
 }
+
+#undef UI_SRC_ID

@@ -79,6 +79,8 @@ int main() {
                 while(!glfwWindowShouldClose(window)) {
                     current_time = glfwGetTime();
 
+                    last_key = 0;
+                    last_char = 0;
                     glfwPollEvents();
                     glfwGetWindowSize(window, &window_w, &window_h);
                     update_input();

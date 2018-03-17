@@ -191,7 +191,7 @@ void draw_ui_rect(v4 color, v4 bb, r32 thickness) {
     set_shader(0);
 }
 
-void draw_ui_filled_rect(v4 color, v4 bb, r32 thickness) {
+void draw_ui_filled_rect(v4 color, v4 bb) {
     set_shader(&rect_shader);
     {
         v4 pos = v4((bb.x/window_w)*2 - 1, -(bb.y/window_h)*2 + 1, 0, 1);
@@ -215,12 +215,17 @@ void draw_ui_filled_rect(v4 color, v4 bb, r32 thickness) {
 void draw_ui_text(const char *text, int align, v2 position) {
     set_shader(&texture_quad_shader);
     {
-        v4 pos = v4((position.x/window_w)*2 - 1, -(position.y/window_h)*2 + 1, 0, 1);
-        v4 size = v4(24.f/window_w, 32.f/window_h, 0, 0);
-        pos = view_inv * projection_inv * pos;
-        size = view_inv * projection_inv * size;
-
         u32 text_len = strlen(text);
+
+        if(align) {
+            position.x -= text_len*(align == ALIGN_CENTER ? 12 : 24);
+        }
+
+        v4 pos = v4((position.x/window_w)*2 - 1, -(position.y/window_h)*2 + 1, 0, 1);
+        v4 size = v4(24.f/window_w, 32.f/window_h, 0, 0); 
+
+        pos = view_inv * projection_inv * pos;
+        size = view_inv * projection_inv * size; 
 
         reset_model();
         translate(pos.x, pos.y, 0);

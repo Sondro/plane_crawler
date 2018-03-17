@@ -1,3 +1,5 @@
+#define UI_SRC_ID 0
+
 struct Game {
     Camera camera;
 };
@@ -24,3 +26,5 @@ void clean_up_game(State *s) {
 void update_game() {
     Game *g = (Game *)state.mem;
 }
+
+#undef UI_SRC_ID
