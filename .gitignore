@@ -2,4 +2,5 @@
 *.exe
 *.out
 *.zip
+*.layout
 plane_crawler

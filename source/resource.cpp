@@ -266,22 +266,26 @@ Texture load_texture(const char *filename) {
     i32 n = 0;
     u8 *data = stbi_load(pathed_filename, &t.w, &t.h, &n, 0);
 
-    glGenTextures(1, &t.id);
-    glBindTexture(GL_TEXTURE_2D, t.id);
-    {
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
+    if(data) {
+        glGenTextures(1, &t.id);
+        glBindTexture(GL_TEXTURE_2D, t.id);
+        {
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
 
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA,
-                     t.w, t.h,
-                     0, GL_RGBA, GL_UNSIGNED_BYTE,
-                     data);
+            glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA,
+                         t.w, t.h,
+                         0, GL_RGBA, GL_UNSIGNED_BYTE,
+                         data);
+        }
+        glBindTexture(GL_TEXTURE_2D, 0);
+        stbi_image_free(data);
     }
-    glBindTexture(GL_TEXTURE_2D, 0);
-
-    stbi_image_free(data);
+    else {
+        fprintf(log_file, "ERROR: Texture at \"%s\" could not be loaded\n\n", pathed_filename);
+    }
 
     return t;
 }

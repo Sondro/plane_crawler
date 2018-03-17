@@ -1,3 +1,5 @@
+#define UI_SRC_ID 1000
+
 struct Title {
     Camera camera;
 };
@@ -33,23 +35,37 @@ void update_title() {
     }
 
     update_camera(&t->camera);
+
+    // @World Render
+    prepare_for_world_render();
     {
-        v3 target = t->camera.pos +
-                    v3(
-                        cos(deg2rad(t->camera.orientation.x)),
-                        sin(deg2rad(t->camera.orientation.y)),
-                        sin(deg2rad(t->camera.orientation.x))
-                    );
-        look_at(t->camera.pos, target);
+        {
+            v3 target = t->camera.pos +
+                        v3(
+                            cos(deg2rad(t->camera.orientation.x)),
+                            sin(deg2rad(t->camera.orientation.y)),
+                            sin(deg2rad(t->camera.orientation.x))
+                        );
+            look_at(t->camera.pos, target);
+        }
     }
 
-    set_shader(&texture_quad_shader);
+    begin_block(0, 256, 64*3);
     {
-        bind_texture(&tiles);
-        reset_model();
-        translate(32, 32, 32);
-        scale(32, 32, 32);
-        draw_quad();
+        if(do_button(GEN_ID, 256, 64, "Play")) {
+            next_state = init_game();
+        }
+        if(do_button(GEN_ID, 256, 64, "Settings")) {
+
+        }
+        if(do_button(GEN_ID, 256, 64, "Quit")) {
+            glfwSetWindowShouldClose(window, 1);
+        } 
     }
-    set_shader(0);
+    end_block();
+
+    // @UI Render
+    prepare_for_ui_render();
 }
+
+#undef UI_SRC_ID

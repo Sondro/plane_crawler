@@ -6,6 +6,8 @@
 #define            RESOURCE_DIR "./resource/"
 #define              SHADER_DIR "shader/"
 #define              NOISE_SEED 123456
+#define           MAX_UI_RENDER 256
+#define MAX_UI_RENDER_TEXT_SIZE 32
 //
 
 // External Libraries/Related Code
@@ -15,6 +17,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
+#include <ctype.h>
 //
 
 // Internal Libraries
@@ -24,10 +27,12 @@
 #include "ext/HandmadeMath.h"
 typedef hmm_v2 v2;
 typedef hmm_v3 v3;
+typedef hmm_v4 v4;
 typedef hmm_m4 m4;
-#define v2(x, y)    HMM_Vec2(x, y)
-#define v3(x, y, z) HMM_Vec3(x, y, z)
-#define m4(d)       HMM_Mat4d(d)
+#define v2(x, y)        HMM_Vec2(x, y)
+#define v3(x, y, z)     HMM_Vec3(x, y, z)
+#define v4(x ,y, z, w)  HMM_Vec4(x, y, z, w)
+#define m4(d)           HMM_Mat4d(d)
 
 #define STB_IMAGE_IMPLEMENTATION
 #define STBI_ONLY_PNG
@@ -39,6 +44,7 @@ typedef hmm_m4 m4;
 #include "input.cpp"
 #include "resource.cpp"
 #include "draw.cpp"
+#include "ui.cpp"
 #include "state.cpp"
 //
 
@@ -63,6 +69,7 @@ int main() {
             if(ogl_LoadFunctions()) {
                 init_input();
                 init_draw();
+                init_ui();
 
                 srand((unsigned int)time(NULL));
 
@@ -72,6 +79,8 @@ int main() {
                 while(!glfwWindowShouldClose(window)) {
                     current_time = glfwGetTime();
 
+                    last_key = 0;
+                    last_char = 0;
                     glfwPollEvents();
                     glfwGetWindowSize(window, &window_w, &window_h);
                     update_input();
@@ -80,8 +89,9 @@ int main() {
                     glClearColor(0, 0, 0, 1);
                     glViewport(0, 0, window_w, window_h);
                     { // @Update
-                        projection = HMM_Perspective(FIELD_OF_VIEW, (r32)window_w/window_h, 1.f, 1000.f);
+                        ui_begin();
                         update_state();
+                        ui_end();
                     }
                     glfwSwapBuffers(window);
 
