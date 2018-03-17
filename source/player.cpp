@@ -1,7 +1,6 @@
 struct Player {
-    v3 pos,
-       orientation,
-       target_orientation;
+    v2 position,
+       velocity;
 
     r32 health,
         mana;

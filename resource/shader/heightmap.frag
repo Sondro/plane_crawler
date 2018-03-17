@@ -1,17 +1,18 @@
 #version 330 core
 
+in vec2 uv;
 in vec3 vert_normal;
-in vec3 vert_color;
-
 out vec4 color;
+
+uniform sampler2D tex;
 
 void main() {
     vec3 light_vector = vec3(1, -1, 1);
-    float light_factor = dot(normalize(vert_normal), normalize(light_vector));
 
+    float light_factor = dot(normalize(vert_normal), normalize(light_vector));
     light_factor = 0.5 + light_factor*0.5;
 
-    color = vec4(vert_color * light_factor, 1);
-    //color = vec4(vec3(1, 0, 0) * light_factor, 1);
-    //color = vec4(vert_normal, 1);
+    vec3 albedo = texture(tex, uv).rgb;
+
+    color = vec4(albedo*light_factor, 1);
 }

@@ -10,7 +10,6 @@ global struct State {
     void *mem;
 } state, next_state;
 
-#include "noise.cpp"
 #include "camera.cpp"
 
 State init_title();
