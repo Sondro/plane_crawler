@@ -1,7 +1,12 @@
 #define UI_SRC_ID 1000
 
+enum {
+    TITLE_MAIN,
+    TITLE_SAVES,
+};
+
 struct Title {
-    Camera camera;
+    i8 state;
 };
 
 State init_title() {
@@ -10,9 +15,7 @@ State init_title() {
     s.mem = malloc(sizeof(Title));
     Title *t = (Title *)s.mem;
 
-    t->camera.pos = v3(0, 0, 0);
-    t->camera.orientation = t->camera.target_orientation = v3(0, 0, 0);
-    t->camera.interpolation_rate = 0.1;
+    t->state = TITLE_MAIN;
 
     return s;
 }
@@ -26,43 +29,49 @@ void clean_up_title(State *s) {
 
 void update_title() {
     Title *t = (Title *)state.mem;
-
-    if(left_mouse_down) {
-        t->camera.target_orientation.x += 3;
-    }
-    if(right_mouse_down) {
-        t->camera.target_orientation.x -= 3;
-    }
-
-    update_camera(&t->camera);
-
-    // @World Render
-    prepare_for_world_render();
-    {
+    
+    if(t->state == TITLE_MAIN) {
+        begin_block(0, 256, 64*3);
         {
-            v3 target = t->camera.pos +
-                        v3(
-                            cos(deg2rad(t->camera.orientation.x)),
-                            sin(deg2rad(t->camera.orientation.y)),
-                            sin(deg2rad(t->camera.orientation.x))
-                        );
-            look_at(t->camera.pos, target);
+            if(do_button(GEN_ID, 256, 64, "Play")) {
+                t->state = TITLE_SAVES;
+            }
+            if(do_button(GEN_ID, 256, 64, "Settings")) {
+                
+            }
+            if(do_button(GEN_ID, 256, 64, "Quit")) {
+                glfwSetWindowShouldClose(window, 1);
+            } 
         }
+        end_block();
     }
+    else if(t->state == TITLE_SAVES) {
+        begin_block(0, 256, 64*4 + 24);
+        {
+            i8 slots_full[] = {
+                file_exists("./save/save1"),
+                file_exists("./save/save2"),
+                file_exists("./save/save3")
+            };
+            
+            if(do_button(GEN_ID, 256, 64, slots_full[0] ? "Slot 1" : "Slot 1 (Empty)")) {
+                next_state = init_game();
+            }
+            if(do_button(GEN_ID, 256, 64, slots_full[1] ? "Slot 2" : "Slot 2 (Empty)")) {
+                
+            }
+            if(do_button(GEN_ID, 256, 64, slots_full[2] ? "Slot 3" : "Slot 3 (Empty)")) {
+                
+            } 
 
-    begin_block(0, 256, 64*3);
-    {
-        if(do_button(GEN_ID, 256, 64, "Play")) {
-            next_state = init_game();
-        }
-        if(do_button(GEN_ID, 256, 64, "Settings")) {
+            do_divider();
 
+            if(do_button(GEN_ID, 256, 64, "Back")) {
+                t->state = TITLE_MAIN;
+            }
         }
-        if(do_button(GEN_ID, 256, 64, "Quit")) {
-            glfwSetWindowShouldClose(window, 1);
-        } 
+        end_block();
     }
-    end_block();
 
     // @UI Render
     prepare_for_ui_render();

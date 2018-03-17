@@ -7,6 +7,15 @@ r32 random32(r32 low, r32 high) {
     return low + (((r32)((unsigned int)rand() % 1000) / 1000.f) * (high - low));
 }
 
+i8 file_exists(const char *filename) {
+    FILE *f = fopen(filename, "r");
+    if(f) {
+        fclose(f);
+        return 1;
+    }
+    return 0;
+}
+
 m4 m4_inverse(m4 m) {
     r32 coef00 = m.Elements[2][2] * m.Elements[3][3] - m.Elements[3][2] * m.Elements[2][3];
     r32 coef02 = m.Elements[1][2] * m.Elements[3][3] - m.Elements[3][2] * m.Elements[1][3];
