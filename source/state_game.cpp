@@ -67,8 +67,22 @@ void update_game() {
         }
     }
     else { // @Unpaused update
+        if(key_control_down(KC_MOVE_FORWARD)) {
+            g->camera.pos.x += 0.1;
+        }
+        if(key_control_down(KC_MOVE_BACKWARD)) {
+            g->camera.pos.x -= 0.1;
+        }
+        if(key_control_down(KC_MOVE_LEFT)) {
+            g->camera.pos.z -= 0.1;
+        }
+        if(key_control_down(KC_MOVE_RIGHT)) {
+            g->camera.pos.z += 0.1;
+        }
+        g->camera.pos.y = map_coordinate_height(&g->map, g->camera.pos.x, g->camera.pos.z) + 1;
         update_camera(&g->camera);
 
+        clear_fbo(&g->pause_render);
         bind_fbo(&g->pause_render);
         {
             prepare_for_world_render(); // @World render
@@ -83,8 +97,6 @@ void update_game() {
                     look_at(g->camera.pos, target);
                 }
                 
-                look_at(v3(15, 15, 15), v3(0, 0, 0));
-
                 draw_map(&g->map);       
             }
 

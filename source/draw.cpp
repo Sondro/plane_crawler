@@ -39,6 +39,8 @@ void init_draw() {
     glEnable(GL_BLEND);
     glDisable(GL_CULL_FACE);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    glEnable(GL_DEPTH_TEST);
+    glDepthFunc(GL_LESS);
 
     small_font = load_texture("font");
     tiles = load_texture("tiles");

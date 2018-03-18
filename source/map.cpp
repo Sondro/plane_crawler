@@ -3,7 +3,9 @@
 
 enum {
     TILE_BRICK,
+    TILE_MOSSY_BRICK,
     TILE_BRICK_WALL,
+    TILE_MOSSY_BRICK_WALL,
     TILE_DIRT,
     TILE_WATER,
     TILE_PIT,
@@ -16,10 +18,12 @@ struct {
        flags;
 } tile_data[MAX_TILE] = {
     { 0, 0, 0 },
-    { 0, 0, 0 },
+    { 1, 0, 0 },
     { 0, 0, 0 }, 
-    { 0, 0, 0 },
-    { 0, 0, 0 },
+    { 1, 0, 0 },
+    { 2, 0, 0 },
+    { 1, 1, 0 },
+    { 0, 1, 0 },
 };
 
 struct Map {
@@ -102,8 +106,8 @@ void generate_map(Map *m) {
             uv_range_y = 16.f/tiles.h;
         
         for(u32 i = 0; i < (MAP_W*MAP_H) * 2 * 6; i += 12) {
-            uv_offset_x = tile_data[m->tiles[write_x][write_z]].tx / (r32)tiles.w;
-            uv_offset_y = tile_data[m->tiles[write_x][write_z]].ty / (r32)tiles.h;
+            uv_offset_x = (tile_data[m->tiles[write_x][write_z]].tx*16) / (r32)tiles.w;
+            uv_offset_y = (tile_data[m->tiles[write_x][write_z]].ty*16) / (r32)tiles.h;
 
             uvs[i]     = uv_offset_x;
             uvs[i+1]   = uv_offset_y;
@@ -216,10 +220,36 @@ void clean_up_map(Map *m) {
     glDeleteVertexArrays(1, &m->vao); 
 }
 
+r32 map_coordinate_height(Map *m, r32 x, r32 z) {
+    if(x >= 0 && x < MAP_W-1 &&
+       z >= 0 && z < MAP_H-1) {
+        int height_x = (int)x, 
+            height_z = (int)z;
+
+        v3 q00, q10,
+           q01, q11;
+
+        q00 = v3(0, m->heights[height_x][height_z], 0);
+        q10 = v3(1, m->heights[height_x+1][height_z], 0);
+        q01 = v3(0, m->heights[height_x][height_z+1], 1);
+        q11 = v3(1, m->heights[height_x+1][height_z+1], 1);
+
+        v3 p = v3(x - height_x, 0, z - height_z);
+        
+        r32 side_0 = q00.y + p.z*(q01.y - q00.y),
+            side_1 = q10.y + p.z*(q11.y - q10.y);
+
+        p.y = side_0 + p.x*(side_1 - side_0);
+
+        return p.y;
+    }
+    return 0.f;
+}
+
 void draw_map(Map *m) {
     { // draw heightmap
-        model = HMM_Translate(HMM_Vec3(-MAP_W/2, 0, -MAP_H/2));
- 
+        reset_model();
+
         set_shader(&heightmap_shader);
         
         glBindTexture(GL_TEXTURE_2D, tiles.id);
@@ -252,5 +282,4 @@ void draw_map(Map *m) {
 
         set_shader(0);
     }
-
 }

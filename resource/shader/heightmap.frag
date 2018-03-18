@@ -10,7 +10,9 @@ void main() {
     vec3 light_vector = vec3(1, -1, 1);
 
     float light_factor = dot(normalize(vert_normal), normalize(light_vector));
-    light_factor = 0.5 + light_factor*0.5;
+    light_factor = 0.6 + light_factor*0.5;
+    
+    if(light_factor > 1) light_factor = 1;
 
     vec3 albedo = texture(tex, uv).rgb;
 
