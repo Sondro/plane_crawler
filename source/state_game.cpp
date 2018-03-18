@@ -17,6 +17,7 @@ State init_game() {
     g->paused = 0;
     g->camera.pos = v3(0, 0, 0);
     g->camera.orientation = g->camera.target_orientation = v3(0, 0, 0);
+    g->camera.interpolation_rate = 0.31;
     generate_map(&g->map);
     
     g->pause_render = init_fbo(window_w, window_h);
@@ -42,7 +43,8 @@ void update_game() {
     force_fbo_size(&g->pause_render, window_w, window_h);
 
     if(key_control_pressed(KC_PAUSE)) {
-        g->paused = !g->paused; 
+        g->paused = !g->paused;
+        ui.current_focus = 0;
     }
 
     if(g->paused) { // @Paused update
@@ -58,13 +60,7 @@ void update_game() {
                 next_state = init_title(); 
             }
         }
-        end_block();
-        
-        prepare_for_ui_render(); // @UI Render (Paused)
-        {
-            draw_ui_fbo(&g->pause_render, v4(0, 0, window_w, window_h), v4(0, 0, window_w, window_h));
-            draw_ui_filled_rect(v4(0, 0, 0, 0.5), v4(0, 0, window_w, window_h)); 
-        }
+        end_block(); 
     }
     else { // @Unpaused update
         if(key_control_down(KC_MOVE_FORWARD)) {
@@ -79,35 +75,38 @@ void update_game() {
         if(key_control_down(KC_MOVE_RIGHT)) {
             g->camera.pos.z += 0.1;
         }
+        if(key_control_down(KC_TURN_LEFT)) {
+            g->camera.target_orientation.x -= 0.03;
+        }
+        if(key_control_down(KC_TURN_RIGHT)) {
+            g->camera.target_orientation.x += 0.03;
+        }
+
         g->camera.pos.y = map_coordinate_height(&g->map, g->camera.pos.x, g->camera.pos.z) + 1;
         update_camera(&g->camera);
-
-        clear_fbo(&g->pause_render);
-        bind_fbo(&g->pause_render);
+    } 
+    
+    prepare_for_world_render(); // @World Render
+    {
         {
-            prepare_for_world_render(); // @World render
-            {
-                {
-                    v3 target = g->camera.pos + v3(
-                        cos(g->camera.orientation.x),
-                        sin(g->camera.orientation.y),
-                        sin(g->camera.orientation.x)
-                    );
+            v3 target = g->camera.pos + v3(
+                cos(g->camera.orientation.x),
+                sin(g->camera.orientation.y),
+                sin(g->camera.orientation.x)
+            );
 
-                    look_at(g->camera.pos, target);
-                }
-                
-                draw_map(&g->map);       
-            }
-
-            prepare_for_ui_render(); // @UI Render
-            {
-
-            }
+            look_at(g->camera.pos, target);
         }
-        bind_fbo(0);
+        draw_map_to_texture(&g->map);
+    }
 
-        draw_ui_fbo(&g->pause_render, v4(0, 0, window_w, window_h), v4(0, 0, window_w, window_h));
+    prepare_for_ui_render(); // @UI Render
+    {
+            
+    } 
+
+    if(g->paused) {
+        draw_ui_filled_rect(v4(0, 0, 0, 0.3), v4(0, 0, window_w, window_h));
     }
 }
 

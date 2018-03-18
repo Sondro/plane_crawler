@@ -38,7 +38,7 @@ void update_title() {
             }
             if(do_button(GEN_ID, 256, 64, "Settings")) {
                 
-            }
+            }+
             if(do_button(GEN_ID, 256, 64, "Quit")) {
                 glfwSetWindowShouldClose(window, 1);
             } 

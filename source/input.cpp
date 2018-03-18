@@ -157,6 +157,8 @@ enum { // @Key Controls
     KC_MOVE_BACKWARD,
     KC_MOVE_LEFT,
     KC_MOVE_RIGHT,
+    KC_TURN_LEFT,
+    KC_TURN_RIGHT,
     KC_PAUSE,
     MAX_KC
 };
@@ -166,6 +168,8 @@ i16 key_control_maps[MAX_KC] = {
     KEY_S,
     KEY_A,
     KEY_D,
+    KEY_Q,
+    KEY_E,
     KEY_ESCAPE,
 };
 

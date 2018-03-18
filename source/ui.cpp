@@ -273,8 +273,13 @@ i8 do_button(ui_id id, r32 w, r32 h, const char *text) {
                 }
             }
             else {
-                if(ui.hot < 0 && mouse_over) {
-                    ui.hot = id;
+                if(ui.hot < 0) {
+                    if(mouse_over) {
+                        ui.hot = id;
+                    }
+                }
+                if(ui_id_equ(ui.active, id) && !left_mouse_down) {
+                    ui.active = -1;
                 }
             }
         }

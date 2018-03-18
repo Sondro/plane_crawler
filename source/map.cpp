@@ -211,11 +211,28 @@ void generate_map(Map *m) {
         glBindBuffer(GL_ARRAY_BUFFER, m->normal_vbo);
         glBufferData(GL_ARRAY_BUFFER, sizeof(r32) * (MAP_W) * (MAP_H) * 9 * 2, normals, GL_STATIC_DRAW);
     }
+    
+    /*
+    bind_fbo(&m->render_fbo);
+    {
+        glGenTextures(1, &m->depth_tex);
+        glBindTexture(GL_TEXTURE_2D, m->depth_tex);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT16, m->render_fbo.w, m->render_fbo.h, 0, GL_DEPTH_COMPONENT, GL_FLOAT, 0);
 
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+        glFramebufferTexture2D(GL_DRAW_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, m->depth_tex, 0);
+        glBindTexture(GL_TEXTURE_2D, 0);
+    }
+    bind_fbo(0);
+    */
 }
 
 void clean_up_map(Map *m) {
     glDeleteBuffers(1, &m->normal_vbo);
+    glDeleteBuffers(1, &m->uv_vbo);
     glDeleteBuffers(1, &m->vertex_vbo);
     glDeleteVertexArrays(1, &m->vao); 
 }
@@ -246,8 +263,8 @@ r32 map_coordinate_height(Map *m, r32 x, r32 z) {
     return 0.f;
 }
 
-void draw_map(Map *m) {
-    { // draw heightmap
+void draw_map_to_texture(Map *m) {
+    {
         reset_model();
 
         set_shader(&heightmap_shader);

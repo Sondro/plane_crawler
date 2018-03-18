@@ -5,4 +5,3 @@ struct Player {
     r32 health,
         mana;
 };
-
