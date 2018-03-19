@@ -165,7 +165,7 @@ void force_fbo_size(FBO *f, i32 w, i32 h) {
 }
 
 void prepare_for_world_render() {
-    projection = HMM_Perspective(FIELD_OF_VIEW, (r32)window_w/window_h, 1.f, 1000.f);
+    projection = HMM_Perspective(FIELD_OF_VIEW, (r32)window_w/window_h, 0.01f, 300.f);
     reset_model();
     view = HMM_Mat4d(1);
     glEnable(GL_DEPTH_TEST);

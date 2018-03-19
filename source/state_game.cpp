@@ -81,13 +81,21 @@ void update_game() {
         }
         if(key_control_down(KC_MOVE_RIGHT)) {
             horizontal_movement += 1;
-        }  
-        
-        g->player.vel.x += cos(g->camera.orientation.x)*vertical_movement*0.02;
-        g->player.vel.y += sin(g->camera.orientation.x)*vertical_movement*0.02;
+        }
 
-        g->player.vel.x += cos(g->camera.orientation.x + PI/2)*horizontal_movement*0.02;
-        g->player.vel.y += sin(g->camera.orientation.x + PI/2)*horizontal_movement*0.02;
+        r32 movement_length = sqrt(horizontal_movement*horizontal_movement + vertical_movement*vertical_movement);
+        if(movement_length) {
+            horizontal_movement /= movement_length;
+            vertical_movement /= movement_length;
+        }
+            
+        r32 movement_speed = 0.015;
+
+        g->player.vel.x += cos(g->camera.orientation.x)*vertical_movement*movement_speed;
+        g->player.vel.y += sin(g->camera.orientation.x)*vertical_movement*movement_speed;
+
+        g->player.vel.x += cos(g->camera.orientation.x + PI/2)*horizontal_movement*movement_speed;
+        g->player.vel.y += sin(g->camera.orientation.x + PI/2)*horizontal_movement*movement_speed;
          
         g->player.vel.x *= 0.85;
         g->player.vel.y *= 0.85;
@@ -96,14 +104,14 @@ void update_game() {
         
         g->camera_bob_sin_pos += 0.25;
         g->camera.pos.x = g->player.pos.x;
-        g->camera.pos.y = map_coordinate_height(&g->map, g->camera.pos.x, g->camera.pos.z) + 1.5;
-        g->camera.pos.y += sin(g->camera_bob_sin_pos)*0.018*(HMM_Length(g->player.vel) / 0.04);
+        g->camera.pos.y = map_coordinate_height(&g->map, g->camera.pos.x, g->camera.pos.z) + 1;
+        g->camera.pos.y += sin(g->camera_bob_sin_pos)*0.018*(HMM_Length(g->player.vel) / (movement_speed*2));
         g->camera.pos.z = g->player.pos.y;
 
         update_camera(&g->camera);
         update_map(&g->map);
     } 
-     
+
     prepare_for_world_render(); // @World Render
     {
         {
