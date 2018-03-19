@@ -45,6 +45,7 @@ typedef hmm_m4 m4;
 
 // Game Code
 #include "globals.cpp"
+#include "audio.cpp"
 #include "noise.cpp"
 #include "input.cpp"
 #include "resource.cpp"

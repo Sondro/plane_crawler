@@ -166,10 +166,12 @@ void prepare_for_world_render() {
     projection = HMM_Perspective(FIELD_OF_VIEW, (r32)window_w/window_h, 1.f, 1000.f);
     reset_model();
     view = HMM_Mat4d(1);
+    glEnable(GL_DEPTH_TEST);
 }
 
 void prepare_for_ui_render() {
     glClear(GL_DEPTH_BUFFER_BIT);
+    glDisable(GL_DEPTH_TEST);
 
     projection = HMM_Perspective(FIELD_OF_VIEW, (r32)window_w/window_h, 0.01f, 10.f);
     reset_model();

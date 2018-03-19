@@ -18,9 +18,16 @@
 
 typedef r64 ui_id;
 
+enum {
+    ELEMENT_BUTTON,
+    ELEMENT_TOGGLER,
+    ELEMENT_SLIDER,
+    MAX_ELEMENT
+};
+
 struct UIRender {
     ui_id id;
-    i8 updated;
+    i8 type, updated;
     v4 bb;
     r32 t_hot, t_active;
     char text[MAX_UI_RENDER_TEXT_SIZE];
@@ -64,9 +71,10 @@ global struct {
     u32 update_pos;
 } ui;
 
-UIRender init_element_render(ui_id id, r32 x, r32 y, r32 w, r32 h, const char *text) {
+UIRender init_element_render(ui_id id, i8 type, r32 x, r32 y, r32 w, r32 h, const char *text) {
     UIRender r;
     r.id = id;
+    r.type = type;
     r.updated = 1;
     r.bb = v4(x, y, w, h);
     r.t_hot = 0;
@@ -174,6 +182,11 @@ void ui_end() {
                                        bb.y + bb.w/2 - 28, 
                                        (bb.z - 4)*ui.renders[i].t_hot, 4));
                 
+                if(ui.renders[i].type == ELEMENT_SLIDER) {
+                    draw_ui_filled_rect(ui.renders[i].t_hot*v4(0.2, 0.2, 0.2, 0.2) + v4(0.5, 0.5, 0.5, 0.5),
+                                        v4(bb.x, bb.y + 4, (bb.z-4)*ui.renders[i].slider_val, bb.w - 8));
+                }
+
                 draw_ui_text(ui.renders[i].text, ALIGN_CENTER, 
                              v2(
                                  bb.x + bb.z/2 - 2*ui.renders[i].t_hot, 
@@ -305,7 +318,7 @@ i8 do_button(ui_id id, r32 w, r32 h, const char *text) {
             prev_loop->updated = 1;
         }
         else {
-            UIRender render = init_element_render(id, x, y, w, h, text);
+            UIRender render = init_element_render(id, ELEMENT_BUTTON, x, y, w, h, text);
             ui.renders[ui.render_count++] = render;
         }
     }
@@ -314,3 +327,232 @@ i8 do_button(ui_id id, r32 w, r32 h, const char *text) {
 
     return fired;
 }
+
+i8 do_toggler(ui_id id, r32 w, r32 h, const char *text, i8 value) {
+    i8 fired = 0;
+    if(ui.render_count < MAX_UI_RENDER-1) {
+        if(ui.focusing) {
+            ui.focus_ids[ui.focus_count++] = id;
+        }
+
+        r32 x = ui.current_element_pos.x,
+            y = ui.current_element_pos.y;
+
+        if(ui.current_focus >= 0) { // @Keyboard controls
+            if(ui_id_equ(id, ui.hot) && ui_fire_pressed) {
+                fired = 1;
+            }
+        }
+        else { // @Mouse controls
+            i8 mouse_over = 0;
+            if(mouse_x >= x && mouse_x <= x+w &&
+               mouse_y >= y && mouse_y <= y+h) {
+                mouse_over = 1;
+            }
+
+            if(ui_id_equ(id, ui.hot)) {
+                if(mouse_over) {
+                    if(ui_id_equ(id, ui.active)) {
+                        if(!left_mouse_down) {
+                            fired = 1;
+                            ui.active = -1;
+                        }
+                    }
+                    else {
+                        if(left_mouse_down) {
+                            ui.active = id;
+                        }
+                    }
+                }
+                else {
+                    ui.hot = -1;
+                }
+            }
+            else {
+                if(ui.hot < 0) {
+                    if(mouse_over) {
+                        ui.hot = id;
+                    }
+                }
+                if(ui_id_equ(ui.active, id) && !left_mouse_down) {
+                    ui.active = -1;
+                }
+            }
+        }
+
+        move_to_next_ui_pos(w, h);
+
+        UIRender *prev_loop = find_previous_ui_render(id);
+        if(prev_loop) {
+            prev_loop->bb.x = x;
+            prev_loop->bb.y = y;
+            prev_loop->bb.z = w;
+            prev_loop->bb.w = h;
+            prev_loop->updated = 1;
+        }
+        else {
+            UIRender render = init_element_render(id, ELEMENT_TOGGLER, x, y, w, h, text);
+            ui.renders[ui.render_count++] = render;
+        }
+    }
+
+    ++ui.update_pos;
+    
+    if(fired) {
+        value = !value;
+    }
+
+    return value;
+}
+
+r32 do_slider(ui_id id, r32 w, r32 h, const char *text, r32 value) {
+    if(ui.render_count < MAX_UI_RENDER-1) {
+        if(ui.focusing) {
+            ui.focus_ids[ui.focus_count++] = id;
+        }
+
+        r32 x = ui.current_element_pos.x,
+            y = ui.current_element_pos.y;
+
+        if(ui.current_focus >= 0) { // @Keyboard controls
+            if(ui_id_equ(id, ui.hot)) {
+                if(ui_right_down) {
+                    value += 0.025;   
+                }
+                else if(ui_left_down) {
+                    value -= 0.025;
+                }
+            }
+        }
+        else { // @Mouse controls
+            i8 mouse_over = 0;
+            if(mouse_x >= x && mouse_x <= x+w &&
+               mouse_y >= y && mouse_y <= y+h) {
+                mouse_over = 1;
+            }
+
+            if(ui_id_equ(id, ui.hot)) {
+                if(mouse_over) {
+                    if(!ui_id_equ(id, ui.active)) { 
+                        if(left_mouse_down) {
+                            ui.active = id;
+                        }
+                    }
+                }
+                else if(!ui_id_equ(ui.active, id)) {
+                    ui.hot = -1;
+                }
+            }
+            else {
+                if(ui.hot < 0) {
+                    if(mouse_over) {
+                        ui.hot = id;
+                    }
+                } 
+            }
+
+            if(ui_id_equ(ui.active, id)) {
+                if(left_mouse_down) {
+                    value = (mouse_x - ui.current_element_pos.x) / w;
+                }
+                else {
+                    ui.active = -1;
+                }
+            }
+        }
+
+        if(value > 1) {
+            value = 1.f;
+        }
+        else if(value < 0) {
+            value = 0.f;
+        }
+
+        move_to_next_ui_pos(w, h);
+
+        UIRender *prev_loop = find_previous_ui_render(id);
+        if(prev_loop) {
+            prev_loop->bb.x = x;
+            prev_loop->bb.y = y;
+            prev_loop->bb.z = w;
+            prev_loop->bb.w = h;
+            prev_loop->slider_val = value;
+            prev_loop->updated = 1;
+        }
+        else {
+            UIRender render = init_element_render(id, ELEMENT_SLIDER, x, y, w, h, text);
+            render.slider_val = value;
+            ui.renders[ui.render_count++] = render;
+        }
+    }
+
+    ++ui.update_pos;  
+
+    return value;
+}
+
+//
+// @Settings Menu 
+//
+
+#define UI_SRC_ID 2000
+
+struct SettingsMenu {
+    i8 state;
+};
+
+void do_settings_menu(SettingsMenu *s) {
+    enum {
+        SETTINGS_MAIN,
+        SETTINGS_CONTROLS,
+        SETTINGS_AUDIO,
+        SETTINGS_GRAPHICS,
+        SETTINGS_SCREEN,
+        MAX_SETTINGS
+    };
+    
+    const char *settings_titles[MAX_SETTINGS] = {
+        "SETTINGS",
+        "CONTROLS",
+        "AUDIO",
+        "GRAPHICS",
+        "SCREEN",
+    };
+    
+    switch(s->state) {
+        case SETTINGS_MAIN: {
+            begin_block(0, UI_STANDARD_W, UI_STANDARD_H*(MAX_SETTINGS-1)+24);
+            {
+                foreach(i, MAX_SETTINGS-1) {
+                    if(do_button(GEN_ID+(i/100.f), UI_STANDARD_W, UI_STANDARD_H, settings_titles[i+1])) {
+                        s->state = i+1;
+                    }
+                }
+                do_divider();
+                if(do_button(GEN_ID, UI_STANDARD_W, UI_STANDARD_H, "BACK")) {
+                    s->state = -1;
+                }
+            }
+            end_block();
+            break;
+        }
+        case SETTINGS_AUDIO: {
+            begin_block(0, UI_STANDARD_W, UI_STANDARD_H*MAX_AUDIO + UI_STANDARD_H + 24);
+            {
+                foreach(i, MAX_AUDIO) {
+                    audio_type_data[i].volume = do_slider(GEN_ID + i/100.f, UI_STANDARD_W, UI_STANDARD_H, audio_type_data[i].name,
+                              audio_type_data[i].volume);
+                }
+                do_divider();
+                if(do_button(GEN_ID, UI_STANDARD_W, UI_STANDARD_H, "BACK")) {
+                    s->state = 0;
+                }
+            }
+            end_block();
+            break;
+        }
+        default: break;
+    }
+}
+
+#undef UI_SRC_ID
