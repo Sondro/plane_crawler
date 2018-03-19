@@ -33,13 +33,13 @@ void update_title() {
     if(t->state == TITLE_MAIN) {
         begin_block(0, 256, 64*3);
         {
-            if(do_button(GEN_ID, 256, 64, "Play")) {
+            if(do_button(GEN_ID, 256, 64, "PLAY")) {
                 t->state = TITLE_SAVES;
             }
-            if(do_button(GEN_ID, 256, 64, "Settings")) {
+            if(do_button(GEN_ID, 256, 64, "SETTINGS")) {
                 
             }
-            if(do_button(GEN_ID, 256, 64, "Quit")) {
+            if(do_button(GEN_ID, 256, 64, "QUIT")) {
                 glfwSetWindowShouldClose(window, 1);
             } 
         }
@@ -54,19 +54,19 @@ void update_title() {
                 file_exists("./save/save3")
             };
             
-            if(do_button(GEN_ID, UI_STANDARD_W, UI_STANDARD_H, slots_full[0] ? "Slot 1" : "Slot 1 (Empty)")) {
+            if(do_button(GEN_ID, UI_STANDARD_W, UI_STANDARD_H, slots_full[0] ? "SLOT 1" : "SLOT 1 - Empty")) {
                 next_state = init_game();
             }
-            if(do_button(GEN_ID, UI_STANDARD_W, UI_STANDARD_H, slots_full[1] ? "Slot 2" : "Slot 2 (Empty)")) {
+            if(do_button(GEN_ID, UI_STANDARD_W, UI_STANDARD_H, slots_full[1] ? "SLOT 2" : "SLOT 2 - Empty")) {
                 
             }
-            if(do_button(GEN_ID, UI_STANDARD_W, UI_STANDARD_H, slots_full[2] ? "Slot 3" : "Slot 3 (Empty)")) {
+            if(do_button(GEN_ID, UI_STANDARD_W, UI_STANDARD_H, slots_full[2] ? "SLOT 3" : "SLOT 3 - Empty")) {
                 
             } 
 
             do_divider();
 
-            if(do_button(GEN_ID, 256, 64, "Back")) {
+            if(do_button(GEN_ID, 256, 64, "BACK")) {
                 t->state = TITLE_MAIN;
             }
         }

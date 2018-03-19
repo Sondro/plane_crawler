@@ -149,17 +149,17 @@ void ui_end() {
     for(u32 i = ui.render_count - 1; i >= 0 && i < ui.render_count; --i) {
         if(ui.renders[i].updated) {
             if(ui_id_equ(ui.hot, ui.renders[i].id)) {
-                ui.renders[i].t_hot += (1-ui.renders[i].t_hot) * 0.15;
+                ui.renders[i].t_hot += (1-ui.renders[i].t_hot) * 0.25;
             }
             else {
-                ui.renders[i].t_hot *= 0.8;
+                ui.renders[i].t_hot *= 0.7;
             }
 
             if(ui_id_equ(ui.active, ui.renders[i].id)) {
-                ui.renders[i].t_active += (1-ui.renders[i].t_active) * 0.15;
+                ui.renders[i].t_active += (1-ui.renders[i].t_active) * 0.25;
             }
             else {
-                ui.renders[i].t_active *= 0.8;
+                ui.renders[i].t_active *= 0.7;
             }
 
             { // @UI Element Rendering
@@ -171,12 +171,22 @@ void ui_end() {
                                        (bb.z - 4)*ui.renders[i].t_hot, 4));
                 draw_ui_filled_rect(ui.renders[i].t_hot * v4(0.8, 0.8, 0.8, 1), 
                                     v4(bb.x + bb.z/2 - (bb.z/2)*ui.renders[i].t_hot, 
-                                       bb.y + bb.w/2 - 24, 
+                                       bb.y + bb.w/2 - 28, 
                                        (bb.z - 4)*ui.renders[i].t_hot, 4));
+                
+                draw_ui_text(ui.renders[i].text, ALIGN_CENTER, 
+                             v2(
+                                 bb.x + bb.z/2 - 2*ui.renders[i].t_hot, 
+                                 bb.y + bb.w/2
+                             )
+                            );
 
-                bb.y += 4*ui.renders[i].t_active;
-
-                draw_ui_text(ui.renders[i].text, ALIGN_CENTER, v2(bb.x + bb.z/2, bb.y + bb.w/2));
+                draw_ui_text(ui.renders[i].text, ALIGN_CENTER, 
+                             v2(
+                                 bb.x + bb.z/2 + 2*ui.renders[i].t_hot, 
+                                 bb.y + bb.w/2
+                             )
+                            );
             }
             ui.renders[i].updated = 0;
         }

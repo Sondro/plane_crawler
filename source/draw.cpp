@@ -370,6 +370,8 @@ void draw_ui_text(const char *text, int align, v2 position) {
     set_shader(SHADER_TEXTURE);
     {
         u32 text_len = strlen(text);
+        
+        position.x += 14;
 
         if(align) {
             position.x -= text_len*(align == ALIGN_CENTER ? 14 : 28);
@@ -447,6 +449,7 @@ void draw_ui_text(const char *text, int align, v2 position) {
 
                 {
                     m4 char_model = HMM_Multiply(model, HMM_Scale(v3(size.x, size.y, 1)));
+                    
                     glUniformMatrix4fv(glGetUniformLocation(active_shader, "model"), 1, GL_FALSE, &char_model.Elements[0][0]);
                 }
 

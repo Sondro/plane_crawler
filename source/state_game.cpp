@@ -47,13 +47,13 @@ void update_game() {
     if(g->paused) { // @Paused update
         begin_block(0, UI_STANDARD_W, UI_STANDARD_H*3);
         {
-            if(do_button(GEN_ID, UI_STANDARD_W, UI_STANDARD_H, "Resume")) {
+            if(do_button(GEN_ID, UI_STANDARD_W, UI_STANDARD_H, "RESUME")) {
                 g->paused = 0; 
             }
-            if(do_button(GEN_ID, UI_STANDARD_W, UI_STANDARD_H, "Settings")) {
+            if(do_button(GEN_ID, UI_STANDARD_W, UI_STANDARD_H, "SETTINGS")) {
                 
             }
-            if(do_button(GEN_ID, UI_STANDARD_W, UI_STANDARD_H, "Quit")) {
+            if(do_button(GEN_ID, UI_STANDARD_W, UI_STANDARD_H, "QUIT")) {
                 next_state = init_title(); 
             }
         }
