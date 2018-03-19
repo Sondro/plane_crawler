@@ -1,3 +1,6 @@
+#include "player.cpp"
+#include "enemy.cpp"
+
 #define WALL    0x01
 #define PIT     0x02
 
@@ -29,6 +32,9 @@ struct {
 struct Map {
     i8 tiles[MAP_W][MAP_H];
     r32 heights[MAP_W+1][MAP_H+1];
+     
+    i16 enemy_count;
+    Enemy enemies[MAX_ENEMY_COUNT];
 
     GLuint vao,
            vertex_vbo,
@@ -39,7 +45,7 @@ struct Map {
 void generate_map(Map *m) {
     foreach(i, MAP_W+1) {
         foreach(j, MAP_H+1) {
-            m->heights[i][j] = 4*perlin_2d(i, j, 0.1, 12);
+            m->heights[i][j] = 2*perlin_2d(i, j, 0.1, 12);
         }   
     }
 
@@ -102,12 +108,12 @@ void generate_map(Map *m) {
         
         r32 uv_offset_x = 0,
             uv_offset_y = 0,
-            uv_range_x = 16.f/tiles.w,
-            uv_range_y = 16.f/tiles.h;
+            uv_range_x = 16.f/textures[TEX_TILE].w,
+            uv_range_y = 16.f/textures[TEX_TILE].h;
         
         for(u32 i = 0; i < (MAP_W*MAP_H) * 2 * 6; i += 12) {
-            uv_offset_x = (tile_data[m->tiles[write_x][write_z]].tx*16) / (r32)tiles.w;
-            uv_offset_y = (tile_data[m->tiles[write_x][write_z]].ty*16) / (r32)tiles.h;
+            uv_offset_x = (tile_data[m->tiles[write_x][write_z]].tx*16) / (r32)textures[TEX_TILE].w;
+            uv_offset_y = (tile_data[m->tiles[write_x][write_z]].ty*16) / (r32)textures[TEX_TILE].h;
 
             uvs[i]     = uv_offset_x;
             uvs[i+1]   = uv_offset_y;
@@ -263,13 +269,19 @@ r32 map_coordinate_height(Map *m, r32 x, r32 z) {
     return 0.f;
 }
 
-void draw_map_to_texture(Map *m) {
+void update_map(Map *m) {
+    { // @Update enemies
+        
+    }
+}
+
+void draw_map(Map *m) {
     {
         reset_model();
 
-        set_shader(&heightmap_shader);
+        set_shader(SHADER_HEIGHTMAP);
         
-        glBindTexture(GL_TEXTURE_2D, tiles.id);
+        glBindTexture(GL_TEXTURE_2D, textures[TEX_TILE].id);
         glUniformMatrix4fv(glGetUniformLocation(active_shader, "model"), 1, GL_FALSE, &model.Elements[0][0]);
         glUniformMatrix4fv(glGetUniformLocation(active_shader, "view"), 1, GL_FALSE, &view.Elements[0][0]);
         glUniformMatrix4fv(glGetUniformLocation(active_shader, "projection"), 1, GL_FALSE, &projection.Elements[0][0]);

@@ -97,7 +97,7 @@ void update_game() {
 
             look_at(g->camera.pos, target);
         }
-        draw_map_to_texture(&g->map);
+        draw_map(&g->map);
     }
 
     prepare_for_ui_render(); // @UI Render
