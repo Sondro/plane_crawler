@@ -372,11 +372,11 @@ void draw_ui_text(const char *text, int align, v2 position) {
         u32 text_len = strlen(text);
 
         if(align) {
-            position.x -= text_len*(align == ALIGN_CENTER ? 12 : 24);
+            position.x -= text_len*(align == ALIGN_CENTER ? 14 : 28);
         }
 
         v4 pos = v4((position.x/window_w)*2 - 1, -(position.y/window_h)*2 + 1, 0, 1);
-        v4 size = v4(24.f/window_w, 32.f/window_h, 0, 0); 
+        v4 size = v4(28.f/window_w, 32.f/window_h, 0, 0); 
 
         pos = view_inv * projection_inv * pos;
         size = view_inv * projection_inv * size; 
@@ -405,35 +405,38 @@ void draw_ui_text(const char *text, int align, v2 position) {
         i32 tx = 0,
             ty = 0;
 
-        bind_texture(&textures[TEX_SMALL_FONT], 0, 0, 6, 8);
+        bind_texture(&textures[TEX_SMALL_FONT], 0, 0, 7, 8);
 
         while((c = *text++)) {
-            c = toupper(c);
             if(c >= 65 && c <= 90) {
-                tx = 6*(c-65);
+                tx = 7*(c-65);
                 ty = 0;
             }
-            else if(c >= 48 && c <= 57) {
-                tx = 6*(c-48);
+            else if(c >= 97 && c <= 122) {
+                tx = 7*(c-97);
                 ty = 8;
+            }
+            else if(c >= 48 && c <= 57) {
+                tx = 7*(c-48);
+                ty = 16;
             }
             else {
                 switch(c) {
-                    case '.':  { tx = 60; ty = 8; break; }
-                    case ',':  { tx = 66; ty = 8; break; }
-                    case ';':  { tx = 72; ty = 8; break; }
-                    case ':':  { tx = 78; ty = 8; break; }
-                    case '(':  { tx = 84; ty = 8; break; }
-                    case ')':  { tx = 90; ty = 8; break; }
-                    case '\'': { tx = 96; ty = 8; break; }
-                    case '"':  { tx = 102; ty = 8; break; }
-                    case '!':  { tx = 108; ty = 8; break; }
-                    case '?':  { tx = 114; ty = 8; break; }
-                    case '-':  { tx = 120; ty = 8; break; }
-                    case '+':  { tx = 126; ty = 8; break; }
-                    case '*':  { tx = 132; ty = 8; break; }
-                    case '/':  { tx = 138; ty = 8; break; }
-                    case '\\': { tx = 144; ty = 8; break; }
+                    case '.':  { tx = 70; ty = 16; break; }
+                    case ',':  { tx = 77; ty = 16; break; }
+                    case '/':  { tx = 84; ty = 16; break; }
+                    case '\\': { tx = 91; ty = 16; break; }
+                    case '!':  { tx = 98; ty = 16; break; }
+                    case '?':  { tx = 105; ty = 16; break; }
+                    case ':':  { tx = 112; ty = 16; break; }
+                    case ';':  { tx = 119; ty = 16; break; }
+                    case '\'': { tx = 126; ty = 16; break; }
+                    case '"':  { tx = 133; ty = 16; break; }
+                    case '+':  { tx = 140; ty = 16; break; }
+                    case '-':  { tx = 147; ty = 16; break; }
+                    case '=':  { tx = 154; ty = 16; break; }
+                    case '_':  { tx = 161; ty = 16; break; }
+
                     default: break;
                 }
             }

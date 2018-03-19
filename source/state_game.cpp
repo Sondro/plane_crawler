@@ -2,6 +2,7 @@
 
 struct Game {
     i8 paused;
+    r32 camera_bob_sin_pos;
     Camera camera;
     Player player;
     Map map;
@@ -14,6 +15,7 @@ State init_game() {
     Game *g = (Game *)s.mem;
     
     g->paused = 0;
+    g->camera_bob_sin_pos = 0;
     g->camera.pos = v3(0, 0, 0);
     g->camera.orientation = g->camera.target_orientation = v3(0, 0, 0);
     g->camera.interpolation_rate = 0.31;
@@ -86,14 +88,16 @@ void update_game() {
 
         g->player.vel.x += cos(g->camera.orientation.x + PI/2)*horizontal_movement*0.02;
         g->player.vel.y += sin(g->camera.orientation.x + PI/2)*horizontal_movement*0.02;
-
+         
         g->player.vel.x *= 0.85;
         g->player.vel.y *= 0.85;
 
         g->player.pos += g->player.vel;
         
+        g->camera_bob_sin_pos += 0.25;
         g->camera.pos.x = g->player.pos.x;
         g->camera.pos.y = map_coordinate_height(&g->map, g->camera.pos.x, g->camera.pos.z) + 1.5;
+        g->camera.pos.y += sin(g->camera_bob_sin_pos)*0.018*(HMM_Length(g->player.vel) / 0.04);
         g->camera.pos.z = g->player.pos.y;
 
         update_camera(&g->camera);
