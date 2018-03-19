@@ -6,6 +6,8 @@ struct Game {
     Camera camera;
     Player player;
     Map map;
+
+    SettingsMenu settings;
 };
 
 State init_game() {
@@ -20,8 +22,12 @@ State init_game() {
     g->camera.orientation = g->camera.target_orientation = v3(0, 0, 0);
     g->camera.interpolation_rate = 0.31;
     g->player.pos = v2(64, 64);
-    g->player.vel = v2(0, 0);
+    g->player.vel = v2(0, 0); 
     generate_map(&g->map);
+
+    g->settings.state = -1;
+
+    glfwSetInputMode(window, GLFW_CURSOR, g->paused ? GLFW_CURSOR_NORMAL : GLFW_CURSOR_DISABLED);
     
     return s;
 }
@@ -37,29 +43,33 @@ void clean_up_game(State *s) {
 }
 
 void update_game() {
-    Game *g = (Game *)state.mem;
-     
+    Game *g = (Game *)state.mem;    
+
     if(key_control_pressed(KC_PAUSE)) {
         g->paused = !g->paused;
         ui.current_focus = 0;
+
+        glfwSetInputMode(window, GLFW_CURSOR, g->paused ? GLFW_CURSOR_NORMAL : GLFW_CURSOR_DISABLED);
     }
 
     if(g->paused) { // @Paused update
-        begin_block(0, UI_STANDARD_W, UI_STANDARD_H*3);
-        {
-            if(do_button(GEN_ID, UI_STANDARD_W, UI_STANDARD_H, "RESUME")) {
-                g->paused = 0; 
+        if(g->settings.state < 0) {
+            begin_block(0, UI_STANDARD_W, UI_STANDARD_H*3);
+            {
+                if(do_button(GEN_ID, UI_STANDARD_W, UI_STANDARD_H, "RESUME")) {
+                    g->paused = 0; 
+                }
+                if(do_button(GEN_ID, UI_STANDARD_W, UI_STANDARD_H, "SETTINGS")) {
+                    g->settings.state = 0;    
+                }
+                if(do_button(GEN_ID, UI_STANDARD_W, UI_STANDARD_H, "QUIT")) {
+                    next_state = init_title(); 
+                }
             }
-            if(do_button(GEN_ID, UI_STANDARD_W, UI_STANDARD_H, "SETTINGS")) {
-                
-            }
-            if(do_button(GEN_ID, UI_STANDARD_W, UI_STANDARD_H, "QUIT")) {
-                next_state = init_title(); 
-            }
+            end_block(); 
         }
-        end_block(); 
     }
-    else { // @Unpaused update 
+    else { // @Unpaused update
         if(key_control_down(KC_TURN_LEFT)) {
             g->camera.target_orientation.x -= 0.05;
         }
@@ -89,7 +99,7 @@ void update_game() {
             vertical_movement /= movement_length;
         }
             
-        r32 movement_speed = 0.015;
+        r32 movement_speed = 0.009;
 
         g->player.vel.x += cos(g->camera.orientation.x)*vertical_movement*movement_speed;
         g->player.vel.y += sin(g->camera.orientation.x)*vertical_movement*movement_speed;
@@ -104,8 +114,8 @@ void update_game() {
         
         g->camera_bob_sin_pos += 0.25;
         g->camera.pos.x = g->player.pos.x;
-        g->camera.pos.y = map_coordinate_height(&g->map, g->camera.pos.x, g->camera.pos.z) + 1;
-        g->camera.pos.y += sin(g->camera_bob_sin_pos)*0.018*(HMM_Length(g->player.vel) / (movement_speed*2));
+        g->camera.pos.y = map_coordinate_height(&g->map, g->camera.pos.x, g->camera.pos.z) + 0.6;
+        g->camera.pos.y += sin(g->camera_bob_sin_pos)*0.012*(HMM_Length(g->player.vel) / (movement_speed*2));
         g->camera.pos.z = g->player.pos.y;
 
         update_camera(&g->camera);
@@ -124,6 +134,7 @@ void update_game() {
             look_at(g->camera.pos, target);
         }
         draw_map(&g->map);
+        draw_billboard_texture(&textures[TEX_ENEMY], v4(0, 0, 16, 16), v3(50, 4, 50));
     }
 
     prepare_for_ui_render(); // @UI Render
@@ -133,6 +144,9 @@ void update_game() {
 
     if(g->paused) {
         draw_ui_filled_rect(v4(0, 0, 0, 0.3), v4(0, 0, window_w, window_h));
+        if(g->settings.state >= 0) {
+            do_settings_menu(&g->settings);
+        }
     }
 }
 

@@ -67,7 +67,7 @@ global struct {
     u32 current_block;
     v2 current_block_size,
        current_element_pos;
-    
+
     u32 update_pos;
 } ui;
 
@@ -518,11 +518,11 @@ void do_settings_menu(SettingsMenu *s) {
         "GRAPHICS",
         "SCREEN",
     };
-    
+
     switch(s->state) {
         case SETTINGS_MAIN: {
             begin_block(0, UI_STANDARD_W, UI_STANDARD_H*(MAX_SETTINGS-1)+24);
-            {
+            {                
                 foreach(i, MAX_SETTINGS-1) {
                     if(do_button(GEN_ID+(i/100.f), UI_STANDARD_W, UI_STANDARD_H, settings_titles[i+1])) {
                         s->state = i+1;

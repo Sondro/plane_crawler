@@ -274,6 +274,27 @@ void draw_quad() {
     glBindVertexArray(0);
 }
 
+void draw_billboard_texture(Texture *texture, v4 tbb, v3 pos) {
+    set_shader(SHADER_TEXTURE);
+    {
+        bind_texture(texture, tbb.x, tbb.y, tbb.z, tbb.w);
+
+        reset_model();
+        translate(pos.x, pos.y, pos.z);
+        scale(1, 1, 1);
+        
+        {
+            foreach(i, 3) {
+                foreach(j, 3) {
+                    model.Elements[i][j] = view.Elements[j][i];
+                }
+            }
+            draw_quad();
+        }
+    }
+    set_shader(-1);
+}
+
 void draw_ui_rect(v4 color, v4 bb, r32 thickness) {
     set_shader(SHADER_RECT);
     {
