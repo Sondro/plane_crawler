@@ -3,9 +3,8 @@
 struct Game {
     i8 paused;
     Camera camera;
+    Player player;
     Map map;
-
-    FBO pause_render;
 };
 
 State init_game() {
@@ -18,18 +17,16 @@ State init_game() {
     g->camera.pos = v3(0, 0, 0);
     g->camera.orientation = g->camera.target_orientation = v3(0, 0, 0);
     g->camera.interpolation_rate = 0.31;
+    g->player.pos = v2(64, 64);
+    g->player.vel = v2(0, 0);
     generate_map(&g->map);
     
-    g->pause_render = init_fbo(window_w, window_h);
-
     return s;
 }
 
 void clean_up_game(State *s) {
     Game *g = (Game *)s->mem;
-    
-    clean_up_fbo(&g->pause_render);
-
+     
     clean_up_map(&g->map);
 
     free(s->mem);
@@ -39,9 +36,7 @@ void clean_up_game(State *s) {
 
 void update_game() {
     Game *g = (Game *)state.mem;
-    
-    force_fbo_size(&g->pause_render, window_w, window_h);
-
+     
     if(key_control_pressed(KC_PAUSE)) {
         g->paused = !g->paused;
         ui.current_focus = 0;
@@ -62,19 +57,7 @@ void update_game() {
         }
         end_block(); 
     }
-    else { // @Unpaused update
-        if(key_control_down(KC_MOVE_FORWARD)) {
-            g->camera.pos.x += 0.1;
-        }
-        if(key_control_down(KC_MOVE_BACKWARD)) {
-            g->camera.pos.x -= 0.1;
-        }
-        if(key_control_down(KC_MOVE_LEFT)) {
-            g->camera.pos.z -= 0.1;
-        }
-        if(key_control_down(KC_MOVE_RIGHT)) {
-            g->camera.pos.z += 0.1;
-        }
+    else { // @Unpaused update 
         if(key_control_down(KC_TURN_LEFT)) {
             g->camera.target_orientation.x -= 0.03;
         }
@@ -82,10 +65,41 @@ void update_game() {
             g->camera.target_orientation.x += 0.03;
         }
 
-        g->camera.pos.y = map_coordinate_height(&g->map, g->camera.pos.x, g->camera.pos.z) + 1;
+        r32 horizontal_movement = 0,
+            vertical_movement = 0;
+
+        if(key_control_down(KC_MOVE_FORWARD)) {
+            vertical_movement += 1;
+        }
+        if(key_control_down(KC_MOVE_BACKWARD)) {
+            vertical_movement -= 1;
+        }
+        if(key_control_down(KC_MOVE_LEFT)) {
+            horizontal_movement -= 1;
+        }
+        if(key_control_down(KC_MOVE_RIGHT)) {
+            horizontal_movement += 1;
+        }  
+        
+        g->player.vel.x += cos(g->camera.orientation.x)*vertical_movement*0.02;
+        g->player.vel.y += sin(g->camera.orientation.x)*vertical_movement*0.02;
+
+        g->player.vel.x += cos(g->camera.orientation.x + PI/2)*horizontal_movement*0.02;
+        g->player.vel.y += sin(g->camera.orientation.x + PI/2)*horizontal_movement*0.02;
+
+        g->player.vel.x *= 0.85;
+        g->player.vel.y *= 0.85;
+
+        g->player.pos += g->player.vel;
+        
+        g->camera.pos.x = g->player.pos.x;
+        g->camera.pos.y = map_coordinate_height(&g->map, g->camera.pos.x, g->camera.pos.z) + 1.5;
+        g->camera.pos.z = g->player.pos.y;
+
         update_camera(&g->camera);
+        update_map(&g->map);
     } 
-    
+     
     prepare_for_world_render(); // @World Render
     {
         {
@@ -102,7 +116,7 @@ void update_game() {
 
     prepare_for_ui_render(); // @UI Render
     {
-            
+         
     } 
 
     if(g->paused) {

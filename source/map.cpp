@@ -43,6 +43,8 @@ struct Map {
 };
 
 void generate_map(Map *m) {
+    m->enemy_count = 0;
+    
     foreach(i, MAP_W+1) {
         foreach(j, MAP_H+1) {
             m->heights[i][j] = 2*perlin_2d(i, j, 0.1, 12);
