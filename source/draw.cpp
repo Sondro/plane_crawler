@@ -36,6 +36,7 @@ enum {
     TEX_ENEMY,
     TEX_TILE,
     TEX_SMALL_FONT,
+    TEX_LOGO,
     MAX_TEX
 };
 
@@ -43,6 +44,7 @@ const char *tex_names[MAX_TEX] = {
     "enemy",
     "tile",
     "font",
+    "logo",
 };
 
 global Shader shaders[MAX_SHADER];
@@ -342,6 +344,10 @@ void draw_ui_texture(Texture *texture, v4 tbb, v4 bb) {
         draw_quad();
     }
     set_shader(-1);
+}
+
+void draw_ui_texture(Texture *texture, v4 bb) {
+    draw_ui_texture(texture, v4(0, 0, texture->w, texture->h), bb);
 }
 
 void draw_ui_fbo(FBO *fbo, v4 tbb, v4 bb) {

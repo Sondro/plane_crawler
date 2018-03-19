@@ -61,10 +61,10 @@ void update_game() {
     }
     else { // @Unpaused update 
         if(key_control_down(KC_TURN_LEFT)) {
-            g->camera.target_orientation.x -= 0.03;
+            g->camera.target_orientation.x -= 0.05;
         }
         if(key_control_down(KC_TURN_RIGHT)) {
-            g->camera.target_orientation.x += 0.03;
+            g->camera.target_orientation.x += 0.05;
         }
 
         r32 horizontal_movement = 0,

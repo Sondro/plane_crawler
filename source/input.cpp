@@ -168,8 +168,8 @@ i16 key_control_maps[MAX_KC] = {
     KEY_S,
     KEY_A,
     KEY_D,
-    KEY_Q,
-    KEY_E,
+    KEY_LEFT,
+    KEY_RIGHT,
     KEY_ESCAPE,
 };
 
