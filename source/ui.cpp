@@ -350,6 +350,7 @@ i8 do_button(ui_id id, r32 w, r32 h, const char *text) {
             prev_loop->bb.z = w;
             prev_loop->bb.w = h;
             prev_loop->updated = 1;
+            memcpy(prev_loop->text, text, MAX_UI_RENDER_TEXT_SIZE);
         }
         else {
             UIRender render = init_element_render(id, ELEMENT_BUTTON, x, y, w, h, text);
@@ -547,6 +548,7 @@ r32 do_slider(ui_id id, r32 w, r32 h, const char *text, r32 value) {
 
 struct SettingsMenu {
     i8 state;
+    i16 selected_control;
 };
 
 void do_settings_menu(SettingsMenu *s) {
@@ -576,11 +578,37 @@ void do_settings_menu(SettingsMenu *s) {
                 foreach(i, MAX_SETTINGS-1) {
                     if(do_button(GEN_ID+(i/100.f), UI_STANDARD_W, UI_STANDARD_H, settings_titles[i+1])) {
                         s->state = i+1;
+                        s->selected_control = -1;
                     }
                 }
                 do_divider();
                 if(do_button(GEN_ID, UI_STANDARD_W, UI_STANDARD_H, "BACK")) {
                     s->state = -1;
+                }
+            }
+            end_block();
+            break;
+        }
+        case SETTINGS_CONTROLS: {
+            if(last_key && s->selected_control >= 0) {
+                key_control_maps[s->selected_control] = last_key;
+                last_key = 0;
+                s->selected_control = -1;
+            }
+            
+            begin_block(0, UI_STANDARD_W, UI_STANDARD_H*MAX_KC);
+            {
+                char control_name[32] = { 0 };
+                foreach(i, MAX_KC) {
+                    memset(control_name, 0, 32);
+                    sprintf(control_name, "%s: %s", key_control_names[i], s->selected_control == (i16)i ? "..." : key_name(key_control_maps[i]));
+                    if(do_button(GEN_ID+(i/100.f), UI_STANDARD_W + 320, UI_STANDARD_H, control_name)) {
+                        s->selected_control = i;
+                    }
+                }
+                do_divider();
+                if(do_button(GEN_ID, UI_STANDARD_W, UI_STANDARD_H, "BACK")) {
+                    s->state = SETTINGS_MAIN;
                 }
             }
             end_block();

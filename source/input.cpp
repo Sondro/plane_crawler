@@ -173,6 +173,16 @@ i16 key_control_maps[MAX_KC] = {
     KEY_ESCAPE,
 };
 
+const char *key_control_names[MAX_KC] = {
+    "Move Forward",
+    "Move Backward",
+    "Move Left",
+    "Move Right",
+    "Turn Left",
+    "Turn Right",
+    "Pause",
+};
+
 static void key_callback(GLFWwindow *window, int key, int scancode, int action, int mods) {
     if((action == GLFW_PRESS && last_key != key) || action == GLFW_REPEAT) {
         last_key = key;
