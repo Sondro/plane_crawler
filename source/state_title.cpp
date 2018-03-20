@@ -37,7 +37,7 @@ void update_title() {
     }
     else {
         if(t->state == TITLE_MAIN) {
-            begin_block(0, UI_STANDARD_W, UI_STANDARD_H*3);
+            begin_block(0, window_w/2 - UI_STANDARD_W/2, window_h/2 - 64, UI_STANDARD_W, UI_STANDARD_H*3);
             {
                 do_divider();
                 do_divider();
@@ -58,6 +58,8 @@ void update_title() {
             end_block();
         }
         else if(t->state == TITLE_SAVES) {
+            set_ui_title("LOAD SAVE");
+
             begin_block(0, UI_STANDARD_W, UI_STANDARD_H*4 + 24);
             {
                 i8 slots_full[] = {
@@ -92,7 +94,7 @@ void update_title() {
         if(t->settings.state < 0 && t->state == TITLE_MAIN) {
             r32 logo_w = textures[TEX_LOGO].w,
                 logo_h = textures[TEX_LOGO].h;
-            draw_ui_texture(&textures[TEX_LOGO], v4(window_w/2 - logo_w*2, window_h/4, logo_w*4, logo_h*4));
+            draw_ui_texture(&textures[TEX_LOGO], v4(window_w/2 - logo_w*2, window_h/6, logo_w*4, logo_h*4));
         }
     }
 }

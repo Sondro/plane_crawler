@@ -12,5 +12,5 @@ struct {
 } audio_type_data[MAX_AUDIO] = {
     { "MASTER", 1, 1 },
     { "ENEMIES", 1, 1 },
-    { "UI", 1, 1 },
+    { "USER INTERFACE", 1, 1 },
 };

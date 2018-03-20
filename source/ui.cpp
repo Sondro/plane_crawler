@@ -67,6 +67,11 @@ global struct {
     u32 current_block;
     v2 current_block_size,
        current_element_pos;
+    v4 current_block_bb;
+
+    // ui title data
+    const char *title;
+    r32 title_y;
 
     u32 update_pos;
 } ui;
@@ -111,6 +116,7 @@ void ui_begin() {
     ui.update_pos = 0;
     ui.current_element_pos = v2(0, 0);
     ui.focus_count = 0;
+    ui.title = 0;
 }
 
 void ui_end() {
@@ -215,11 +221,32 @@ void ui_end() {
             --ui.render_count;
         }
     }
+
+    if(ui.title) {
+        draw_ui_filled_rect(v4(0.5, 0.5, 0.5, 0.5), v4(0, ui.title_y - 32, window_w, 64));
+        draw_ui_text(ui.title, ALIGN_CENTER, v2(window_w/2 + 2, ui.title_y));
+        draw_ui_text(ui.title, ALIGN_CENTER, v2(window_w/2 - 2, ui.title_y));
+    }
+}
+
+void set_ui_title(const char *title) {
+    ui.title = title;
+    ui.title_y = window_h/2;
+}
+
+void begin_block(u32 block_number, r32 x, r32 y, r32 w, r32 h) {
+    if(ui.title && y < ui.title_y) {
+        ui.title_y = y - 32;
+        y += 64;
+    }
+
+    ui.current_block_bb = v4(x, y, w, h);
+    ui.focusing = (ui.current_block == block_number) || !block_number;
+    ui.current_element_pos = v2(x, y); 
 }
 
 void begin_block(u32 block_number, r32 w, r32 h) {
-    ui.focusing = (ui.current_block == block_number);
-    ui.current_element_pos = v2(window_w/2 - w/2, window_h/2 - h/2);
+    begin_block(block_number, window_w/2 - w/2, window_h/2 - h/2, w, h);
 }
 
 void end_block() {
@@ -264,6 +291,13 @@ i8 do_button(ui_id id, r32 w, r32 h, const char *text) {
 
         r32 x = ui.current_element_pos.x,
             y = ui.current_element_pos.y;
+        
+        if(ui.block_mode == BLOCK_MODE_VERTICAL) {
+            x += (ui.current_block_bb.z-w) / 2;
+        }
+        else {
+            y += (ui.current_block_bb.w-h) / 2;
+        }
 
         if(ui.current_focus >= 0) { // @Keyboard controls
             if(ui_id_equ(id, ui.hot) && ui_fire_pressed) {
@@ -337,6 +371,13 @@ i8 do_toggler(ui_id id, r32 w, r32 h, const char *text, i8 value) {
 
         r32 x = ui.current_element_pos.x,
             y = ui.current_element_pos.y;
+         
+        if(ui.block_mode == BLOCK_MODE_VERTICAL) {
+            x += (ui.current_block_bb.z-w) / 2;
+        }
+        else {
+            y += (ui.current_block_bb.w-h) / 2;
+        }
 
         if(ui.current_focus >= 0) { // @Keyboard controls
             if(ui_id_equ(id, ui.hot) && ui_fire_pressed) {
@@ -413,6 +454,13 @@ r32 do_slider(ui_id id, r32 w, r32 h, const char *text, r32 value) {
 
         r32 x = ui.current_element_pos.x,
             y = ui.current_element_pos.y;
+         
+        if(ui.block_mode == BLOCK_MODE_VERTICAL) {
+            x += (ui.current_block_bb.z-w) / 2;
+        }
+        else {
+            y += (ui.current_block_bb.w-h) / 2;
+        }
 
         if(ui.current_focus >= 0) { // @Keyboard controls
             if(ui_id_equ(id, ui.hot)) {
@@ -518,10 +566,12 @@ void do_settings_menu(SettingsMenu *s) {
         "GRAPHICS",
         "SCREEN",
     };
+    
+    set_ui_title(settings_titles[s->state]);
 
     switch(s->state) {
         case SETTINGS_MAIN: {
-            begin_block(0, UI_STANDARD_W, UI_STANDARD_H*(MAX_SETTINGS-1)+24);
+            begin_block(0, UI_STANDARD_W, UI_STANDARD_H*(MAX_SETTINGS)+24);
             {                
                 foreach(i, MAX_SETTINGS-1) {
                     if(do_button(GEN_ID+(i/100.f), UI_STANDARD_W, UI_STANDARD_H, settings_titles[i+1])) {
@@ -540,7 +590,7 @@ void do_settings_menu(SettingsMenu *s) {
             begin_block(0, UI_STANDARD_W, UI_STANDARD_H*MAX_AUDIO + UI_STANDARD_H + 24);
             {
                 foreach(i, MAX_AUDIO) {
-                    audio_type_data[i].volume = do_slider(GEN_ID + i/100.f, UI_STANDARD_W, UI_STANDARD_H, audio_type_data[i].name,
+                    audio_type_data[i].volume = do_slider(GEN_ID + i/100.f, UI_STANDARD_W*2, UI_STANDARD_H, audio_type_data[i].name,
                               audio_type_data[i].volume);
                 }
                 do_divider();

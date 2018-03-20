@@ -54,6 +54,8 @@ void update_game() {
 
     if(g->paused) { // @Paused update
         if(g->settings.state < 0) {
+            set_ui_title("PAUSED");
+
             begin_block(0, UI_STANDARD_W, UI_STANDARD_H*3);
             {
                 if(do_button(GEN_ID, UI_STANDARD_W, UI_STANDARD_H, "RESUME")) {
@@ -134,7 +136,7 @@ void update_game() {
             look_at(g->camera.pos, target);
         }
         draw_map(&g->map);
-        draw_billboard_texture(&textures[TEX_ENEMY], v4(0, 0, 16, 16), v3(50, 4, 50));
+        draw_billboard_texture(&textures[TEX_ENEMY], v4(0, 0, 16, 16), v3(50, 4, 50), v2(0.5, 0.5));
     }
 
     prepare_for_ui_render(); // @UI Render

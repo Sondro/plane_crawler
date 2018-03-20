@@ -274,14 +274,14 @@ void draw_quad() {
     glBindVertexArray(0);
 }
 
-void draw_billboard_texture(Texture *texture, v4 tbb, v3 pos) {
+void draw_billboard_texture(Texture *texture, v4 tbb, v3 pos, v2 scale) {
     set_shader(SHADER_TEXTURE);
     {
         bind_texture(texture, tbb.x, tbb.y, tbb.z, tbb.w);
 
         reset_model();
         translate(pos.x, pos.y, pos.z);
-        scale(1, 1, 1);
+        scale(scale.x, scale.y, 1);
         
         {
             foreach(i, 3) {
