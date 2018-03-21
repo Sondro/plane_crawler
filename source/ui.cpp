@@ -192,20 +192,46 @@ void ui_end() {
                     draw_ui_filled_rect(ui.renders[i].t_hot*v4(0.2, 0.2, 0.2, 0.2) + v4(0.5, 0.5, 0.5, 0.5),
                                         v4(bb.x, bb.y + 4, (bb.z-4)*ui.renders[i].slider_val, bb.w - 8));
                 }
+                
+                if(ui.renders[i].type == ELEMENT_TOGGLER) {
+                    draw_ui_text(ui.renders[i].text, 0, 
+                                 v2(
+                                     bb.x + 10 - 2*ui.renders[i].t_hot, 
+                                     bb.y + bb.w/2
+                                 )
+                                );
 
-                draw_ui_text(ui.renders[i].text, ALIGN_CENTER, 
-                             v2(
-                                 bb.x + bb.z/2 - 2*ui.renders[i].t_hot, 
-                                 bb.y + bb.w/2
-                             )
-                            );
+                    draw_ui_text(ui.renders[i].text, 0, 
+                                 v2(
+                                     bb.x + 10 + 2*ui.renders[i].t_hot, 
+                                     bb.y + bb.w/2
+                                 )
+                                );
 
-                draw_ui_text(ui.renders[i].text, ALIGN_CENTER, 
-                             v2(
-                                 bb.x + bb.z/2 + 2*ui.renders[i].t_hot, 
-                                 bb.y + bb.w/2
-                             )
-                            );
+                    draw_ui_rect(v4(0.6, 0.6, 0.6, 0.6) + ui.renders[i].t_hot * v4(0.2, 0.2, 0.2, 0.4),
+                                 v4(bb.x + bb.z-48, bb.y+bb.w/2 - 16, 32, 32), 4);
+
+                    if(ui.renders[i].checked) {
+                        draw_ui_filled_rect(v4(0.6, 0.6, 0.6, 0.6) + ui.renders[i].t_hot * v4(0.2, 0.2, 0.2, 0.4),
+                                            v4(bb.x + bb.z-40, bb.y+bb.w/2 - 8, 16, 16));
+
+                    }
+                }
+                else {
+                    draw_ui_text(ui.renders[i].text, ALIGN_CENTER, 
+                                 v2(
+                                     bb.x + bb.z/2 - 2*ui.renders[i].t_hot, 
+                                     bb.y + bb.w/2
+                                 )
+                                );
+
+                    draw_ui_text(ui.renders[i].text, ALIGN_CENTER, 
+                                 v2(
+                                     bb.x + bb.z/2 + 2*ui.renders[i].t_hot, 
+                                     bb.y + bb.w/2
+                                 )
+                                );
+                }
             }
             ui.renders[i].updated = 0;
         }
@@ -431,9 +457,11 @@ i8 do_toggler(ui_id id, r32 w, r32 h, const char *text, i8 value) {
             prev_loop->bb.z = w;
             prev_loop->bb.w = h;
             prev_loop->updated = 1;
+            prev_loop->checked = value;
         }
         else {
             UIRender render = init_element_render(id, ELEMENT_TOGGLER, x, y, w, h, text);
+            render.checked = value;
             ui.renders[ui.render_count++] = render;
         }
     }
@@ -622,6 +650,28 @@ void do_settings_menu(SettingsMenu *s) {
                     audio_type_data[i].volume = do_slider(GEN_ID + i/100.f, UI_STANDARD_W*2, UI_STANDARD_H, audio_type_data[i].name,
                               audio_type_data[i].volume);
                 }
+                do_divider();
+                if(do_button(GEN_ID, UI_STANDARD_W, UI_STANDARD_H, "BACK")) {
+                    s->state = 0;
+                }
+            }
+            end_block();
+            break;
+        }
+        case SETTINGS_GRAPHICS: {
+            begin_block(0, UI_STANDARD_W, UI_STANDARD_H);
+            {
+                if(do_button(GEN_ID, UI_STANDARD_W, UI_STANDARD_H, "BACK")) {
+                    s->state = 0;
+                }
+            }
+            end_block();
+            break;
+        }
+        case SETTINGS_SCREEN: {
+            begin_block(0, UI_STANDARD_W, UI_STANDARD_H*2 + 24);
+            {   
+                fullscreen = do_toggler(GEN_ID, UI_STANDARD_W+112, UI_STANDARD_H, "FULLSCREEN", fullscreen);
                 do_divider();
                 if(do_button(GEN_ID, UI_STANDARD_W, UI_STANDARD_H, "BACK")) {
                     s->state = 0;

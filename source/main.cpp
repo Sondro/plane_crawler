@@ -85,8 +85,12 @@ int main() {
 
                 state = init_title();
                 next_state.type = 0;
+                
+                i8 last_fullscreen;
 
                 while(!glfwWindowShouldClose(window)) {
+                    last_fullscreen = fullscreen;
+                    
                     current_time = glfwGetTime();
 
                     last_key = 0;
@@ -119,6 +123,16 @@ int main() {
                         state.type = next_state.type;
                         next_state.mem = 0;
                         next_state.type = 0;
+                    }
+                    
+                    if(!keyboard_used && key_pressed[KEY_F11]) {
+                        fullscreen = !fullscreen;
+                    }
+
+                    if(fullscreen != last_fullscreen) {
+                        GLFWmonitor *monitor = glfwGetWindowMonitor(window) ? NULL : glfwGetPrimaryMonitor();
+                        glfwWindowHint(GLFW_RESIZABLE, 1);
+                        glfwSetWindowMonitor(window, monitor, 0, 0, window_w, window_h, GLFW_DONT_CARE);
                     }
 
                     while(glfwGetTime() < current_time + (1.0 / FPS));
