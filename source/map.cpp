@@ -104,6 +104,86 @@ void generate_map(Map *m) {
         
 
         if(tile_data[m->tiles[x][z]].flags & WALL) {
+            if(x && !(tile_data[m->tiles[x-1][z]].flags & WALL)) {
+                foreach(height, 4) {
+                    r32 verts[] = {
+                        v00.x, v00.y+height, v00.z,
+                        v10.x, v10.y+height, v10.z,
+                        v00.x, v00.y+height+1, v00.z,
+                        
+                        v10.x, v10.y+height+1, v10.z,
+                        v00.x, v00.y+height+1, v00.z,
+                        v10.x, v10.y+height, v10.z
+                    };
+
+                    r32 uvs_[] = {
+                        tx, ty+th,
+                        tx+tw, ty+th,
+                        tx, ty,
+                        
+                        tx+tw, ty,
+                        tx, ty,
+                        tx+tw, ty+th
+                    };
+
+                    r32 norms[18] = { 0 };
+
+                    calculate_heightmap_normal(verts, norms);
+                    calculate_heightmap_normal(verts+9, norms+9);
+
+                    foreach(i, sizeof(verts)/sizeof(verts[0])) {
+                        da_push(vertices, verts[i]);
+                    }
+                    foreach(i, sizeof(uvs_)/sizeof(uvs_[0])) {
+                        da_push(uvs, uvs_[i]);
+                    }
+                    foreach(i, sizeof(norms)/sizeof(norms[0])) {
+                        da_push(normals, norms[i]);
+                    }
+                }
+            }
+            if(x<MAP_W-1 && !(tile_data[m->tiles[x+1][z]].flags & WALL)) {
+                foreach(height, 4) {
+                    r32 verts[] = {
+                        v01.x, v01.y+height, v01.z,
+                        v11.x, v11.y+height, v11.z,
+                        v01.x, v01.y+height+1, v01.z,
+                        
+                        v11.x, v11.y+height+1, v11.z,
+                        v01.x, v01.y+height+1, v01.z,
+                        v11.x, v11.y+height, v11.z
+                    };
+
+                    r32 uvs_[] = {
+                        tx, ty+th,
+                        tx+tw, ty+th,
+                        tx, ty,
+                        
+                        tx+tw, ty,
+                        tx, ty,
+                        tx+tw, ty+th
+                    };
+
+                    r32 norms[18] = { 0 };
+
+                    calculate_heightmap_normal(verts, norms);
+                    calculate_heightmap_normal(verts+9, norms+9);
+
+                    foreach(i, 18) {
+                        norms[i] *= -1;
+                    }
+
+                    foreach(i, sizeof(verts)/sizeof(verts[0])) {
+                        da_push(vertices, verts[i]);
+                    }
+                    foreach(i, sizeof(uvs_)/sizeof(uvs_[0])) {
+                        da_push(uvs, uvs_[i]);
+                    }
+                    foreach(i, sizeof(norms)/sizeof(norms[0])) {
+                        da_push(normals, norms[i]);
+                    }
+                }
+            }
             if(z && !(tile_data[m->tiles[x][z-1]].flags & WALL)) {
                 foreach(height, 4) {
                     r32 verts[] = {
@@ -168,6 +248,10 @@ void generate_map(Map *m) {
 
                     calculate_heightmap_normal(verts, norms);
                     calculate_heightmap_normal(verts+9, norms+9);
+                    
+                    foreach(i, 18) {
+                        norms[i] *= -1;
+                    }
 
                     foreach(i, sizeof(verts)/sizeof(verts[0])) {
                         da_push(vertices, verts[i]);
