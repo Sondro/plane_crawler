@@ -70,7 +70,7 @@ void generate_map(Map *m) {
     
     foreach(i, MAP_W+1) {
         foreach(j, MAP_H+1) {
-            m->heights[i][j] = 8*perlin_2d(i, j, 0.1, 12);
+            m->heights[i][j] = 2*perlin_2d(i, j, 0.1, 12);
         }   
     }
 
@@ -104,40 +104,80 @@ void generate_map(Map *m) {
         
 
         if(tile_data[m->tiles[x][z]].flags & WALL) {
-            if(x && !(tile_data[m->tiles[x-1][z]].flags & WALL)) {
-                r32 verts[] = {
-                    v00.x, v00.y, v00.z,
-                    v01.x, v01.y, v01.z,
-                    v00.x, v00.y+100, v00.z,
-                    
-                    v01.x, v01.y+100, v01.z,
-                    v00.x, v00.y+100, v00.z,
-                    v01.x, v01.y, v01.z
-                };
+            if(z && !(tile_data[m->tiles[x][z-1]].flags & WALL)) {
+                foreach(height, 4) {
+                    r32 verts[] = {
+                        v00.x, v00.y+height, v00.z,
+                        v01.x, v01.y+height, v01.z,
+                        v00.x, v00.y+height+1, v00.z,
+                        
+                        v01.x, v01.y+height+1, v01.z,
+                        v00.x, v00.y+height+1, v00.z,
+                        v01.x, v01.y+height, v01.z
+                    };
 
-                r32 uvs_[] = {
-                    0, 1,
-                    1, 0,
-                    0, 0,
-                    
-                    0, 1,
-                    1, 0,
-                    1, 1
-                };
+                    r32 uvs_[] = {
+                        tx, ty+th,
+                        tx+tw, ty+th,
+                        tx, ty,
+                        
+                        tx+tw, ty,
+                        tx, ty,
+                        tx+tw, ty+th
+                    };
 
-                r32 norms[18] = { 0 };
+                    r32 norms[18] = { 0 };
 
-                calculate_heightmap_normal(verts, norms);
-                calculate_heightmap_normal(verts+9, norms+9);
+                    calculate_heightmap_normal(verts, norms);
+                    calculate_heightmap_normal(verts+9, norms+9);
 
-                foreach(i, sizeof(verts)/sizeof(verts[0])) {
-                    da_push(vertices, verts[i]);
+                    foreach(i, sizeof(verts)/sizeof(verts[0])) {
+                        da_push(vertices, verts[i]);
+                    }
+                    foreach(i, sizeof(uvs_)/sizeof(uvs_[0])) {
+                        da_push(uvs, uvs_[i]);
+                    }
+                    foreach(i, sizeof(norms)/sizeof(norms[0])) {
+                        da_push(normals, norms[i]);
+                    }
                 }
-                foreach(i, sizeof(uvs_)/sizeof(uvs_[0])) {
-                    da_push(uvs, uvs_[i]);
-                }
-                foreach(i, sizeof(norms)/sizeof(norms[0])) {
-                    da_push(normals, norms[i]);
+            }
+            if(z < MAP_H-1 && !(tile_data[m->tiles[x][z+1]].flags & WALL)) {
+                foreach(height, 4) {
+                    r32 verts[] = {
+                        v10.x, v10.y+height, v10.z,
+                        v11.x, v11.y+height, v11.z,
+                        v10.x, v10.y+height+1, v10.z,
+                        
+                        v11.x, v11.y+height+1, v11.z,
+                        v10.x, v10.y+height+1, v10.z,
+                        v11.x, v11.y+height, v11.z
+                    };
+
+                    r32 uvs_[] = {
+                        tx, ty+th,
+                        tx+tw, ty+th,
+                        tx, ty,
+                        
+                        tx+tw, ty,
+                        tx, ty,
+                        tx+tw, ty+th
+                    };
+
+                    r32 norms[18] = { 0 };
+
+                    calculate_heightmap_normal(verts, norms);
+                    calculate_heightmap_normal(verts+9, norms+9);
+
+                    foreach(i, sizeof(verts)/sizeof(verts[0])) {
+                        da_push(vertices, verts[i]);
+                    }
+                    foreach(i, sizeof(uvs_)/sizeof(uvs_[0])) {
+                        da_push(uvs, uvs_[i]);
+                    }
+                    foreach(i, sizeof(norms)/sizeof(norms[0])) {
+                        da_push(normals, norms[i]);
+                    }
                 }
             } 
         }

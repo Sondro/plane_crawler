@@ -502,7 +502,7 @@ r32 do_slider(ui_id id, r32 w, r32 h, const char *text, r32 value) {
 
             if(ui_id_equ(ui.active, id)) {
                 if(left_mouse_down) {
-                    value = (mouse_x - ui.current_element_pos.x) / w;
+                    value = (mouse_x - x) / w;
                 }
                 else {
                     ui.active = -1;
