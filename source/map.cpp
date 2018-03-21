@@ -22,8 +22,8 @@ struct {
 } tile_data[MAX_TILE] = {
     { 0, 0, 0 },
     { 1, 0, 0 },
-    { 0, 0, 0 }, 
-    { 1, 0, 0 },
+    { 0, 0, WALL }, 
+    { 1, 0, WALL },
     { 2, 0, 0 },
     { 1, 1, 0 },
     { 0, 1, 0 },
@@ -36,18 +36,41 @@ struct Map {
     i16 enemy_count;
     Enemy enemies[MAX_ENEMY_COUNT];
 
+    u64 vertex_component_count;
     GLuint vao,
            vertex_vbo,
            uv_vbo,
            normal_vbo;
 };
 
+void calculate_heightmap_normal(r32 *verts, r32 *norms) {
+    v3 vert1 = v3(verts[3]-verts[0], verts[4]-verts[1], verts[5]-verts[2]),
+       vert2 = v3(verts[6]-verts[0], verts[7]-verts[1], verts[8]-verts[2]);
+    
+    v3 normal = HMM_Cross(vert1, vert2);
+    normal /= (HMM_Length(vert1)*HMM_Length(vert2));
+    
+    if(normal.y < 0) {
+        normal *= -1;
+    }
+
+    norms[0] = normal.x;
+    norms[1] = normal.y;
+    norms[2] = normal.z;
+    norms[3] = normal.x;
+    norms[4] = normal.y;
+    norms[5] = normal.z;
+    norms[6] = normal.x;
+    norms[7] = normal.y;
+    norms[8] = normal.z;
+}
+
 void generate_map(Map *m) {
     m->enemy_count = 0;
     
     foreach(i, MAP_W+1) {
         foreach(j, MAP_H+1) {
-            m->heights[i][j] = 2*perlin_2d(i, j, 0.1, 12);
+            m->heights[i][j] = 8*perlin_2d(i, j, 0.1, 12);
         }   
     }
 
@@ -57,185 +80,134 @@ void generate_map(Map *m) {
         }
     }
 
-    r32 *vertices = heap_alloc(r32, (MAP_W) * (MAP_H) * 2 * 9),
-        *uvs = vertices,
-        *normals = vertices;
+    forrng(i, 32, 64) {
+        m->tiles[i][32] = TILE_BRICK_WALL;
+    }
+   
+    r32 *vertices = 0,
+        *uvs = 0,
+        *normals = 0;
+    
+    u32 x = 0,
+        z = 0;
+
+    while(1) {
+        v3 v00 = v3(x,   m->heights[x][z],     z),
+           v01 = v3(x+1, m->heights[x+1][z],   z),
+           v10 = v3(x,   m->heights[x][z+1],   z+1),
+           v11 = v3(x+1, m->heights[x+1][z+1], z+1);
+        
+         r32 tx = (tile_data[m->tiles[x][z]].tx*16.f)/(r32)textures[TEX_TILE].w,
+             ty = (tile_data[m->tiles[x][z]].ty*16.f)/(r32)textures[TEX_TILE].h,
+             tw = 16.f/textures[TEX_TILE].w,
+             th = 16.f/textures[TEX_TILE].h;
+        
+
+        if(tile_data[m->tiles[x][z]].flags & WALL) {
+            if(x && !(tile_data[m->tiles[x-1][z]].flags & WALL)) {
+                r32 verts[] = {
+                    v00.x, v00.y, v00.z,
+                    v01.x, v01.y, v01.z,
+                    v00.x, v00.y+100, v00.z,
+                    
+                    v01.x, v01.y+100, v01.z,
+                    v00.x, v00.y+100, v00.z,
+                    v01.x, v01.y, v01.z
+                };
+
+                r32 uvs_[] = {
+                    0, 1,
+                    1, 0,
+                    0, 0,
+                    
+                    0, 1,
+                    1, 0,
+                    1, 1
+                };
+
+                r32 norms[18] = { 0 };
+
+                calculate_heightmap_normal(verts, norms);
+                calculate_heightmap_normal(verts+9, norms+9);
+
+                foreach(i, sizeof(verts)/sizeof(verts[0])) {
+                    da_push(vertices, verts[i]);
+                }
+                foreach(i, sizeof(uvs_)/sizeof(uvs_[0])) {
+                    da_push(uvs, uvs_[i]);
+                }
+                foreach(i, sizeof(norms)/sizeof(norms[0])) {
+                    da_push(normals, norms[i]);
+                }
+            } 
+        }
+        else {
+            r32 verts[] = {
+                v00.x, v00.y, v00.z,
+                v01.x, v01.y, v01.z,
+                v10.x, v10.y, v10.z,
+                
+                v11.x, v11.y, v11.z,
+                v01.x, v01.y, v01.z,
+                v10.x, v10.y, v10.z,
+            }; 
+             
+            r32 uvs_[] = {
+                tx, ty,
+                tx, ty+th,
+                tx+tw, ty,
+
+                tx+tw, ty+th,
+                tx, ty+th,
+                tx+tw, ty
+            }; 
+
+            r32 norms[18] = { 0 };
+             
+            calculate_heightmap_normal(verts, norms);
+            calculate_heightmap_normal(verts+9, norms+9);
+            
+            foreach(i, sizeof(verts)/sizeof(verts[0])) {
+                da_push(vertices, verts[i]);
+            }
+            foreach(i, sizeof(uvs_)/sizeof(uvs_[0])) {
+                da_push(uvs, uvs_[i]);
+            }
+            foreach(i, sizeof(norms)/sizeof(norms[0])) {
+                da_push(normals, norms[i]);
+            }
+        }
+
+        if(++x >= MAP_W-1) {
+            x = 0;
+            if(++z >= MAP_H-1) {
+                break;
+            }
+        }
+    }
 
     glGenVertexArrays(1, &m->vao);
     glBindVertexArray(m->vao);
 
-    { // @Vertex Position Generation
-        u32 write_x = 0,
-            write_z = 0;
-
-        for(u32 i = 0; i < (MAP_W*MAP_H) * 2 * 9; i += 18) {
-            vertices[i]     = write_x;
-            vertices[i+1]   = m->heights[write_x][write_z];
-            vertices[i+2]   = write_z;
-
-            vertices[i+3]   = write_x;
-            vertices[i+4]   = m->heights[write_x][write_z+1];
-            vertices[i+5]   = write_z+1;
-
-            vertices[i+6]   = write_x+1;
-            vertices[i+7]   = m->heights[write_x+1][write_z];
-            vertices[i+8]   = write_z;
-
-            vertices[i+9]   = write_x+1;
-            vertices[i+10]  = m->heights[write_x+1][write_z];
-            vertices[i+11]  = write_z;
-
-            vertices[i+12]  = write_x;
-            vertices[i+13]  = m->heights[write_x][write_z+1];
-            vertices[i+14]  = write_z+1;
-
-            vertices[i+15]  = write_x+1;
-            vertices[i+16]  = m->heights[write_x+1][write_z+1];
-            vertices[i+17]  = write_z+1;
-
-            if(++write_x >= MAP_W) {
-                write_x = 0;
-                ++write_z;
-            }
-        }
-
-        glGenBuffers(1, &m->vertex_vbo);
-        glBindBuffer(GL_ARRAY_BUFFER, m->vertex_vbo);
-        glBufferData(GL_ARRAY_BUFFER, sizeof(r32) * (MAP_W*MAP_H) * 9 * 2, vertices, GL_STATIC_DRAW);
-    }
+    glGenBuffers(1, &m->vertex_vbo);
+    glBindBuffer(GL_ARRAY_BUFFER, m->vertex_vbo);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(r32) * da_size(vertices), vertices, GL_STATIC_DRAW);
     
-    { // @Vertex UV Generation
-        u32 write_x = 0,
-            write_z = 0;
-        
-        r32 uv_offset_x = 0,
-            uv_offset_y = 0,
-            uv_range_x = 16.f/textures[TEX_TILE].w,
-            uv_range_y = 16.f/textures[TEX_TILE].h;
-        
-        for(u32 i = 0; i < (MAP_W*MAP_H) * 2 * 6; i += 12) {
-            uv_offset_x = (tile_data[m->tiles[write_x][write_z]].tx*16) / (r32)textures[TEX_TILE].w;
-            uv_offset_y = (tile_data[m->tiles[write_x][write_z]].ty*16) / (r32)textures[TEX_TILE].h;
+    glGenBuffers(1, &m->uv_vbo);
+    glBindBuffer(GL_ARRAY_BUFFER, m->uv_vbo);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(r32) * da_size(uvs), uvs, GL_STATIC_DRAW);
 
-            uvs[i]     = uv_offset_x;
-            uvs[i+1]   = uv_offset_y;
-
-            uvs[i+2]   = uv_offset_x;
-            uvs[i+3]   = uv_offset_y + uv_range_y;
-
-            uvs[i+4]   = uv_offset_x + uv_range_x;
-            uvs[i+5]   = uv_offset_y;
-
-            uvs[i+6]   = uv_offset_x + uv_range_x;
-            uvs[i+7]   = uv_offset_y;
-
-            uvs[i+8]   = uv_offset_x;
-            uvs[i+9]   = uv_offset_y + uv_range_y;
-
-            uvs[i+10]  = uv_offset_x + uv_range_x;
-            uvs[i+11]  = uv_offset_y + uv_range_y;
-
-            if(++write_x >= MAP_W) {
-                write_x = 0;
-                ++write_z;
-            }
-        }
-
-        glGenBuffers(1, &m->uv_vbo);
-        glBindBuffer(GL_ARRAY_BUFFER, m->uv_vbo);
-        glBufferData(GL_ARRAY_BUFFER, sizeof(r32) * (MAP_W*MAP_H) * 6 * 2, uvs, GL_STATIC_DRAW);
-    }
-
-    { // @Vertex Normal Generation
-        u32 write_x = 0,
-            write_z = 0;
-
-        for(u32 i = 0; i < (MAP_W*MAP_H) * 2 * 9; i += 18) {
-            hmm_v3 v1 = HMM_Vec3(
-                        1,
-                        m->heights[write_x+1][write_z] - m->heights[write_x][write_z],
-                        0
-                    ),
-
-                   v2 = HMM_Vec3(
-                        0,
-                        m->heights[write_x][write_z+1] - m->heights[write_x][write_z],
-                        1
-                    );
-
-            hmm_v3 normal = HMM_Cross(v1, v2);
-
-            normal /= (HMM_Length(v1)*HMM_Length(v2));
-            normal *= -1;
-
-            normals[i]     = normal.X;
-            normals[i+1]   = normal.Y;
-            normals[i+2]   = normal.Z;
-
-            normals[i+3]   = normal.X;
-            normals[i+4]   = normal.Y;
-            normals[i+5]   = normal.Z;
-
-            normals[i+6]   = normal.X;
-            normals[i+7]   = normal.Y;
-            normals[i+8]   = normal.Z;
-
-            v1 = HMM_Vec3(
-                -1,
-                m->heights[write_x+1][write_z] - m->heights[write_x+1][write_z+1],
-                0
-            ),
-
-            v2 = HMM_Vec3(
-                0,
-                m->heights[write_x][write_z+1] - m->heights[write_x+1][write_z+1],
-                -1
-            );
-
-            normal = HMM_Cross(v1, v2);
-
-            normal /= (HMM_Length(v1)*HMM_Length(v2));
-            normal *= -1;
-
-            normals[i+9]   = normal.X;
-            normals[i+10]  = normal.Y;
-            normals[i+11]  = normal.Z;
-
-            normals[i+12]  = normal.X;
-            normals[i+13]  = normal.Y;
-            normals[i+14]  = normal.Z;
-
-            normals[i+15]  = normal.X;
-            normals[i+16]  = normal.Y;
-            normals[i+17]  = normal.Z;
-
-            if(++write_x >= MAP_W) {
-                write_x = 0;
-                ++write_z;
-            }
-        }
-
-        glGenBuffers(1, &m->normal_vbo);
-        glBindBuffer(GL_ARRAY_BUFFER, m->normal_vbo);
-        glBufferData(GL_ARRAY_BUFFER, sizeof(r32) * (MAP_W) * (MAP_H) * 9 * 2, normals, GL_STATIC_DRAW);
-    }
+    glGenBuffers(1, &m->normal_vbo);
+    glBindBuffer(GL_ARRAY_BUFFER, m->normal_vbo);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(r32) * da_size(normals), normals, GL_STATIC_DRAW);
     
-    /*
-    bind_fbo(&m->render_fbo);
-    {
-        glGenTextures(1, &m->depth_tex);
-        glBindTexture(GL_TEXTURE_2D, m->depth_tex);
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT16, m->render_fbo.w, m->render_fbo.h, 0, GL_DEPTH_COMPONENT, GL_FLOAT, 0);
-
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-        glFramebufferTexture2D(GL_DRAW_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, m->depth_tex, 0);
-        glBindTexture(GL_TEXTURE_2D, 0);
-    }
-    bind_fbo(0);
-    */
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
+    glBindVertexArray(0);
+    
+    m->vertex_component_count = da_size(vertices);
+    da_free(vertices);
+    da_free(uvs);
+    da_free(normals);
 }
 
 void clean_up_map(Map *m) {
@@ -302,7 +274,7 @@ void draw_map(Map *m) {
         glBindBuffer(GL_ARRAY_BUFFER, m->normal_vbo);
         glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, 0, NULL);
         
-        glDrawArrays(GL_TRIANGLES, 0, (MAP_W*MAP_H)*2*3);
+        glDrawArrays(GL_TRIANGLES, 0, m->vertex_component_count);
 
         glBindBuffer(GL_ARRAY_BUFFER, 0);
         glDisableVertexAttribArray(2);

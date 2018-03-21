@@ -280,17 +280,17 @@ void draw_billboard_texture(Texture *texture, v4 tbb, v3 pos, v2 scale) {
         bind_texture(texture, tbb.x, tbb.y, tbb.z, tbb.w);
 
         reset_model();
-        translate(pos.x, pos.y, pos.z);
+        translate(pos.x, pos.y, pos.z); 
+        
+        foreach(i, 3) {
+            foreach(j, 3) {
+                model.Elements[i][j] = view.Elements[j][i];
+            }
+        }
+
         scale(scale.x, scale.y, 1);
         
-        {
-            foreach(i, 3) {
-                foreach(j, 3) {
-                    model.Elements[i][j] = view.Elements[j][i];
-                }
-            }
-            draw_quad();
-        }
+        draw_quad();
     }
     set_shader(-1);
 }

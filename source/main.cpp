@@ -27,6 +27,10 @@
 // Internal Libraries
 #include "ext/rf_utils.h"
 
+#define RF_DARRAY_IMPLEMENTATION
+#define RF_DARRAY_SHORT_NAMES
+#include "ext/rf_darray.h"
+
 #define HANDMADE_MATH_IMPLEMENTATION
 #include "ext/HandmadeMath.h"
 typedef hmm_v2 v2;

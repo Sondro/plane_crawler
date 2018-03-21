@@ -15,6 +15,6 @@ void main() {
     if(light_factor > 1) light_factor = 1;
 
     vec3 albedo = texture(tex, uv).rgb;
-
+    
     color = vec4(albedo*light_factor, 1);
 }

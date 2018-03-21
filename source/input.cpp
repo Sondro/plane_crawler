@@ -6,6 +6,10 @@ global i8 key_down[GLFW_KEY_LAST] = { 0 },
 global u8 last_char = 0;
 global i16 last_key = 0, last_char_mods = 0;
 
+global i8 mouse_pos_used = 0, 
+          mouse_buttons_used = 0,
+          keyboard_used = 0;
+
 //
 // @Note (Ryan) Mouse state information:
 //
@@ -21,13 +25,13 @@ global i16 last_key = 0, last_char_mods = 0;
 // clicking is defined as letting go
 // after having pressed a mouse button.
 
-#define left_mouse_down         (mouse_state & 1<<7)
-#define right_mouse_down        (mouse_state & 1<<6)
-#define left_mouse_pressed      (!(mouse_state & 1<<7) && (mouse_state & 1<<5))
-#define right_mouse_pressed     (!(mouse_state & 1<<6) && (mouse_state & 1<<4))
+#define left_mouse_down         (!mouse_buttons_used && mouse_state & 1<<7)
+#define right_mouse_down        (!mouse_buttons_used && mouse_state & 1<<6)
+#define left_mouse_pressed      (!mouse_buttons_used && !(mouse_state & 1<<7) && (mouse_state & 1<<5))
+#define right_mouse_pressed     (!mouse_buttons_used && !(mouse_state & 1<<6) && (mouse_state & 1<<4))
 
-#define key_control_down(i)     (key_down[key_control_maps[i]])
-#define key_control_pressed(i)  (key_pressed[key_control_maps[i]])
+#define key_control_down(i)     (!keyboard_used && key_down[key_control_maps[i]])
+#define key_control_pressed(i)  (!keyboard_used && key_pressed[key_control_maps[i]])
 
 enum {
     KEY_SPACE               = GLFW_KEY_SPACE,
@@ -207,6 +211,10 @@ void init_input() {
 
 void update_input() {
     glfwGetCursorPos(window, &mouse_x, &mouse_y);
+    
+    mouse_pos_used = 0;
+    mouse_buttons_used = 0;
+    keyboard_used = 0;
 
     i32 left_mouse_button = glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT),
         right_mouse_button = glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_RIGHT);

@@ -45,13 +45,6 @@ void clean_up_game(State *s) {
 void update_game() {
     Game *g = (Game *)state.mem;    
 
-    if(key_control_pressed(KC_PAUSE)) {
-        g->paused = !g->paused;
-        ui.current_focus = 0;
-
-        glfwSetInputMode(window, GLFW_CURSOR, g->paused ? GLFW_CURSOR_NORMAL : GLFW_CURSOR_DISABLED);
-    }
-
     if(g->paused) { // @Paused update
         if(g->settings.state < 0) {
             set_ui_title("PAUSED");
@@ -136,7 +129,7 @@ void update_game() {
             look_at(g->camera.pos, target);
         }
         draw_map(&g->map);
-        draw_billboard_texture(&textures[TEX_ENEMY], v4(0, 0, 16, 16), v3(50, 4, 50), v2(0.5, 0.5));
+        draw_billboard_texture(&textures[TEX_ENEMY], v4(0, 0, 16, 16), v3(50, map_coordinate_height(&g->map, 50, 50) + 0.5, 50), v2(0.5, 0.5));
     }
 
     prepare_for_ui_render(); // @UI Render
@@ -145,10 +138,17 @@ void update_game() {
     } 
 
     if(g->paused) {
-        draw_ui_filled_rect(v4(0, 0, 0, 0.3), v4(0, 0, window_w, window_h));
+        draw_ui_filled_rect(v4(0, 0, 0, 0.6), v4(0, 0, window_w, window_h));
         if(g->settings.state >= 0) {
             do_settings_menu(&g->settings);
         }
+    }
+
+    if(key_control_pressed(KC_PAUSE)) {
+        g->paused = !g->paused;
+        ui.current_focus = 0;
+
+        glfwSetInputMode(window, GLFW_CURSOR, g->paused ? GLFW_CURSOR_NORMAL : GLFW_CURSOR_DISABLED);
     }
 }
 

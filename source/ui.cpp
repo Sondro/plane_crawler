@@ -591,6 +591,7 @@ void do_settings_menu(SettingsMenu *s) {
         }
         case SETTINGS_CONTROLS: {
             if(last_key && s->selected_control >= 0) {
+                keyboard_used = 1;
                 key_control_maps[s->selected_control] = last_key;
                 last_key = 0;
                 s->selected_control = -1;
