@@ -30,6 +30,7 @@ const char *shader_names[MAX_SHADER] = {
     "rect",
     "texture",
     "heightmap",
+
 };
 
 enum {
@@ -37,6 +38,7 @@ enum {
     TEX_TILE,
     TEX_SMALL_FONT,
     TEX_LOGO,
+    TEX_HAND,
     MAX_TEX
 };
 
@@ -45,6 +47,7 @@ const char *tex_names[MAX_TEX] = {
     "tile",
     "font",
     "logo",
+    "hand",
 };
 
 global Shader shaders[MAX_SHADER];
@@ -65,7 +68,7 @@ void init_draw() {
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     glEnable(GL_DEPTH_TEST);
     glDepthFunc(GL_LESS);
-    
+
     foreach(i, MAX_SHADER) {
         shaders[i] = load_shader(shader_names[i]);
     }
@@ -73,7 +76,7 @@ void init_draw() {
     foreach(i, MAX_TEX) {
         textures[i] = load_texture(tex_names[i]);
     }
-    
+
     glGenVertexArrays(1, &quad_vao);
     glBindVertexArray(quad_vao);
     {
@@ -117,7 +120,7 @@ void clean_up_draw() {
     glDeleteBuffers(1, &quad_vertex_vbo);
     glDeleteBuffers(1, &quad_uv_vbo);
     glDeleteBuffers(1, &quad_normal_vbo);
-    
+
     foreach(i, MAX_SHADER) {
         clean_up_shader(shaders+i);
     }
@@ -280,8 +283,8 @@ void draw_billboard_texture(Texture *texture, v4 tbb, v3 pos, v2 scale) {
         bind_texture(texture, tbb.x, tbb.y, tbb.z, tbb.w);
 
         reset_model();
-        translate(pos.x, pos.y, pos.z); 
-        
+        translate(pos.x, pos.y, pos.z);
+
         foreach(i, 3) {
             foreach(j, 3) {
                 model.Elements[i][j] = view.Elements[j][i];
@@ -289,7 +292,7 @@ void draw_billboard_texture(Texture *texture, v4 tbb, v3 pos, v2 scale) {
         }
 
         scale(scale.x, scale.y, 1);
-        
+
         draw_quad();
     }
     set_shader(-1);
@@ -357,7 +360,7 @@ void draw_ui_texture(Texture *texture, v4 tbb, v4 bb) {
 
         pos = view_inv * projection_inv * pos;
         size = view_inv * projection_inv * size;
-        
+
         reset_model();
         translate(pos.x, pos.y, 0);
         scale(size.x, size.y, 1);
@@ -385,7 +388,7 @@ void draw_ui_fbo(FBO *fbo, v4 tbb, v4 bb) {
 
         pos = view_inv * projection_inv * pos;
         size = view_inv * projection_inv * size;
-        
+
         reset_model();
         translate(pos.x, pos.y, 0);
         scale(size.x, size.y, 1);
@@ -399,7 +402,7 @@ void draw_ui_text(const char *text, int align, v2 position) {
     set_shader(SHADER_TEXTURE);
     {
         u32 text_len = strlen(text);
-        
+
         position.x += 14;
 
         if(align) {
@@ -407,10 +410,10 @@ void draw_ui_text(const char *text, int align, v2 position) {
         }
 
         v4 pos = v4((position.x/window_w)*2 - 1, -(position.y/window_h)*2 + 1, 0, 1);
-        v4 size = v4(28.f/window_w, 32.f/window_h, 0, 0); 
+        v4 size = v4(28.f/window_w, 32.f/window_h, 0, 0);
 
         pos = view_inv * projection_inv * pos;
-        size = view_inv * projection_inv * size; 
+        size = view_inv * projection_inv * size;
 
         reset_model();
         translate(pos.x, pos.y, 0);
@@ -478,7 +481,7 @@ void draw_ui_text(const char *text, int align, v2 position) {
 
                 {
                     m4 char_model = HMM_Multiply(model, HMM_Scale(v3(size.x, size.y, 1)));
-                    
+
                     glUniformMatrix4fv(glGetUniformLocation(active_shader, "model"), 1, GL_FALSE, &char_model.Elements[0][0]);
                 }
 
@@ -500,3 +503,28 @@ void draw_ui_text(const char *text, int align, v2 position) {
     }
     set_shader(-1);
 }
+
+/*
+void draw_hand (Player *p, Camera, c*){
+
+    //not sure all of what will go here
+    switch spell{
+        case (SPELL_FIRE):
+
+            break;
+        case (SPELL_ICE):
+
+            break;
+        case (SPELL_LIGHTNING):
+
+            break;
+        case (SPELL_WIND):
+
+            break;
+
+        default:
+
+            break;
+    }
+
+}*/
