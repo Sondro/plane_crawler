@@ -15,7 +15,8 @@ struct {
     { 2, 0.0 },
 };
 
-struct Enemy {
-    i16 type;
-    v2 pos, vel;
+struct EnemySet {
+    u32 count;
+    i16 type[MAX_ENEMY_COUNT];
+    v4 pos_vel[MAX_ENEMY_COUNT];
 };

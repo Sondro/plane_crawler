@@ -33,8 +33,7 @@ struct Map {
     i8 tiles[MAP_W][MAP_H];
     r32 heights[MAP_W+1][MAP_H+1];
      
-    i16 enemy_count;
-    Enemy enemies[MAX_ENEMY_COUNT];
+    EnemySet enemies;
 
     u64 vertex_component_count;
     GLuint vao,
@@ -66,7 +65,7 @@ void calculate_heightmap_normal(r32 *verts, r32 *norms) {
 }
 
 void generate_map(Map *m) {
-    m->enemy_count = 0;
+    m->enemies.count = 0;
     
     foreach(i, MAP_W+1) {
         foreach(j, MAP_H+1) {
@@ -332,6 +331,12 @@ void generate_map(Map *m) {
     da_free(vertices);
     da_free(uvs);
     da_free(normals);
+
+    foreach(i, 50) {
+        m->enemies.type[i] = ENEMY_SKELETON;
+        m->enemies.pos_vel[i] = v4(random32(0, MAP_W), random32(0, MAP_H), 0, 0);
+        ++m->enemies.count;
+    }
 }
 
 void clean_up_map(Map *m) {
@@ -368,13 +373,16 @@ r32 map_coordinate_height(Map *m, r32 x, r32 z) {
 }
 
 void update_map(Map *m) {
-    { // @Update enemies
-        
+    { // @Update enemies positions/velocities
+        foreach(i, m->enemies.count) {
+            m->enemies.pos_vel[i].XY += m->enemies.pos_vel[i].ZW;
+            m->enemies.pos_vel[i].ZW *= 0.85;
+        }
     }
 }
 
 void draw_map(Map *m) {
-    {
+    { // @Draw heightmap/terrain
         reset_model();
 
         set_shader(SHADER_HEIGHTMAP);
@@ -408,5 +416,16 @@ void draw_map(Map *m) {
         glBindVertexArray(0);
 
         set_shader(0);
+    }
+
+    { //@Draw enemies
+        v2 pos;
+        foreach(i, m->enemies.count) {
+            pos = m->enemies.pos_vel[i].XY;
+            draw_billboard_texture(textures+TEX_ENEMY, 
+                                   v4(enemy_data[m->enemies.type[i]].tx*16, 0, 16, 16), 
+                                   v3(pos.X, map_coordinate_height(m, pos.X, pos.Y)+0.5, pos.Y), 
+                                   v2(0.5, 0.5));
+        }
     }
 }
