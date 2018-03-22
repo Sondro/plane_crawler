@@ -1,5 +1,6 @@
 #include "player.cpp"
 #include "enemy.cpp"
+#include "particle.cpp"
 
 #define WALL    0x01
 #define PIT     0x02
@@ -26,7 +27,7 @@ struct {
     { 1, 0, WALL },
     { 2, 0, 0 },
     { 1, 1, 0 },
-    { 0, 1, 0 },
+    { 1, 0, PIT },
 };
 
 struct Map {
@@ -34,6 +35,7 @@ struct Map {
     r32 heights[MAP_W+1][MAP_H+1];
      
     EnemySet enemies;
+    ParticleSet particles;
 
     u64 vertex_component_count;
     GLuint vao,
@@ -81,6 +83,12 @@ void generate_map(Map *m) {
 
     forrng(i, 32, 64) {
         m->tiles[i][32] = TILE_BRICK_WALL;
+    }
+
+    forrng(i, 64, 96) {
+        forrng(j, 64, 96) {
+            m->tiles[i][j] = TILE_PIT;
+        }
     }
    
     r32 *vertices = 0,
@@ -231,6 +239,168 @@ void generate_map(Map *m) {
                         v11.x, v11.y+height+1, v11.z,
                         v10.x, v10.y+height+1, v10.z,
                         v11.x, v11.y+height, v11.z
+                    };
+
+                    r32 uvs_[] = {
+                        tx, ty+th,
+                        tx+tw, ty+th,
+                        tx, ty,
+                        
+                        tx+tw, ty,
+                        tx, ty,
+                        tx+tw, ty+th
+                    };
+
+                    r32 norms[18] = { 0 };
+
+                    calculate_heightmap_normal(verts, norms);
+                    calculate_heightmap_normal(verts+9, norms+9);
+                    
+                    foreach(i, 18) {
+                        norms[i] *= -1;
+                    }
+
+                    foreach(i, sizeof(verts)/sizeof(verts[0])) {
+                        da_push(vertices, verts[i]);
+                    }
+                    foreach(i, sizeof(uvs_)/sizeof(uvs_[0])) {
+                        da_push(uvs, uvs_[i]);
+                    }
+                    foreach(i, sizeof(norms)/sizeof(norms[0])) {
+                        da_push(normals, norms[i]);
+                    }
+                }
+            } 
+        }
+        else if(tile_data[m->tiles[x][z]].flags & PIT) {
+            if(x && !(tile_data[m->tiles[x-1][z]].flags & PIT)) {
+                foreach(height, 4) {
+                    r32 verts[] = {
+                        v00.x, v00.y-4+height, v00.z,
+                        v10.x, v10.y-4+height, v10.z,
+                        v00.x, v00.y-4+height+1, v00.z,
+                        
+                        v10.x, v10.y-4+height+1, v10.z,
+                        v00.x, v00.y-4+height+1, v00.z,
+                        v10.x, v10.y-4+height, v10.z
+                    };
+
+                    r32 uvs_[] = {
+                        tx, ty+th,
+                        tx+tw, ty+th,
+                        tx, ty,
+                        
+                        tx+tw, ty,
+                        tx, ty,
+                        tx+tw, ty+th
+                    };
+
+                    r32 norms[18] = { 0 };
+
+                    calculate_heightmap_normal(verts, norms);
+                    calculate_heightmap_normal(verts+9, norms+9);
+
+                    foreach(i, sizeof(verts)/sizeof(verts[0])) {
+                        da_push(vertices, verts[i]);
+                    }
+                    foreach(i, sizeof(uvs_)/sizeof(uvs_[0])) {
+                        da_push(uvs, uvs_[i]);
+                    }
+                    foreach(i, sizeof(norms)/sizeof(norms[0])) {
+                        da_push(normals, norms[i]);
+                    }
+                }
+            }
+            if(x<MAP_W-1 && !(tile_data[m->tiles[x+1][z]].flags & PIT)) {
+                foreach(height, 4) {
+                    r32 verts[] = {
+                        v01.x, v01.y-4+height, v01.z,
+                        v11.x, v11.y-4+height, v11.z,
+                        v01.x, v01.y-4+height+1, v01.z,
+                        
+                        v11.x, v11.y-4+height+1, v11.z,
+                        v01.x, v01.y-4+height+1, v01.z,
+                        v11.x, v11.y-4+height, v11.z
+                    };
+
+                    r32 uvs_[] = {
+                        tx, ty+th,
+                        tx+tw, ty+th,
+                        tx, ty,
+                        
+                        tx+tw, ty,
+                        tx, ty,
+                        tx+tw, ty+th
+                    };
+
+                    r32 norms[18] = { 0 };
+
+                    calculate_heightmap_normal(verts, norms);
+                    calculate_heightmap_normal(verts+9, norms+9);
+
+                    foreach(i, 18) {
+                        norms[i] *= -1;
+                    }
+
+                    foreach(i, sizeof(verts)/sizeof(verts[0])) {
+                        da_push(vertices, verts[i]);
+                    }
+                    foreach(i, sizeof(uvs_)/sizeof(uvs_[0])) {
+                        da_push(uvs, uvs_[i]);
+                    }
+                    foreach(i, sizeof(norms)/sizeof(norms[0])) {
+                        da_push(normals, norms[i]);
+                    }
+                }
+            }
+            if(z && !(tile_data[m->tiles[x][z-1]].flags & PIT)) {
+                foreach(height, 4) {
+                    r32 verts[] = {
+                        v00.x, v00.y-4+height, v00.z,
+                        v01.x, v01.y-4+height, v01.z,
+                        v00.x, v00.y-4+height+1, v00.z,
+                        
+                        v01.x, v01.y-4+height+1, v01.z,
+                        v00.x, v00.y-4+height+1, v00.z,
+                        v01.x, v01.y-4+height, v01.z
+                    };
+
+                    r32 uvs_[] = {
+                        tx, ty+th,
+                        tx+tw, ty+th,
+                        tx, ty,
+                        
+                        tx+tw, ty,
+                        tx, ty,
+                        tx+tw, ty+th
+                    };
+
+                    r32 norms[18] = { 0 };
+
+                    calculate_heightmap_normal(verts, norms);
+                    calculate_heightmap_normal(verts+9, norms+9);
+
+                    foreach(i, sizeof(verts)/sizeof(verts[0])) {
+                        da_push(vertices, verts[i]);
+                    }
+                    foreach(i, sizeof(uvs_)/sizeof(uvs_[0])) {
+                        da_push(uvs, uvs_[i]);
+                    }
+                    foreach(i, sizeof(norms)/sizeof(norms[0])) {
+                        da_push(normals, norms[i]);
+                    }
+                }
+            }
+            if(z < MAP_H-1 && !(tile_data[m->tiles[x][z+1]].flags & PIT)) {
+                foreach(height, 4) {
+                    r32 verts[] = {
+                        v10.x, v10.y-4+height, v10.z,
+                        v11.x, v11.y-4+height, v11.z,
+                        v10.x, v10.y-4+height+1, v10.z,
+                        
+                        v11.x, v11.y-4+height+1, v11.z,
+                        v10.x, v10.y-4+height+1, v10.z,
+                        v11.x, v11.y-4+height, v11.z
                     };
 
                     r32 uvs_[] = {

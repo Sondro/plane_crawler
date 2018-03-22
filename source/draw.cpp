@@ -23,6 +23,7 @@ enum {
     SHADER_RECT,
     SHADER_TEXTURE,
     SHADER_HEIGHTMAP,
+    SHADER_PARTICLE,
     MAX_SHADER
 };
 
@@ -30,7 +31,7 @@ const char *shader_names[MAX_SHADER] = {
     "rect",
     "texture",
     "heightmap",
-
+    "particle",
 };
 
 enum {
