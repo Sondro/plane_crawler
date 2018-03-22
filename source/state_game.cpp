@@ -130,14 +130,17 @@ void update_game() {
         }
         draw_map(&g->map);
 
-        draw_billboard_texture(&textures[TEX_HAND], v4(0, 0, 16, 16), v3(g->camera.pos.x + .5, g->camera.pos.y - .3, g->camera.pos.z + .5), v2(0.1, 0.1));
-
-        draw_billboard_texture(&textures[TEX_ENEMY], v4(0, 0, 16, 16), v3(50, map_coordinate_height(&g->map, 50, 50) + 0.5, 50), v2(0.5, 0.5));
     }
 
     prepare_for_ui_render(); // @UI Render
     {
-
+        draw_ui_texture(&textures[TEX_HAND], v4(0, 0, 16, 16), 
+                        v4(
+                            window_w*(2.f/3), 
+                            window_h-420 + sin(g->camera_bob_sin_pos) * 320 * HMM_Length(g->player.vel), 
+                            480, 480
+                        )
+                       );
     }
 
     if(g->paused) {
