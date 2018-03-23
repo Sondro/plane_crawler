@@ -138,7 +138,7 @@ void update_game() {
             // @TEST PROJECTILES
             if(key_pressed[KEY_SPACE]) {
                 do_projectile(&g->map, PROJECTILE_FIRE, v2(g->player.pos.x, g->player.pos.y), 
-                              v2(cos(g->camera.orientation.x), sin(g->camera.orientation.x)) / 10);
+                              v2(cos(g->camera.orientation.x), sin(g->camera.orientation.x)) / 5);
             }
         }
 
