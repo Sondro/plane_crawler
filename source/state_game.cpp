@@ -22,7 +22,7 @@ State init_game() {
     g->camera.orientation = g->camera.target_orientation = v3(0, 0, 0);
     g->camera.interpolation_rate = 0.31;
     generate_map(&g->map);
-    
+
     foreach(i, MAP_W)
     foreach(j, MAP_H) {
         if(!(tile_data[g->map.tiles[i][j]].flags & WALL) &&
@@ -108,10 +108,10 @@ void update_game() {
 
         g->player.vel.x += cos(g->camera.orientation.x + PI/2)*horizontal_movement*movement_speed;
         g->player.vel.y += sin(g->camera.orientation.x + PI/2)*horizontal_movement*movement_speed;
-        
+
         g->player.vel.x *= 0.85;
         g->player.vel.y *= 0.85;
-        
+
         collide_entity(&g->map, &g->player.pos, &g->player.vel, 0.25);
         g->player.pos += g->player.vel;
 
@@ -133,11 +133,11 @@ void update_game() {
                 sin(g->camera.orientation.y),
                 sin(g->camera.orientation.x)
             );
-            look_at(g->camera.pos, target); 
+            look_at(g->camera.pos, target);
 
             // @TEST PROJECTILES
             if(key_pressed[KEY_SPACE]) {
-                do_projectile(&g->map, PROJECTILE_FIRE, v2(g->player.pos.x, g->player.pos.y), 
+                do_projectile(&g->map, PROJECTILE_FIRE, v2(g->player.pos.x, g->player.pos.y),
                               v2(cos(g->camera.orientation.x), sin(g->camera.orientation.x)) / 5);
             }
         }
@@ -148,27 +148,38 @@ void update_game() {
                 sin(g->camera.orientation.y)*0.3,
                 sin(g->camera.orientation.x+0.4)*0.3
             );
-            /* 
-            do_particle(&g->map, PARTICLE_FIRE, target + v3(0, sin(current_time*5)*0.015, 0), 
-                        v3(g->player.vel.x, 0, g->player.vel.y) + 
-                        v3(random32(-0.001, 0.001), random32(0.003, 0.0055), random32(-0.001, 0.001)), 
+            /*
+            do_particle(&g->map, PARTICLE_FIRE, target + v3(0, sin(current_time*5)*0.015, 0),
+                        v3(g->player.vel.x, 0, g->player.vel.y) +
+                        v3(random32(-0.001, 0.001), random32(0.003, 0.0055), random32(-0.001, 0.001)),
                         random32(0.05, 0.2));
             */
         }
- 
+
         draw_map(&g->map);
 
     }
 
     prepare_for_ui_render(); // @UI Render
     {
-        draw_ui_texture(&textures[TEX_HAND], v4(0, 0, 16, 16), 
+        if(key_pressed[KEY_SPACE]) {//draw animation
+            draw_ui_texture(&textures[TEX_HAND], v4(32, 0, 16, 16),
                         v4(
-                            window_w*(2.f/3), 
-                            window_h-420 + sin(g->camera_bob_sin_pos) * 320 * HMM_Length(g->player.vel), 
+                            window_w*(2.f/3),
+                            window_h-420 + sin(g->camera_bob_sin_pos) * 320 * HMM_Length(g->player.vel),
                             480, 480
                         )
                        );
+
+        }else{
+            draw_ui_texture(&textures[TEX_HAND], v4(0, 0, 16, 16),
+                        v4(
+                            window_w*(2.f/3),
+                            window_h-420 + sin(g->camera_bob_sin_pos) * 320 * HMM_Length(g->player.vel),
+                            480, 480
+                        )
+                       );
+            }
     }
 
     if(g->paused) {
