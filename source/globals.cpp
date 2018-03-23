@@ -5,6 +5,7 @@ global r64 current_time = 0;
 
 // @Note (Ryan) global settings
 global i8 fullscreen = 0;
+global r32 field_of_view = 110.f;
 
 r32 random32(r32 low, r32 high) {
     return low + (((r32)((unsigned int)rand() % 1000) / 1000.f) * (high - low));

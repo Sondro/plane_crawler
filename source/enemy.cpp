@@ -15,8 +15,13 @@ struct {
     { 2, 0.0 },
 };
 
+struct EnemyUpdate {
+    v2 pos, vel;
+    r32 update_dir_t;
+};
+
 struct EnemySet {
     u32 count;
     i16 type[MAX_ENEMY_COUNT];
-    v4 pos_vel[MAX_ENEMY_COUNT];
+    EnemyUpdate update[MAX_ENEMY_COUNT];
 };

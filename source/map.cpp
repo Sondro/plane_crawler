@@ -35,7 +35,10 @@ struct Map {
     r32 heights[MAP_W+1][MAP_H+1];
      
     EnemySet enemies;
-    ParticleSet particles;
+    i8 enemy_anim_timer;
+    ParticleMaster particles;
+   
+    v3 light_vector;
 
     u64 vertex_component_count;
     GLuint vao,
@@ -68,29 +71,49 @@ void calculate_heightmap_normal(r32 *verts, r32 *norms) {
 
 void generate_map(Map *m) {
     m->enemies.count = 0;
+    m->enemy_anim_timer = 60;
+    init_particle_master(&m->particles);
+    m->light_vector = v3(1, 1, 1) / sqrt(3);
     
-    foreach(i, MAP_W+1) {
-        foreach(j, MAP_H+1) {
-            m->heights[i][j] = 2*perlin_2d(i, j, 0.1, 12);
-        }   
+    foreach(i, MAP_W)
+    foreach(j, MAP_H) {
+        m->tiles[i][j] = 0;
+        m->heights[i][j] = 0;
+    }
+    
+    // @Room generation
+    /*
+    i32 room_count = 8;
+
+    struct {
+        int x, y, w, h;
+    } rooms[room_count];
+
+    foreach(i, room_count) {
+        rooms[i].x = random32(0, MAP_W-1);
+        rooms[i].y = random32(0, MAP_H-1);
+        rooms[i].w = random32(4, 24);
+        rooms[i].h = random32(4, 24);
     }
 
-    foreach(i, MAP_W) {
-        foreach(j, MAP_H) {
-            m->tiles[i][j] = TILE_DIRT;
+    foreach(i, room_count) {
+        forrng(x, rooms[i].x, rooms[i].x + rooms[i].w+1)
+        forrng(y, rooms[i].y, rooms[i].y + rooms[i].h+1) {
+            if(x >= 1 && x < MAP_W-1 && y >= 1 && y < MAP_H-1) {
+                if(x < rooms[i].x + rooms[i].w && x < MAP_W-2 && 
+                   y < rooms[i].y + rooms[i].h && y < MAP_H-2) {
+                    m->tiles[x][y] = TILE_DIRT;
+                }
+                m->heights[x][y] = perlin_2d(x, y, 0.15, 12)*1.1;
+            }
         }
     }
+    */
+    
+    m->tiles[32][32] = TILE_BRICK_WALL;
 
-    forrng(i, 32, 64) {
-        m->tiles[i][32] = TILE_BRICK_WALL;
-    }
+    //
 
-    forrng(i, 64, 96) {
-        forrng(j, 64, 96) {
-            m->tiles[i][j] = TILE_PIT;
-        }
-    }
-   
     r32 *vertices = 0,
         *uvs = 0,
         *normals = 0;
@@ -217,6 +240,10 @@ void generate_map(Map *m) {
 
                     calculate_heightmap_normal(verts, norms);
                     calculate_heightmap_normal(verts+9, norms+9);
+                    
+                    foreach(i, 18) {
+                        norms[i] *= -1;
+                    }
 
                     foreach(i, sizeof(verts)/sizeof(verts[0])) {
                         da_push(vertices, verts[i]);
@@ -254,11 +281,7 @@ void generate_map(Map *m) {
                     r32 norms[18] = { 0 };
 
                     calculate_heightmap_normal(verts, norms);
-                    calculate_heightmap_normal(verts+9, norms+9);
-                    
-                    foreach(i, 18) {
-                        norms[i] *= -1;
-                    }
+                    calculate_heightmap_normal(verts+9, norms+9); 
 
                     foreach(i, sizeof(verts)/sizeof(verts[0])) {
                         da_push(vertices, verts[i]);
@@ -501,19 +524,43 @@ void generate_map(Map *m) {
     da_free(vertices);
     da_free(uvs);
     da_free(normals);
-
-    foreach(i, 50) {
-        m->enemies.type[i] = ENEMY_SKELETON;
-        m->enemies.pos_vel[i] = v4(random32(0, MAP_W), random32(0, MAP_H), 0, 0);
-        ++m->enemies.count;
+    
+    foreach(i, MAP_W)
+    foreach(j, MAP_H) {
+        if(!(tile_data[m->tiles[i][j]].flags & WALL) &&
+           !(tile_data[m->tiles[i][j]].flags & PIT)) {
+            if(random32(0, 1) < 0.05) {
+                m->enemies.type[m->enemies.count] = ENEMY_SKELETON;
+                m->enemies.update[m->enemies.count].pos = v2(i+0.5, j+0.5);
+                m->enemies.update[m->enemies.count].vel = v2(0, 0);
+                m->enemies.update[m->enemies.count].update_dir_t = 0;
+                ++m->enemies.count; 
+            }
+        }
     }
 }
 
 void clean_up_map(Map *m) {
+    clean_up_particle_master(&m->particles);
+    
     glDeleteBuffers(1, &m->normal_vbo);
     glDeleteBuffers(1, &m->uv_vbo);
     glDeleteBuffers(1, &m->vertex_vbo);
     glDeleteVertexArrays(1, &m->vao); 
+}
+
+void do_particle(Map *m, i8 type, v3 pos, v3 vel) {
+    ParticleSet *s = m->particles.sets + type;
+    r32 particle_data[7] = {
+        pos.x,
+        pos.y,
+        pos.z,
+        vel.x,
+        vel.y,
+        vel.z,
+        1
+    };
+    memcpy(s->particle_data + 7*s->count, particle_data, 7*sizeof(r32));
 }
 
 r32 map_coordinate_height(Map *m, r32 x, r32 z) {
@@ -542,13 +589,75 @@ r32 map_coordinate_height(Map *m, r32 x, r32 z) {
     return 0.f;
 }
 
-void update_map(Map *m) {
-    { // @Update enemies positions/velocities
-        foreach(i, m->enemies.count) {
-            m->enemies.pos_vel[i].XY += m->enemies.pos_vel[i].ZW;
-            m->enemies.pos_vel[i].ZW *= 0.85;
+void collide_entity(Map *m, v2 *pos0, v2 *vel, r32 size) {
+    v2 resolution_vel = v2(0, 0);
+    i8 found_colliding_tiles = 0;
+
+    for(r32 i = 1; i >= 0.2; i -= 0.2) {
+        v2 pos1 = *pos0 + i*(*vel);
+
+        forrng(x, pos1.x-size/2, pos1.x+size/2+1)
+        forrng(y, pos1.y-size/2, pos1.y+size/2+1) {
+            if(x >= 0 && x < MAP_W && y >= 0 && y < MAP_H) {
+                if(tile_data[m->tiles[x][y]].flags & WALL ||
+                   tile_data[m->tiles[x][y]].flags & PIT) {
+                    v2 overlap;
+                    if(pos1.x > x+0.5) {
+                        overlap.x = (x+1) - (pos1.x-size/2);
+                    }
+                    else {
+                        overlap.x = x-(pos1.x + size/2);
+                    }
+                    
+                    if(pos1.y > y+0.5) {
+                        overlap.y = (y+1) - (pos1.y-size/2);
+                    }
+                    else {
+                        overlap.y = y-(pos1.y + size/2);
+                    }
+                    
+                    v2 resolution;
+                    if(fabs(overlap.x) < fabs(overlap.y)) {
+                        resolution = v2(overlap.x, 0);
+                    }
+                    else {
+                        resolution = v2(0, overlap.y);
+                    }
+
+                    resolution_vel += resolution*i;
+
+                    found_colliding_tiles = 1;
+                }
+            }
+        }
+
+        if(found_colliding_tiles) {
+            *vel += resolution_vel;
+            break;
         }
     }
+}
+
+void update_map(Map *m) {
+    if(!--m->enemy_anim_timer) {
+        m->enemy_anim_timer = 120;
+    }
+    
+    { // @Update enemies positions/velocities
+        foreach(i, m->enemies.count) {
+            m->enemies.update[i].pos += m->enemies.update[i].vel;
+            m->enemies.update[i].update_dir_t -= 0.005;
+            if(m->enemies.update[i].update_dir_t < 0.005) {
+                m->enemies.update[i].vel = v2(random32(-0.01, 0.01), random32(-0.01, 0.01));
+                m->enemies.update[i].update_dir_t = random32(1, 5);
+            }
+            else if(m->enemies.update[i].update_dir_t < 0.3) {
+                m->enemies.update[i].vel *= 0.85;
+            }
+        }
+    }
+
+    update_particle_master(&m->particles);
 }
 
 void draw_map(Map *m) {
@@ -561,6 +670,8 @@ void draw_map(Map *m) {
         glUniformMatrix4fv(glGetUniformLocation(active_shader, "model"), 1, GL_FALSE, &model.Elements[0][0]);
         glUniformMatrix4fv(glGetUniformLocation(active_shader, "view"), 1, GL_FALSE, &view.Elements[0][0]);
         glUniformMatrix4fv(glGetUniformLocation(active_shader, "projection"), 1, GL_FALSE, &projection.Elements[0][0]);
+        
+        glUniform3f(glGetUniformLocation(active_shader, "light_vector"), m->light_vector.x, m->light_vector.y, m->light_vector.z);
 
         glBindVertexArray(m->vao);
 
@@ -588,14 +699,17 @@ void draw_map(Map *m) {
         set_shader(0);
     }
 
-    { //@Draw enemies
+    { // @Draw enemies
         v2 pos;
         foreach(i, m->enemies.count) {
-            pos = m->enemies.pos_vel[i].XY;
+            pos = m->enemies.update[i].pos;
             draw_billboard_texture(textures+TEX_ENEMY, 
-                                   v4(enemy_data[m->enemies.type[i]].tx*16, 0, 16, 16), 
+                                   v4(enemy_data[m->enemies.type[i]].tx*16, (m->enemy_anim_timer < 30)*16, 16, 16), 
                                    v3(pos.X, map_coordinate_height(m, pos.X, pos.Y)+0.5, pos.Y), 
                                    v2(0.5, 0.5));
         }
     }
+
+    // @Draw particles
+    draw_particle_master(&m->particles);
 }

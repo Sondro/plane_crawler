@@ -106,6 +106,7 @@ void draw_particle_master(ParticleMaster *p) {
         foreach(j, s->count) {
             particle_data = s->particle_data + j*7;
             m4 particle_model = HMM_Translate(v3(particle_data[0], particle_data[1], particle_data[2]));
+            particle_model = HMM_Multiply(particle_model, HMM_Scale(v3(1, 1, 1)));
             r32 progress = 1-particle_data[6],
                 max_frames = (r32)particle_types[i].max_frames;
 

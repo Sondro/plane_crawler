@@ -1,0 +1,5 @@
+in in_position 0
+in in_uv 1
+in model 2
+in particle_data 6
+out color 0

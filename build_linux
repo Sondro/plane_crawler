@@ -1,0 +1,3 @@
+#! /bin/bash
+make -f Makefile_linux
+exec ./plane_crawler

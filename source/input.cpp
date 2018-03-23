@@ -204,6 +204,7 @@ static void charmods_callback(GLFWwindow *window, unsigned int code_point, int m
 void init_input() {
     mouse_x = 0;
     mouse_y = 0;
+    glfwGetCursorPos(window, &mouse_x, &mouse_y);
     mouse_state = 0;
     glfwSetKeyCallback(window, key_callback);
     glfwSetCharModsCallback(window, charmods_callback);

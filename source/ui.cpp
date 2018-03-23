@@ -659,8 +659,10 @@ void do_settings_menu(SettingsMenu *s) {
             break;
         }
         case SETTINGS_GRAPHICS: {
-            begin_block(0, UI_STANDARD_W, UI_STANDARD_H);
+            begin_block(0, UI_STANDARD_W, UI_STANDARD_H*2 + 24);
             {
+                field_of_view = 70 + (do_slider(GEN_ID, UI_STANDARD_W*2, UI_STANDARD_H, "FIELD OF VIEW", (field_of_view - 70) / 80)) * 80;
+                do_divider();
                 if(do_button(GEN_ID, UI_STANDARD_W, UI_STANDARD_H, "BACK")) {
                     s->state = 0;
                 }

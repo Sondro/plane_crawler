@@ -5,12 +5,10 @@ in vec3 vert_normal;
 out vec4 color;
 
 uniform sampler2D tex;
+uniform vec3 light_vector;
 
 void main() {
-    vec3 light_vector = vec3(1, -1, 1);
-
-    float light_factor = dot(normalize(vert_normal), normalize(light_vector));
-    light_factor = 0.6 + light_factor*0.5;
+    float light_factor = clamp(dot(vert_normal, light_vector), 0.4, 1);
     
     if(light_factor > 1) light_factor = 1;
 

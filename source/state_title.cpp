@@ -23,7 +23,7 @@ State init_title() {
 }
 
 void clean_up_title(State *s) {
-    Title *t = (Title *)s->mem;
+    //Title *t = (Title *)s->mem;
     free(s->mem);
     s->mem = 0;
     s->type = 0;

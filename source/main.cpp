@@ -1,8 +1,7 @@
 // Program Options
 #define                     FPS 60.0
-#define           FIELD_OF_VIEW 85.0
-#define                   MAP_W 100
-#define                   MAP_H 100
+#define                   MAP_W 40
+#define                   MAP_H 40
 #define            RESOURCE_DIR "./resource/"
 #define              SHADER_DIR "shader/"
 #define              NOISE_SEED 123456
@@ -11,7 +10,7 @@
 #define MAX_UI_RENDER_TEXT_SIZE 32
 #define           UI_STANDARD_W 256
 #define           UI_STANDARD_H 64
-#define         MAX_ENEMY_COUNT 128
+#define         MAX_ENEMY_COUNT 1024
 //
 
 // External Libraries/Related Code

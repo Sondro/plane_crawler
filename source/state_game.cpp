@@ -21,9 +21,16 @@ State init_game() {
     g->camera.pos = v3(0, 0, 0);
     g->camera.orientation = g->camera.target_orientation = v3(0, 0, 0);
     g->camera.interpolation_rate = 0.31;
-    g->player.pos = v2(64, 64);
-    g->player.vel = v2(0, 0);
     generate_map(&g->map);
+    
+    foreach(i, MAP_W)
+    foreach(j, MAP_H) {
+        if(!(tile_data[g->map.tiles[i][j]].flags & WALL) &&
+           !(tile_data[g->map.tiles[i][j]].flags & PIT)) {
+            g->player.pos = v2(i+0.5, j+0.5);
+            g->player.vel = v2(0, 0);
+        }
+    }
 
     g->settings.state = -1;
 
@@ -65,6 +72,8 @@ void update_game() {
         }
     }
     else { // @Unpaused update
+        do_particle(&g->map, PARTICLE_FIRE, g->camera.pos, v3(0, 0, 0));
+
         if(key_control_down(KC_TURN_LEFT)) {
             g->camera.target_orientation.x -= 0.05;
         }
@@ -94,22 +103,23 @@ void update_game() {
             vertical_movement /= movement_length;
         }
 
-        r32 movement_speed = 0.009;
+        r32 movement_speed = 0.012;
 
         g->player.vel.x += cos(g->camera.orientation.x)*vertical_movement*movement_speed;
         g->player.vel.y += sin(g->camera.orientation.x)*vertical_movement*movement_speed;
 
         g->player.vel.x += cos(g->camera.orientation.x + PI/2)*horizontal_movement*movement_speed;
         g->player.vel.y += sin(g->camera.orientation.x + PI/2)*horizontal_movement*movement_speed;
-
+        
         g->player.vel.x *= 0.85;
         g->player.vel.y *= 0.85;
-
+        
+        collide_entity(&g->map, &g->player.pos, &g->player.vel, 0.25);
         g->player.pos += g->player.vel;
 
         g->camera_bob_sin_pos += 0.25;
         g->camera.pos.x = g->player.pos.x;
-        g->camera.pos.y = map_coordinate_height(&g->map, g->camera.pos.x, g->camera.pos.z) + 0.6;
+        g->camera.pos.y = map_coordinate_height(&g->map, g->camera.pos.x, g->camera.pos.z) + 0.8;
         g->camera.pos.y += sin(g->camera_bob_sin_pos)*0.012*(HMM_Length(g->player.vel) / (movement_speed*2));
         g->camera.pos.z = g->player.pos.y;
 
