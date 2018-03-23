@@ -673,7 +673,9 @@ void update_map(Map *m) {
     
     { // @Update enemies positions/velocities
         foreach(i, m->enemies.count) {
+            collide_entity(m, &m->enemies.update[i].pos, &m->enemies.update[i].vel, 0.25);
             m->enemies.update[i].pos += m->enemies.update[i].vel;
+            
             m->enemies.update[i].update_dir_t -= 0.005;
             if(m->enemies.update[i].update_dir_t < 0.005) {
                 m->enemies.update[i].vel = v2(random32(-0.01, 0.01), random32(-0.01, 0.01));
