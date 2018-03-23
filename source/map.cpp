@@ -528,7 +528,7 @@ void generate_map(Map *m) {
         if(!(tile_data[m->tiles[i][j]].flags & WALL) &&
            !(tile_data[m->tiles[i][j]].flags & PIT)) {
             if(random32(0, 1) < 0.05) {
-                m->enemies.type[m->enemies.count] = ENEMY_SKELETON;
+                m->enemies.type[m->enemies.count] = ENEMY_JELLY;
                 m->enemies.update[m->enemies.count].pos = v2(i+0.5, j+0.5);
                 m->enemies.update[m->enemies.count].vel = v2(0, 0);
                 m->enemies.update[m->enemies.count].update_dir_t = 0;
@@ -694,8 +694,8 @@ void update_map(Map *m) {
                            m->projectiles.pos_vel[i].y),
                         v3(0, 0.001, 0), random32(0.01, 0.25));
             i32 tile_x = m->projectiles.pos_vel[i].x,
-                tile_z = m->projectiles.pos_vel[i].y;
-            
+                tile_z = m->projectiles.pos_vel[i].y; 
+
             if(tile_x < 0 || tile_x >= MAP_W || tile_z < 0 || tile_z >= MAP_H ||
                tile_data[m->tiles[tile_x][tile_z]].flags & WALL ||
                tile_data[m->tiles[tile_x][tile_z]].flags & PIT) {

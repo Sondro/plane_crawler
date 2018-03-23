@@ -1,3 +1,15 @@
+/*
+
+TO-DO:
+ 
+ * Implement real spell casting
+ * Stop calling glGetUniformLocation every frame (cache results once)
+ * Make real room generation
+ * Implement gamepad controls
+ * Audio
+
+*/
+
 // Program Options
 #define                     FPS 60.0
 #define                   MAP_W 40
