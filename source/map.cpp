@@ -545,18 +545,22 @@ void clean_up_map(Map *m) {
     glDeleteVertexArrays(1, &m->vao); 
 }
 
-void do_particle(Map *m, i8 type, v3 pos, v3 vel) {
+void do_particle(Map *m, i8 type, v3 pos, v3 vel, r32 scale) {
     ParticleSet *s = m->particles.sets + type;
-    r32 particle_data[7] = {
-        pos.x,
-        pos.y,
-        pos.z,
-        vel.x,
-        vel.y,
-        vel.z,
-        1
-    };
-    memcpy(s->particle_data + 7*s->count, particle_data, 7*sizeof(r32));
+    if(s->count < MAX_PARTICLE_COUNT) {
+        r32 particle_data[PARTICLE_DATA_LENGTH] = {
+            pos.x,
+            pos.y,
+            pos.z,
+            vel.x,
+            vel.y,
+            vel.z,
+            1,
+            scale
+        };
+        memcpy(s->particle_data + PARTICLE_DATA_LENGTH*s->count, particle_data, PARTICLE_DATA_LENGTH*sizeof(r32));
+        ++s->count;
+    }
 }
 
 r32 map_coordinate_height(Map *m, r32 x, r32 z) {

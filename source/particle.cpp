@@ -1,5 +1,6 @@
-#define MAX_PARTICLE_COUNT 256
-#define INSTANCE_DATA_LENGTH 18
+#define MAX_PARTICLE_COUNT 512
+#define PARTICLE_INSTANCE_DATA_LENGTH 18
+#define PARTICLE_DATA_LENGTH 8
 
 enum {
     PARTICLE_FIRE,
@@ -10,14 +11,14 @@ global
 struct {
     i32 texture, max_frames;
 } particle_types[MAX_PARTICLE] = {
-    { TEX_HAND, 16 },
+    { TEX_PARTICLE_FIRE, 16 },
 };
 
 struct ParticleSet {
-    // @Particle data: x, y, z, x_vel, y_vel, z_vel, life
+    // @Particle data: x, y, z, x_vel, y_vel, z_vel, life, scale
     u32 count;
-    r32 particle_data[MAX_PARTICLE_COUNT*7],
-        instance_render_data[MAX_PARTICLE_COUNT*INSTANCE_DATA_LENGTH];
+    r32 particle_data[MAX_PARTICLE_COUNT*PARTICLE_DATA_LENGTH],
+        instance_render_data[MAX_PARTICLE_COUNT*PARTICLE_INSTANCE_DATA_LENGTH];
     GLuint vao, instance_vbo;
 };
 
@@ -26,7 +27,7 @@ struct ParticleMaster {
 };
 
 void init_particle_master(ParticleMaster *p) {
-    i32 instance_data_length = INSTANCE_DATA_LENGTH;
+    i32 instance_data_length = PARTICLE_INSTANCE_DATA_LENGTH;
 
     foreach(i, MAX_PARTICLE) {
         p->sets[i].count = 0;
@@ -43,27 +44,27 @@ void init_particle_master(ParticleMaster *p) {
                      p->sets[i].particle_data, GL_DYNAMIC_DRAW);
         
         glVertexAttribPointer(2, 4, GL_FLOAT, GL_FALSE,
-                              INSTANCE_DATA_LENGTH*sizeof(GLfloat),
+                              PARTICLE_INSTANCE_DATA_LENGTH*sizeof(GLfloat),
                               (void *)(0 * sizeof(GLfloat)));
         glVertexAttribDivisor(2, 1);
 
         glVertexAttribPointer(3, 4, GL_FLOAT, GL_FALSE,
-                              INSTANCE_DATA_LENGTH*sizeof(GLfloat),
+                              PARTICLE_INSTANCE_DATA_LENGTH*sizeof(GLfloat),
                               (void *)(4 * sizeof(GLfloat)));
         glVertexAttribDivisor(3, 1);
 
         glVertexAttribPointer(4, 4, GL_FLOAT, GL_FALSE,
-                              INSTANCE_DATA_LENGTH*sizeof(GLfloat),
+                              PARTICLE_INSTANCE_DATA_LENGTH*sizeof(GLfloat),
                               (void *)(8 * sizeof(GLfloat)));
         glVertexAttribDivisor(4, 1);
 
         glVertexAttribPointer(5, 4, GL_FLOAT, GL_FALSE,
-                              INSTANCE_DATA_LENGTH*sizeof(GLfloat),
+                              PARTICLE_INSTANCE_DATA_LENGTH*sizeof(GLfloat),
                               (void *)(12 * sizeof(GLfloat)));
         glVertexAttribDivisor(5, 1);
 
         glVertexAttribPointer(6, 2, GL_FLOAT, GL_FALSE,
-                              INSTANCE_DATA_LENGTH*sizeof(GLfloat),
+                              PARTICLE_INSTANCE_DATA_LENGTH*sizeof(GLfloat),
                               (void *)(16 * sizeof(GLfloat)));
         glVertexAttribDivisor(6, 1);
 
@@ -83,16 +84,19 @@ void update_particle_master(ParticleMaster *p) {
     foreach(i, MAX_PARTICLE) {
         ParticleSet *s = p->sets+i;
         r32 *particle_data = 0;
-        foreach(j, s->count) {
-            particle_data = s->particle_data+j*7;
-            particle_data[0] += particle_data[3];
-            particle_data[1] += particle_data[4];
-            particle_data[2] += particle_data[5];
-            particle_data[6] *= 0.95;
-            if(particle_data[6] < 0.01) {
-                memmove(s->particle_data+j*7, s->particle_data+(j+1)*7, 
-                        sizeof(r32) * (s->count - j - 1));
+        for(u32 j = 0; j < s->count;) {
+            particle_data = s->particle_data+j*PARTICLE_DATA_LENGTH;
+            particle_data[0] += particle_data[3]; // x + x_vel
+            particle_data[1] += particle_data[4]; // y + y_vel
+            particle_data[2] += particle_data[5]; // z + z_vel
+            particle_data[6] -= 0.01;            // (decrease life)
+            if(particle_data[6] < 0.001) {
+                memmove(s->particle_data+j*PARTICLE_DATA_LENGTH, s->particle_data+(j+1)*PARTICLE_DATA_LENGTH, 
+                        sizeof(r32) * PARTICLE_DATA_LENGTH * (s->count - j - 1));
                 --s->count;
+            }
+            else {
+                ++j;
             }
         }
     }
@@ -104,11 +108,18 @@ void draw_particle_master(ParticleMaster *p) {
         u32 k = 0;
         r32 *particle_data;
         foreach(j, s->count) {
-            particle_data = s->particle_data + j*7;
+            particle_data = s->particle_data + j*PARTICLE_DATA_LENGTH;
             m4 particle_model = HMM_Translate(v3(particle_data[0], particle_data[1], particle_data[2]));
-            particle_model = HMM_Multiply(particle_model, HMM_Scale(v3(1, 1, 1)));
             r32 progress = 1-particle_data[6],
-                max_frames = (r32)particle_types[i].max_frames;
+                max_frames = (r32)particle_types[i].max_frames; 
+            
+            foreach(x, 3)
+            foreach(y, 3) {
+                particle_model.Elements[x][y] = view.Elements[y][x];
+            }
+
+            particle_model = HMM_Multiply(particle_model, HMM_Scale(v3(particle_data[7], particle_data[7], particle_data[7])));
+
 
             foreach(x, 4) {
                 foreach(y, 4) {
@@ -119,7 +130,7 @@ void draw_particle_master(ParticleMaster *p) {
             s->instance_render_data[k++] = max_frames;
         }
         glBindBuffer(GL_ARRAY_BUFFER, s->instance_vbo);
-        glBufferData(GL_ARRAY_BUFFER, MAX_PARTICLE_COUNT*INSTANCE_DATA_LENGTH*sizeof(r32), s->instance_render_data, GL_STREAM_DRAW);
+        glBufferData(GL_ARRAY_BUFFER, s->count*PARTICLE_INSTANCE_DATA_LENGTH*sizeof(r32), s->instance_render_data, GL_STREAM_DRAW);
         glBindBuffer(GL_ARRAY_BUFFER, 0);
     }
 
@@ -129,12 +140,19 @@ void draw_particle_master(ParticleMaster *p) {
         
         glUniformMatrix4fv(glGetUniformLocation(active_shader, "projection"), 1, GL_FALSE, &(projection.Elements[0][0]));
         glUniformMatrix4fv(glGetUniformLocation(active_shader, "view"), 1, GL_FALSE, &(view.Elements[0][0]));
+        
         glUniform1i(glGetUniformLocation(active_shader, "tex"), 0);
 
         glActiveTexture(GL_TEXTURE0);
         
         foreach(i, MAX_PARTICLE) {
             ParticleSet *s = p->sets+i;
+            
+            i8 additive = i == PARTICLE_FIRE;
+
+            if(additive) {
+                glBlendFunc(GL_SRC_ALPHA, GL_ONE);
+            }
 
             glBindTexture(GL_TEXTURE_2D, textures[particle_types[i].texture].id);
 
@@ -166,6 +184,10 @@ void draw_particle_master(ParticleMaster *p) {
             glDisableVertexAttribArray(4);
             glDisableVertexAttribArray(5);
             glDisableVertexAttribArray(6);
+
+            if(additive) {
+                glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+            }
         }
 
         glDisableVertexAttribArray(1);
@@ -174,7 +196,6 @@ void draw_particle_master(ParticleMaster *p) {
         glBindVertexArray(0);
 
         glBindBuffer(GL_ARRAY_BUFFER, 0);
-
 
         glDepthMask(GL_TRUE);
     }
