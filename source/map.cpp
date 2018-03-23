@@ -1,6 +1,7 @@
 #include "player.cpp"
 #include "enemy.cpp"
 #include "particle.cpp"
+#include "projectile.cpp"
 
 #define WALL    0x01
 #define PIT     0x02
@@ -33,11 +34,12 @@ struct {
 struct Map {
     i8 tiles[MAP_W][MAP_H];
     r32 heights[MAP_W+1][MAP_H+1];
-     
+        
     EnemySet enemies;
     i8 enemy_anim_timer;
     ParticleMaster particles;
-   
+    ProjectileSet projectiles;
+
     v3 light_vector;
 
     u64 vertex_component_count;
@@ -563,6 +565,14 @@ void do_particle(Map *m, i8 type, v3 pos, v3 vel, r32 scale) {
     }
 }
 
+void do_projectile(Map *m, i16 type, v2 pos, v2 vel) {
+    if(m->projectiles.count < MAX_PARTICLE_COUNT) {
+        m->projectiles.type[m->projectiles.count] = type;
+        m->projectiles.pos_vel[m->projectiles.count] = v4(pos.x, pos.y, vel.x, vel.y);
+        ++m->projectiles.count;
+    }
+}
+
 r32 map_coordinate_height(Map *m, r32 x, r32 z) {
     if(x >= 0 && x < MAP_W-1 &&
        z >= 0 && z < MAP_H-1) {
@@ -675,7 +685,31 @@ void update_map(Map *m) {
         m->enemy_anim_timer = 120;
     }
     
-    { // @Update enemies positions/velocities
+    { // @Update projectiles
+        for(u32 i = 0; i < (u32)m->projectiles.count; ++i) {
+            m->projectiles.pos_vel[i].XY += m->projectiles.pos_vel[i].ZW;
+            do_particle(m, projectile_data[m->projectiles.type[i]].particle_type,
+                        v3(m->projectiles.pos_vel[i].x,
+                           map_coordinate_height(m, m->projectiles.pos_vel[i].x, m->projectiles.pos_vel[i].y) + 0.5,
+                           m->projectiles.pos_vel[i].y),
+                        v3(0, 0.001, 0), random32(0.01, 0.25));
+            i32 tile_x = m->projectiles.pos_vel[i].x,
+                tile_z = m->projectiles.pos_vel[i].y;
+
+            if(tile_x < 0 || tile_x >= MAP_W || tile_z < 0 || tile_z >= MAP_H ||
+               tile_data[m->tiles[tile_x][tile_z]].flags & WALL ||
+               tile_data[m->tiles[tile_x][tile_z]].flags & PIT) {
+                memmove(m->projectiles.type+i, m->projectiles.type+i+1, sizeof(i16) * (m->projectiles.count - i - 1));
+                memmove(m->projectiles.pos_vel+i, m->projectiles.pos_vel+i+1, sizeof(v4) * (m->projectiles.count - i - 1));
+                --m->projectiles.count;
+            }
+            else {
+                ++i;
+            }
+        }
+    }
+
+    { // @Update enemies
         foreach(i, m->enemies.count) {
             collide_entity(m, &m->enemies.update[i].pos, &m->enemies.update[i].vel, 0.25);
             m->enemies.update[i].pos += m->enemies.update[i].vel;
@@ -690,8 +724,10 @@ void update_map(Map *m) {
             }
         }
     }
-
-    update_particle_master(&m->particles);
+    
+    { // @Update particles
+        update_particle_master(&m->particles);
+    }
 }
 
 void draw_map(Map *m) {

@@ -11,6 +11,8 @@
 #define           UI_STANDARD_W 256
 #define           UI_STANDARD_H 64
 #define         MAX_ENEMY_COUNT 1024
+#define      MAX_PARTICLE_COUNT 4096
+#define    MAX_PROJECTILE_COUNT 256
 //
 
 // External Libraries/Related Code

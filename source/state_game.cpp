@@ -134,14 +134,21 @@ void update_game() {
                 sin(g->camera.orientation.x)
             );
             look_at(g->camera.pos, target); 
+
+            // @TEST PROJECTILES
+            if(key_pressed[KEY_SPACE]) {
+                do_projectile(&g->map, PROJECTILE_FIRE, v2(g->player.pos.x, g->player.pos.y), 
+                              v2(cos(g->camera.orientation.x), sin(g->camera.orientation.x)) / 10);
+            }
         }
 
         { // @Spell drawing
-                v3 target = g->camera.pos + v3(
-                    cos(g->camera.orientation.x+0.2)*0.5,
-                    sin(g->camera.orientation.y)*0.5,
-                    sin(g->camera.orientation.x+0.2)*0.5
-                );
+            v3 target = g->camera.pos + v3(
+                cos(g->camera.orientation.x+0.4)*0.3,
+                sin(g->camera.orientation.y)*0.3,
+                sin(g->camera.orientation.x+0.4)*0.3
+            );
+            
             do_particle(&g->map, PARTICLE_FIRE, target + v3(0, sin(current_time*5)*0.015, 0), 
                         v3(g->player.vel.x, 0, g->player.vel.y) + 
                         v3(random32(-0.001, 0.001), random32(0.003, 0.0055), random32(-0.001, 0.001)), 
