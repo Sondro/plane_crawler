@@ -77,12 +77,11 @@ void generate_map(Map *m) {
     
     foreach(i, MAP_W)
     foreach(j, MAP_H) {
-        m->tiles[i][j] = 0;
+        m->tiles[i][j] = TILE_BRICK_WALL;
         m->heights[i][j] = 0;
     }
     
     // @Room generation
-    /*
     i32 room_count = 8;
 
     struct {
@@ -108,10 +107,7 @@ void generate_map(Map *m) {
             }
         }
     }
-    */
     
-    m->tiles[32][32] = TILE_BRICK_WALL;
-
     //
 
     r32 *vertices = 0,
@@ -590,43 +586,75 @@ r32 map_coordinate_height(Map *m, r32 x, r32 z) {
 }
 
 void collide_entity(Map *m, v2 *pos0, v2 *vel, r32 size) {
-    v2 resolution_vel = v2(0, 0);
-    i8 found_colliding_tiles = 0;
+    v2 original_vel = *vel,
+       resolution_vel = v2(0, 0);
+    i8 found_colliding_tiles = 0,
+       resolved_x = 0,
+       resolved_y = 0;
 
     for(r32 i = 1; i >= 0.2; i -= 0.2) {
-        v2 pos1 = *pos0 + i*(*vel);
+        v2 pos1 = *pos0 + i*original_vel;
 
-        forrng(x, pos1.x-size/2, pos1.x+size/2+1)
-        forrng(y, pos1.y-size/2, pos1.y+size/2+1) {
-            if(x >= 0 && x < MAP_W && y >= 0 && y < MAP_H) {
-                if(tile_data[m->tiles[x][y]].flags & WALL ||
-                   tile_data[m->tiles[x][y]].flags & PIT) {
-                    v2 overlap;
-                    if(pos1.x > x+0.5) {
-                        overlap.x = (x+1) - (pos1.x-size/2);
-                    }
-                    else {
-                        overlap.x = x-(pos1.x + size/2);
-                    }
-                    
-                    if(pos1.y > y+0.5) {
-                        overlap.y = (y+1) - (pos1.y-size/2);
-                    }
-                    else {
-                        overlap.y = y-(pos1.y + size/2);
-                    }
-                    
-                    v2 resolution;
-                    if(fabs(overlap.x) < fabs(overlap.y)) {
-                        resolution = v2(overlap.x, 0);
-                    }
-                    else {
-                        resolution = v2(0, overlap.y);
-                    }
+        forrng(x, pos1.x-size/2, pos1.x+size/2+1) {
+            forrng(y, pos1.y-size/2, pos1.y+size/2+1) {
+                if(x >= 0 && x < MAP_W && y >= 0 && y < MAP_H) {
+                    if(tile_data[m->tiles[x][y]].flags & WALL ||
+                       tile_data[m->tiles[x][y]].flags & PIT) {
+                        v2 overlap = v2(100000000, 10000000);
+                        i8 overlap_x = 0, overlap_y = 0;
 
-                    resolution_vel += resolution*i;
+                        if(pos1.x > x+0.5) {
+                            if(x < MAP_W-1 &&
+                               !(tile_data[m->tiles[x+1][y]].flags & WALL) &&
+                               !(tile_data[m->tiles[x+1][y]].flags & PIT)) {
+                                overlap.x = (x+1) - (pos1.x-size/2);
+                                overlap_x = 1;
+                            }
+                        }
+                        else {
+                            if(x &&
+                               !(tile_data[m->tiles[x-1][y]].flags & WALL) &&
+                               !(tile_data[m->tiles[x-1][y]].flags & PIT)) {
+                                overlap.x = x-(pos1.x + size/2);
+                                overlap_x = 1;
+                            }
+                        }
+                        
+                        if(pos1.y > y+0.5) {
+                            if(y < MAP_H-1 &&
+                               !(tile_data[m->tiles[x][y+1]].flags & WALL) &&
+                               !(tile_data[m->tiles[x][y+1]].flags & PIT)) {
+                                overlap.y = (y+1) - (pos1.y-size/2);
+                                overlap_y = 1;
+                            }
+                        }
+                        else {
+                            if(y &&
+                               !(tile_data[m->tiles[x][y-1]].flags & WALL) &&
+                               !(tile_data[m->tiles[x][y-1]].flags & PIT)) {
+                                overlap.y = y-(pos1.y + size/2);
+                                overlap_y = 1;
+                            }
+                        }
+                              
+                        v2 resolution = v2(0, 0);
+                        if(fabs(overlap.x) < fabs(overlap.y)) {
+                            if(!resolved_x && overlap_x) {
+                                resolution = v2(overlap.x, 0);
+                                resolved_x = 1;
+                            }
+                        } 
+                        else {
+                            if(!resolved_y && overlap_y) {
+                                resolution = v2(0, overlap.y);
+                                resolved_y = 1;
+                            }
+                        }
 
-                    found_colliding_tiles = 1;
+                        resolution_vel += resolution*i;
+                        
+                        found_colliding_tiles = 1;
+                    }
                 }
             }
         }
