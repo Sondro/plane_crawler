@@ -148,11 +148,12 @@ void update_game() {
                 sin(g->camera.orientation.y)*0.3,
                 sin(g->camera.orientation.x+0.4)*0.3
             );
-            
+            /* 
             do_particle(&g->map, PARTICLE_FIRE, target + v3(0, sin(current_time*5)*0.015, 0), 
                         v3(g->player.vel.x, 0, g->player.vel.y) + 
                         v3(random32(-0.001, 0.001), random32(0.003, 0.0055), random32(-0.001, 0.001)), 
                         random32(0.05, 0.2));
+            */
         }
  
         draw_map(&g->map);

@@ -566,7 +566,7 @@ void do_particle(Map *m, i8 type, v3 pos, v3 vel, r32 scale) {
 }
 
 void do_projectile(Map *m, i16 type, v2 pos, v2 vel) {
-    if(m->projectiles.count < MAX_PARTICLE_COUNT) {
+    if(m->projectiles.count < MAX_PROJECTILE_COUNT) {
         m->projectiles.type[m->projectiles.count] = type;
         m->projectiles.pos_vel[m->projectiles.count] = v4(pos.x, pos.y, vel.x, vel.y);
         ++m->projectiles.count;
@@ -686,7 +686,7 @@ void update_map(Map *m) {
     }
     
     { // @Update projectiles
-        for(u32 i = 0; i < (u32)m->projectiles.count; ++i) {
+        for(u32 i = 0; i < (u32)m->projectiles.count;) {
             m->projectiles.pos_vel[i].XY += m->projectiles.pos_vel[i].ZW;
             do_particle(m, projectile_data[m->projectiles.type[i]].particle_type,
                         v3(m->projectiles.pos_vel[i].x,
@@ -695,7 +695,7 @@ void update_map(Map *m) {
                         v3(0, 0.001, 0), random32(0.01, 0.25));
             i32 tile_x = m->projectiles.pos_vel[i].x,
                 tile_z = m->projectiles.pos_vel[i].y;
-
+            
             if(tile_x < 0 || tile_x >= MAP_W || tile_z < 0 || tile_z >= MAP_H ||
                tile_data[m->tiles[tile_x][tile_z]].flags & WALL ||
                tile_data[m->tiles[tile_x][tile_z]].flags & PIT) {

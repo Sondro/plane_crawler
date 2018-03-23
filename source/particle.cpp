@@ -39,7 +39,7 @@ void init_particle_master(ParticleMaster *p) {
 
         glGenBuffers(1, &p->sets[i].instance_vbo);
         glBindBuffer(GL_ARRAY_BUFFER, p->sets[i].instance_vbo);
-        glBufferData(GL_ARRAY_BUFFER, sizeof(r32)*instance_data_length*MAX_PARTICLE,
+        glBufferData(GL_ARRAY_BUFFER, sizeof(r32)*instance_data_length*MAX_PARTICLE_COUNT,
                      p->sets[i].particle_data, GL_DYNAMIC_DRAW);
         
         glVertexAttribPointer(2, 4, GL_FLOAT, GL_FALSE,
@@ -84,12 +84,12 @@ void update_particle_master(ParticleMaster *p) {
         ParticleSet *s = p->sets+i;
         r32 *particle_data = 0;
         for(u32 j = 0; j < s->count;) {
-            particle_data = s->particle_data+j*PARTICLE_DATA_LENGTH;
+            particle_data = s->particle_data + j*PARTICLE_DATA_LENGTH;
             particle_data[0] += particle_data[3]; // x + x_vel
             particle_data[1] += particle_data[4]; // y + y_vel
             particle_data[2] += particle_data[5]; // z + z_vel
             particle_data[6] -= 0.01;            // (decrease life)
-            if(particle_data[6] < 0.001) {
+            if(particle_data[6] < 0.1) {
                 memmove(s->particle_data+j*PARTICLE_DATA_LENGTH, s->particle_data+(j+1)*PARTICLE_DATA_LENGTH, 
                         sizeof(r32) * PARTICLE_DATA_LENGTH * (s->count - j - 1));
                 --s->count;
