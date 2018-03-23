@@ -699,6 +699,18 @@ void update_map(Map *m) {
             if(tile_x < 0 || tile_x >= MAP_W || tile_z < 0 || tile_z >= MAP_H ||
                tile_data[m->tiles[tile_x][tile_z]].flags & WALL ||
                tile_data[m->tiles[tile_x][tile_z]].flags & PIT) {
+                foreach(j, 100) {
+                    r32 pitch = random32(0, PI/2),
+                        yaw = random32(0, 2*PI);
+                    do_particle(m, 
+                                projectile_data[m->projectiles.type[i]].particle_type,
+                                v3(m->projectiles.pos_vel[i].x, 
+                                   map_coordinate_height(m, m->projectiles.pos_vel[i].x, m->projectiles.pos_vel[i].y) + 0.5,
+                                   m->projectiles.pos_vel[i].y),
+                                v3(cos(yaw), sin(pitch), sin(yaw)) / random32(20, 40),
+                                random32(0.05, 0.15));
+                }
+                
                 memmove(m->projectiles.type+i, m->projectiles.type+i+1, sizeof(i16) * (m->projectiles.count - i - 1));
                 memmove(m->projectiles.pos_vel+i, m->projectiles.pos_vel+i+1, sizeof(v4) * (m->projectiles.count - i - 1));
                 --m->projectiles.count;
