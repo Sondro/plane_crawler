@@ -34,6 +34,7 @@ struct {
 struct Map {
     i8 tiles[MAP_W][MAP_H];
     r32 heights[MAP_W+1][MAP_H+1];
+    i32 projectile_map[MAP_W*PROJ_MAP_CELLS_PER_TILE][MAP_H*PROJ_MAP_CELLS_PER_TILE];
         
     EnemySet enemies;
     i8 enemy_anim_timer;
@@ -71,7 +72,98 @@ void calculate_heightmap_normal(r32 *verts, r32 *norms) {
     norms[8] = normal.z;
 }
 
+r32 map_coordinate_height(Map *m, r32 x, r32 z) {
+    if(x >= 0 && x < MAP_W-1 &&
+       z >= 0 && z < MAP_H-1) {
+        int height_x = (int)x, 
+            height_z = (int)z;
+
+        v3 q00, q10,
+           q01, q11;
+
+        q00 = v3(0, m->heights[height_x][height_z], 0);
+        q10 = v3(1, m->heights[height_x+1][height_z], 0);
+        q01 = v3(0, m->heights[height_x][height_z+1], 1);
+        q11 = v3(1, m->heights[height_x+1][height_z+1], 1);
+
+        v3 p = v3(x - height_x, 0, z - height_z);
+        
+        r32 side_0 = q00.y + p.z*(q01.y - q00.y),
+            side_1 = q10.y + p.z*(q11.y - q10.y);
+
+        p.y = side_0 + p.x*(side_1 - side_0);
+
+        return p.y;
+    }
+    return 0.f;
+}
+
+void do_particle(Map *m, i8 type, v3 pos, v3 vel, r32 scale) {
+    ParticleSet *s = m->particles.sets + type;
+    if(s->count < MAX_PARTICLE_COUNT) {
+        r32 particle_data[PARTICLE_DATA_LENGTH] = {
+            pos.x,
+            pos.y,
+            pos.z,
+            vel.x,
+            vel.y,
+            vel.z,
+            1,
+            scale
+        };
+        memcpy(s->particle_data + PARTICLE_DATA_LENGTH*s->count, particle_data, PARTICLE_DATA_LENGTH*sizeof(r32));
+        ++s->count;
+    }
+}
+
+void add_enemy(Map *m, i16 type, v2 pos) {
+    if(m->enemies.count < MAX_ENEMY_COUNT) {
+        m->enemies.type[m->enemies.count] = type;
+        m->enemies.update[m->enemies.count++] = init_enemy_update(pos);
+    }
+}
+
+void add_projectile(Map *m, i16 type, v2 pos, v2 vel, r32 strength) {
+    if(m->projectiles.count < MAX_PROJECTILE_COUNT) {
+        m->projectiles.type[m->projectiles.count] = type;
+        m->projectiles.update[m->projectiles.count].pos = pos;
+        m->projectiles.update[m->projectiles.count].vel = vel;
+        m->projectiles.update[m->projectiles.count].strength = strength;
+        ++m->projectiles.count;
+    }
+}
+
+void remove_projectile(Map *m, i32 i) {
+    if(i >= 0 && i < m->projectiles.count) {
+        i32 map_x = m->projectiles.update[i].pos.x * PROJ_MAP_CELLS_PER_TILE,
+            map_y = m->projectiles.update[i].pos.y * PROJ_MAP_CELLS_PER_TILE;
+
+        m->projectile_map[map_x][map_y] = -1;  
+
+        foreach(j, 100) {
+            r32 pitch = random32(0, PI/2),
+                yaw = random32(0, 2*PI);
+            do_particle(m, 
+                        projectile_data[m->projectiles.type[i]].particle_type,
+                        v3(m->projectiles.update[i].pos.x, 
+                           map_coordinate_height(m, m->projectiles.update[i].pos.x, m->projectiles.update[i].pos.y) + 0.5,
+                           m->projectiles.update[i].pos.y),
+                        v3(cos(yaw), sin(pitch), sin(yaw)) / random32(20, 40),
+                        random32(0.05, 0.15 + m->projectiles.update[i].strength*0.25));
+        }
+        
+        memmove(m->projectiles.type+i, m->projectiles.type+i+1, sizeof(i16) * (m->projectiles.count - i - 1));
+        memmove(m->projectiles.update+i, m->projectiles.update+i+1, sizeof(ParticleUpdate) * (m->projectiles.count - i - 1));
+        --m->projectiles.count; 
+    }
+}
+
 void generate_map(Map *m) {
+    foreach(i, MAP_W*PROJ_MAP_CELLS_PER_TILE)
+    foreach(j, MAP_H*PROJ_MAP_CELLS_PER_TILE) {
+        m->projectile_map[i][j] = -1;
+    }
+
     m->enemies.count = 0;
     m->enemy_anim_timer = 60;
     init_particle_master(&m->particles);
@@ -527,12 +619,8 @@ void generate_map(Map *m) {
     foreach(j, MAP_H) {
         if(!(tile_data[m->tiles[i][j]].flags & WALL) &&
            !(tile_data[m->tiles[i][j]].flags & PIT)) {
-            if(random32(0, 1) < 0.05) {
-                m->enemies.type[m->enemies.count] = ENEMY_JELLY;
-                m->enemies.update[m->enemies.count].pos = v2(i+0.5, j+0.5);
-                m->enemies.update[m->enemies.count].vel = v2(0, 0);
-                m->enemies.update[m->enemies.count].update_dir_t = 0;
-                ++m->enemies.count; 
+            if(random32(0, 1) < 0.01) {
+                add_enemy(m, random32(0, MAX_ENEMY - 0.0001), v2(i, j));
             }
         }
     }
@@ -547,59 +635,7 @@ void clean_up_map(Map *m) {
     glDeleteVertexArrays(1, &m->vao); 
 }
 
-void do_particle(Map *m, i8 type, v3 pos, v3 vel, r32 scale) {
-    ParticleSet *s = m->particles.sets + type;
-    if(s->count < MAX_PARTICLE_COUNT) {
-        r32 particle_data[PARTICLE_DATA_LENGTH] = {
-            pos.x,
-            pos.y,
-            pos.z,
-            vel.x,
-            vel.y,
-            vel.z,
-            1,
-            scale
-        };
-        memcpy(s->particle_data + PARTICLE_DATA_LENGTH*s->count, particle_data, PARTICLE_DATA_LENGTH*sizeof(r32));
-        ++s->count;
-    }
-}
-
-void do_projectile(Map *m, i16 type, v2 pos, v2 vel) {
-    if(m->projectiles.count < MAX_PROJECTILE_COUNT) {
-        m->projectiles.type[m->projectiles.count] = type;
-        m->projectiles.pos_vel[m->projectiles.count] = v4(pos.x, pos.y, vel.x, vel.y);
-        ++m->projectiles.count;
-    }
-}
-
-r32 map_coordinate_height(Map *m, r32 x, r32 z) {
-    if(x >= 0 && x < MAP_W-1 &&
-       z >= 0 && z < MAP_H-1) {
-        int height_x = (int)x, 
-            height_z = (int)z;
-
-        v3 q00, q10,
-           q01, q11;
-
-        q00 = v3(0, m->heights[height_x][height_z], 0);
-        q10 = v3(1, m->heights[height_x+1][height_z], 0);
-        q01 = v3(0, m->heights[height_x][height_z+1], 1);
-        q11 = v3(1, m->heights[height_x+1][height_z+1], 1);
-
-        v3 p = v3(x - height_x, 0, z - height_z);
-        
-        r32 side_0 = q00.y + p.z*(q01.y - q00.y),
-            side_1 = q10.y + p.z*(q11.y - q10.y);
-
-        p.y = side_0 + p.x*(side_1 - side_0);
-
-        return p.y;
-    }
-    return 0.f;
-}
-
-void collide_entity(Map *m, v2 *pos0, v2 *vel, r32 size) {
+void collide_entity_with_tiles(Map *m, v2 *pos0, v2 *vel, r32 size) {
     v2 original_vel = *vel,
        resolution_vel = v2(0, 0);
     i8 found_colliding_tiles = 0,
@@ -680,40 +716,93 @@ void collide_entity(Map *m, v2 *pos0, v2 *vel, r32 size) {
     }
 }
 
+void collide_entity_with_projectiles(Map *m, v2 *pos, v2 *vel, r32 *health, r32 size) {
+    for(i32 i = (pos->x - size/2) * PROJ_MAP_CELLS_PER_TILE;
+        i <= (pos->x + size/2) * PROJ_MAP_CELLS_PER_TILE;
+        ++i) {
+        for(i32 j = (pos->y - size/2) * PROJ_MAP_CELLS_PER_TILE;
+            j <= (pos->y + size/2) * PROJ_MAP_CELLS_PER_TILE;
+            ++j) {
+            if(i >= 0 && i < MAP_W*PROJ_MAP_CELLS_PER_TILE &&
+               j >= 0 && j < MAP_H*PROJ_MAP_CELLS_PER_TILE &&
+               m->projectile_map[i][j] >= 0) {
+                v2 strike_vector = (*pos - m->projectiles.update[m->projectile_map[i][j]].pos);
+                strike_vector /= HMM_Length(strike_vector);
+                strike_vector *= 0.1 + (m->projectiles.update[m->projectile_map[i][j]].strength*0.5);
+                *vel += strike_vector;
+                *health -= (m->projectiles.update[m->projectile_map[i][j]].strength + 0.1) * 0.5;
+                remove_projectile(m, m->projectile_map[i][j]);
+                break;
+            }
+        }
+    }
+}
+
 void update_map(Map *m) {
     if(!--m->enemy_anim_timer) {
         m->enemy_anim_timer = 120;
     }
     
     { // @Update projectiles
+        foreach(i, m->projectiles.count) {
+            i32 map_x = m->projectiles.update[i].pos.x * PROJ_MAP_CELLS_PER_TILE,
+                map_y = m->projectiles.update[i].pos.y * PROJ_MAP_CELLS_PER_TILE;
+            
+            if(map_x < 0) {
+                map_x = 0;
+            }
+            else if(map_x >= MAP_W*PROJ_MAP_CELLS_PER_TILE) {
+                map_x = MAP_W*PROJ_MAP_CELLS_PER_TILE - 1;
+            }
+
+            if(map_y < 0) {
+                map_y = 0;
+            }
+            else if(map_y >= MAP_H*PROJ_MAP_CELLS_PER_TILE) {
+                map_y = MAP_H*PROJ_MAP_CELLS_PER_TILE - 1;
+            }
+            
+            m->projectile_map[map_x][map_y] = -1;
+        }
+
         for(u32 i = 0; i < (u32)m->projectiles.count;) {
-            m->projectiles.pos_vel[i].XY += m->projectiles.pos_vel[i].ZW;
-            do_particle(m, projectile_data[m->projectiles.type[i]].particle_type,
-                        v3(m->projectiles.pos_vel[i].x,
-                           map_coordinate_height(m, m->projectiles.pos_vel[i].x, m->projectiles.pos_vel[i].y) + 0.5,
-                           m->projectiles.pos_vel[i].y),
-                        v3(0, 0.001, 0), random32(0.01, 0.25));
-            i32 tile_x = m->projectiles.pos_vel[i].x,
-                tile_z = m->projectiles.pos_vel[i].y; 
+            m->projectiles.update[i].pos += m->projectiles.update[i].vel;
+            
+            i32 map_x = m->projectiles.update[i].pos.x * PROJ_MAP_CELLS_PER_TILE,
+                map_y = m->projectiles.update[i].pos.y * PROJ_MAP_CELLS_PER_TILE;
+            
+            if(map_x < 0) {
+                map_x = 0;
+            }
+            else if(map_x >= MAP_W*PROJ_MAP_CELLS_PER_TILE) {
+                map_x = MAP_W*PROJ_MAP_CELLS_PER_TILE - 1;
+            }
+
+            if(map_y < 0) {
+                map_y = 0;
+            }
+            else if(map_y >= MAP_H*PROJ_MAP_CELLS_PER_TILE) {
+                map_y = MAP_H*PROJ_MAP_CELLS_PER_TILE - 1;
+            }
+            
+            m->projectile_map[map_x][map_y] = i;
+
+            foreach(j, 1) {// + (m->projectiles.update[i].strength*10)) {
+                do_particle(m, projectile_data[m->projectiles.type[i]].particle_type,
+                            v3(m->projectiles.update[i].pos.x,
+                               map_coordinate_height(m, m->projectiles.update[i].pos.x, m->projectiles.update[i].pos.y) + 0.5,
+                               m->projectiles.update[i].pos.y),
+                            v3(random32(-0.025, 0.025), random32(-0.025, 0.025), random32(-0.025, 0.025)) * m->projectiles.update[i].strength,
+                            random32(0.01, 0.25 + 0.75*m->projectiles.update[i].strength));
+            }
+            
+            i32 tile_x = m->projectiles.update[i].pos.x,
+                tile_z = m->projectiles.update[i].pos.y; 
 
             if(tile_x < 0 || tile_x >= MAP_W || tile_z < 0 || tile_z >= MAP_H ||
                tile_data[m->tiles[tile_x][tile_z]].flags & WALL ||
                tile_data[m->tiles[tile_x][tile_z]].flags & PIT) {
-                foreach(j, 100) {
-                    r32 pitch = random32(0, PI/2),
-                        yaw = random32(0, 2*PI);
-                    do_particle(m, 
-                                projectile_data[m->projectiles.type[i]].particle_type,
-                                v3(m->projectiles.pos_vel[i].x, 
-                                   map_coordinate_height(m, m->projectiles.pos_vel[i].x, m->projectiles.pos_vel[i].y) + 0.5,
-                                   m->projectiles.pos_vel[i].y),
-                                v3(cos(yaw), sin(pitch), sin(yaw)) / random32(20, 40),
-                                random32(0.05, 0.15));
-                }
-                
-                memmove(m->projectiles.type+i, m->projectiles.type+i+1, sizeof(i16) * (m->projectiles.count - i - 1));
-                memmove(m->projectiles.pos_vel+i, m->projectiles.pos_vel+i+1, sizeof(v4) * (m->projectiles.count - i - 1));
-                --m->projectiles.count;
+                remove_projectile(m, i);                
             }
             else {
                 ++i;
@@ -722,17 +811,37 @@ void update_map(Map *m) {
     }
 
     { // @Update enemies
-        foreach(i, m->enemies.count) {
-            collide_entity(m, &m->enemies.update[i].pos, &m->enemies.update[i].vel, 0.25);
-            m->enemies.update[i].pos += m->enemies.update[i].vel;
+        for(i32 i = 0; i < (i32)m->enemies.count;) {
+            collide_entity_with_tiles(m, &m->enemies.update[i].pos, &m->enemies.update[i].vel, 0.75);
+            collide_entity_with_projectiles(m, 
+                                            &m->enemies.update[i].pos, 
+                                            &m->enemies.update[i].vel,
+                                            &m->enemies.update[i].health,
+                                            0.75);
             
-            m->enemies.update[i].update_dir_t -= 0.005;
+            m->enemies.update[i].update_dir_t -= 0.0085;
             if(m->enemies.update[i].update_dir_t < 0.005) {
-                m->enemies.update[i].vel = v2(random32(-0.01, 0.01), random32(-0.01, 0.01));
-                m->enemies.update[i].update_dir_t = random32(1, 5);
+                m->enemies.update[i].acc = v2(random32(-0.001, 0.001), random32(-0.001, 0.001));
+                m->enemies.update[i].update_dir_t = random32(1, 2);
             }
             else if(m->enemies.update[i].update_dir_t < 0.3) {
+                m->enemies.update[i].acc = v2(0, 0);
                 m->enemies.update[i].vel *= 0.85;
+            }
+            else {
+                m->enemies.update[i].vel *= 0.89;
+            }
+            
+            m->enemies.update[i].vel += m->enemies.update[i].acc;
+            m->enemies.update[i].pos += m->enemies.update[i].vel;
+
+            if(m->enemies.update[i].health <= 0) {
+                memmove(m->enemies.type + i, m->enemies.type + i + 1, sizeof(i16) * (m->enemies.count - i - 1));
+                memmove(m->enemies.update + i, m->enemies.update + i + 1, sizeof(EnemyUpdate) * (m->enemies.count - i - 1));
+                --m->enemies.count;
+            }
+            else {
+                ++i;
             }
         }
     }

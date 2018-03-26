@@ -25,6 +25,7 @@ TO-DO:
 #define         MAX_ENEMY_COUNT 1024
 #define      MAX_PARTICLE_COUNT 4096
 #define    MAX_PROJECTILE_COUNT 256
+#define PROJ_MAP_CELLS_PER_TILE 4
 //
 
 // External Libraries/Related Code

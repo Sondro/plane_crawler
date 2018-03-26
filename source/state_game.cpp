@@ -2,11 +2,18 @@
 
 struct Game {
     i8 paused;
+
+    // camera data
     r32 camera_bob_sin_pos;
     Camera camera;
-    Player player;
-    Map map;
 
+    // player data
+    Player player;
+
+    // map data
+    Map map;
+    
+    // settings data
     SettingsMenu settings;
 };
 
@@ -17,12 +24,14 @@ State init_game() {
     Game *g = (Game *)s.mem;
 
     g->paused = 0;
+
     g->camera_bob_sin_pos = 0;
     g->camera.pos = v3(0, 0, 0);
     g->camera.orientation = g->camera.target_orientation = v3(0, 0, 0);
     g->camera.interpolation_rate = 0.31;
-    generate_map(&g->map);
 
+    generate_map(&g->map);
+    
     foreach(i, MAP_W)
     foreach(j, MAP_H) {
         if(!(tile_data[g->map.tiles[i][j]].flags & WALL) &&
@@ -31,6 +40,9 @@ State init_game() {
             g->player.vel = v2(0, 0);
         }
     }
+
+    g->player.casting_spell = 0;
+    g->player.spell_strength = 0;
 
     g->settings.state = -1;
 
@@ -108,11 +120,32 @@ void update_game() {
 
         g->player.vel.x += cos(g->camera.orientation.x + PI/2)*horizontal_movement*movement_speed;
         g->player.vel.y += sin(g->camera.orientation.x + PI/2)*horizontal_movement*movement_speed;
-
+        
         g->player.vel.x *= 0.85;
         g->player.vel.y *= 0.85;
+        
+        if(g->player.casting_spell) {
+            g->player.cast_t += (1-g->player.cast_t) * 0.2;
+            g->player.spell_strength += (1-g->player.spell_strength) * 0.05;
+            if(!key_down[KEY_SPACE]) {
+                add_projectile(&g->map, PROJECTILE_FIRE, v2(g->player.pos.x, g->player.pos.y), 
+                               v2(cos(g->camera.orientation.x), sin(g->camera.orientation.x)) / 5,
+                               g->player.spell_strength);
+                g->player.casting_spell = 0;
+                g->player.cast_t = 3;
+            }
+        }
+        else {
+            g->player.cast_t *= 0.90;
+            g->player.spell_strength = 0;
+            if(key_pressed[KEY_SPACE]) {
+                g->player.casting_spell = 1;
+                g->player.cast_t = 0;
+            }
+        }
 
-        collide_entity(&g->map, &g->player.pos, &g->player.vel, 0.25);
+        
+        collide_entity_with_tiles(&g->map, &g->player.pos, &g->player.vel, 0.25);
         g->player.pos += g->player.vel;
 
         g->camera_bob_sin_pos += 0.25;
@@ -133,53 +166,53 @@ void update_game() {
                 sin(g->camera.orientation.y),
                 sin(g->camera.orientation.x)
             );
-            look_at(g->camera.pos, target);
-
-            // @TEST PROJECTILES
-            if(key_pressed[KEY_SPACE]) {
-                do_projectile(&g->map, PROJECTILE_FIRE, v2(g->player.pos.x, g->player.pos.y),
-                              v2(cos(g->camera.orientation.x), sin(g->camera.orientation.x)) / 5);
-            }
+            look_at(g->camera.pos, target); 
         }
 
         { // @Spell drawing
-            v3 target = g->camera.pos + v3(
-                cos(g->camera.orientation.x+0.4)*0.3,
-                sin(g->camera.orientation.y)*0.3,
-                sin(g->camera.orientation.x+0.4)*0.3
-            );
-            /*
-            do_particle(&g->map, PARTICLE_FIRE, target + v3(0, sin(current_time*5)*0.015, 0),
-                        v3(g->player.vel.x, 0, g->player.vel.y) +
-                        v3(random32(-0.001, 0.001), random32(0.003, 0.0055), random32(-0.001, 0.001)),
-                        random32(0.05, 0.2));
-            */
+            if(g->player.casting_spell) {
+                v3 target = g->camera.pos + v3(
+                    cos(g->camera.orientation.x)*0.3,
+                    sin(g->camera.orientation.y)*0.3 - 0.1,
+                    sin(g->camera.orientation.x)*0.3
+                );
+                
+                do_particle(&g->map, PARTICLE_FIRE, target + v3(0, sin(current_time*5)*0.015, 0), 
+                            v3(g->player.vel.x, 0, g->player.vel.y) + 
+                            v3(random32(-0.001, 0.001), random32(0.003, 0.0055), random32(-0.001, 0.001)), 
+                            random32(0.05, 0.1));
+            }
         }
-
+ 
         draw_map(&g->map);
 
     }
 
     prepare_for_ui_render(); // @UI Render
     {
-        if(key_pressed[KEY_SPACE]) {//draw animation
-            draw_ui_texture(&textures[TEX_HAND], v4(32, 0, 16, 16),
-                        v4(
-                            window_w*(2.f/3),
-                            window_h-420 + sin(g->camera_bob_sin_pos) * 320 * HMM_Length(g->player.vel),
-                            480, 480
-                        )
-                       );
-
-        }else{
-            draw_ui_texture(&textures[TEX_HAND], v4(0, 0, 16, 16),
-                        v4(
-                            window_w*(2.f/3),
-                            window_h-420 + sin(g->camera_bob_sin_pos) * 320 * HMM_Length(g->player.vel),
-                            480, 480
-                        )
-                       );
+        // draw hand
+        if(g->player.casting_spell) {
+            draw_ui_texture(&textures[TEX_HAND], v4(0, 0, 16, 16), 
+                            v4(
+                                window_w*(2.f/3), 
+                                window_h - (420 * g->player.cast_t) + 
+                                sin(g->camera_bob_sin_pos) * 320 * HMM_Length(g->player.vel), 
+                                480, 480
+                            )
+                           );
+        }
+        else {
+            if(g->player.cast_t > 0.1) {
+                draw_ui_texture(&textures[TEX_HAND], v4(32, 0, 16, 16), 
+                                v4(
+                                    window_w*(2.f/3) - (window_w*(2.f/3) - (window_w/2 - 240))*(g->player.cast_t > 1 ? 1 : g->player.cast_t), 
+                                    window_h - (420 * (g->player.cast_t > 1 ? 1 : g->player.cast_t)) + 
+                                    sin(g->camera_bob_sin_pos) * 320 * HMM_Length(g->player.vel), 
+                                    480, 480
+                                )
+                               );
             }
+        }
     }
 
     if(g->paused) {
