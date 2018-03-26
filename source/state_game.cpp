@@ -202,7 +202,7 @@ void update_game() {
                            );
         }
         else {
-            if(g->player.cast_t > 0.1) {
+            if(g->player.cast_t > 0.025) {
                 draw_ui_texture(&textures[TEX_HAND], v4(32, 0, 16, 16), 
                                 v4(
                                     window_w*(2.f/3) - (window_w*(2.f/3) - (window_w/2 - 240))*(g->player.cast_t > 1 ? 1 : g->player.cast_t), 

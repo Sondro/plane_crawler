@@ -8,6 +8,9 @@ enum {
 struct Title {
     i8 state;
     SettingsMenu settings;
+    
+    Camera camera;
+    Map map;
 };
 
 State init_title() {
@@ -15,15 +18,34 @@ State init_title() {
     s.type = STATE_TITLE;
     s.mem = malloc(sizeof(Title));
     Title *t = (Title *)s.mem;
-
+    
     t->state = TITLE_MAIN;
     t->settings.state = -1;
+    
+    t->camera.pos = v3(0, 0, 0);
+    t->camera.orientation = t->camera.target_orientation = v3(PI*(2.f/3), 0, 0);
+    t->camera.interpolation_rate = 0.001;
+
+    generate_map(&t->map);
+
+    foreach(i, MAP_W)
+    foreach(j, MAP_H) {
+        if(!(tile_data[t->map.tiles[i][j]].flags & WALL)) {
+            t->camera.pos = v3(i+0.5, map_coordinate_height(&t->map, i+0.5, j+0.5)+2, j+0.5);
+            break;
+        }
+    }
+
+    t->camera.target_orientation = v3(PI*(4.f/3), 0, 0);
 
     return s;
 }
 
 void clean_up_title(State *s) {
-    //Title *t = (Title *)s->mem;
+    Title *t = (Title *)s->mem;
+    
+    clean_up_map(&t->map);
+
     free(s->mem);
     s->mem = 0;
     s->type = 0;
@@ -32,6 +54,9 @@ void clean_up_title(State *s) {
 void update_title() {
     Title *t = (Title *)state.mem;
     
+    update_camera(&t->camera);
+    update_map(&t->map);
+
     if(t->settings.state >= 0) {
         do_settings_menu(&t->settings);
     }
@@ -86,6 +111,20 @@ void update_title() {
             }
             end_block();
         }
+    }
+    
+    // @World Render
+    prepare_for_world_render();
+    {
+        {
+            v3 target = t->camera.pos + v3(
+                cos(t->camera.orientation.x),
+                sin(t->camera.orientation.y),
+                sin(t->camera.orientation.x)
+            );
+            look_at(t->camera.pos, target); 
+        }
+        draw_map(&t->map);
     }
 
     // @UI Render
