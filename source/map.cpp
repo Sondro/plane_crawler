@@ -800,8 +800,7 @@ void update_map(Map *m) {
                 tile_z = m->projectiles.update[i].pos.y; 
 
             if(tile_x < 0 || tile_x >= MAP_W || tile_z < 0 || tile_z >= MAP_H ||
-               tile_data[m->tiles[tile_x][tile_z]].flags & WALL ||
-               tile_data[m->tiles[tile_x][tile_z]].flags & PIT) {
+               tile_data[m->tiles[tile_x][tile_z]].flags & WALL) {
                 remove_projectile(m, i);                
             }
             else {

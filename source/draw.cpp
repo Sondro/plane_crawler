@@ -40,6 +40,7 @@ enum {
     TEX_SMALL_FONT,
     TEX_LOGO,
     TEX_HAND,
+    TEX_STATUS_BARS,
     TEX_PARTICLE_FIRE,
     MAX_TEX
 };
@@ -50,6 +51,7 @@ const char *tex_names[MAX_TEX] = {
     "font",
     "logo",
     "hand",
+    "status_bars",
     "particle_fire",
 };
 
