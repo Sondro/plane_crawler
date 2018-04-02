@@ -1,3 +1,4 @@
+#include "component.cpp"
 #include "player.cpp"
 #include "enemy.cpp"
 #include "particle.cpp"
@@ -34,12 +35,12 @@ struct {
 struct Map {
     i8 tiles[MAP_W][MAP_H];
     r32 heights[MAP_W+1][MAP_H+1];
-    i32 projectile_map[MAP_W*PROJ_MAP_CELLS_PER_TILE][MAP_H*PROJ_MAP_CELLS_PER_TILE];
-        
-    EnemySet enemies;
-    i8 enemy_anim_timer;
-    ParticleMaster particles;
+    
+    Player      player;
+    EnemySet    enemies;    
+    
     ProjectileSet projectiles;
+    ParticleMaster particles;
 
     v3 light_vector;
 
@@ -118,8 +119,14 @@ void do_particle(Map *m, i8 type, v3 pos, v3 vel, r32 scale) {
 
 void add_enemy(Map *m, i16 type, v2 pos) {
     if(m->enemies.count < MAX_ENEMY_COUNT) {
-        m->enemies.type[m->enemies.count] = type;
-        m->enemies.update[m->enemies.count++] = init_enemy_update(pos);
+        u32 i = m->enemies.count;
+        init_enemy(type, pos, 
+                   m->enemies.box + i,
+                   m->enemies.sprite + i,
+                   m->enemies.health + i,
+                   m->enemies.attack + i);
+        
+        ++m->enemies.count;
     }
 }
 
@@ -135,11 +142,6 @@ void add_projectile(Map *m, i16 type, v2 pos, v2 vel, r32 strength) {
 
 void remove_projectile(Map *m, i32 i) {
     if(i >= 0 && i < m->projectiles.count) {
-        i32 map_x = m->projectiles.update[i].pos.x * PROJ_MAP_CELLS_PER_TILE,
-            map_y = m->projectiles.update[i].pos.y * PROJ_MAP_CELLS_PER_TILE;
-
-        m->projectile_map[map_x][map_y] = -1;  
-
         foreach(j, 100) {
             r32 pitch = random32(0, PI/2),
                 yaw = random32(0, 2*PI);
@@ -159,13 +161,8 @@ void remove_projectile(Map *m, i32 i) {
 }
 
 void generate_map(Map *m) {
-    foreach(i, MAP_W*PROJ_MAP_CELLS_PER_TILE)
-    foreach(j, MAP_H*PROJ_MAP_CELLS_PER_TILE) {
-        m->projectile_map[i][j] = -1;
-    }
-
     m->enemies.count = 0;
-    m->enemy_anim_timer = 60;
+    m->projectiles.count = 0;
     init_particle_master(&m->particles);
     m->light_vector = v3(1, 1, 1) / sqrt(3);
     
@@ -615,10 +612,17 @@ void generate_map(Map *m) {
     da_free(uvs);
     da_free(normals);
     
+    i8 spawned_player = 0;
+
     foreach(i, MAP_W)
     foreach(j, MAP_H) {
         if(!(tile_data[m->tiles[i][j]].flags & WALL) &&
            !(tile_data[m->tiles[i][j]].flags & PIT)) {
+            if(!spawned_player) {
+                m->player = init_player(v2(i+0.5, j+0.5));
+                spawned_player = 1;
+            }
+
             if(random32(0, 1) < 0.01) {
                 add_enemy(m, random32(0, MAX_ENEMY - 0.0001), v2(i, j));
             }
@@ -635,159 +639,129 @@ void clean_up_map(Map *m) {
     glDeleteVertexArrays(1, &m->vao); 
 }
 
-void collide_entity_with_tiles(Map *m, v2 *pos0, v2 *vel, r32 size) {
-    v2 original_vel = *vel,
-       resolution_vel = v2(0, 0);
-    i8 found_colliding_tiles = 0,
-       resolved_x = 0,
-       resolved_y = 0;
+void collide_boxes_with_tiles(Map *m, BoxComponent *b, i32 count) {
+    i32 current_box = 0;
+    while(current_box < count) {
+        v2 original_vel = b->vel,
+           resolution_vel = v2(0, 0);
+        i8 found_colliding_tiles = 0,
+           resolved_x = 0,
+           resolved_y = 0;
 
-    for(r32 i = 1; i >= 0.2; i -= 0.2) {
-        v2 pos1 = *pos0 + i*original_vel;
+        for(r32 i = 1; i >= 0.2; i -= 0.2) {
+            v2 pos1 = b->pos + i*original_vel;
 
-        forrng(x, pos1.x-size/2, pos1.x+size/2+1) {
-            forrng(y, pos1.y-size/2, pos1.y+size/2+1) {
-                if(x >= 0 && x < MAP_W && y >= 0 && y < MAP_H) {
-                    if(tile_data[m->tiles[x][y]].flags & WALL ||
-                       tile_data[m->tiles[x][y]].flags & PIT) {
-                        v2 overlap = v2(100000000, 10000000);
-                        i8 overlap_x = 0, overlap_y = 0;
+            forrng(x, pos1.x - b->size.x/2, pos1.x + b->size.x/2+1) {
+                forrng(y, pos1.y - b->size.y/2, pos1.y + b->size.y/2+1) {
+                    if(x >= 0 && x < MAP_W && y >= 0 && y < MAP_H) {
+                        if(tile_data[m->tiles[x][y]].flags & WALL ||
+                           tile_data[m->tiles[x][y]].flags & PIT) {
+                            v2 overlap = v2(100000000, 10000000);
+                            i8 overlap_x = 0, overlap_y = 0;
 
-                        if(pos1.x > x+0.5) {
-                            if(x < MAP_W-1 &&
-                               !(tile_data[m->tiles[x+1][y]].flags & WALL) &&
-                               !(tile_data[m->tiles[x+1][y]].flags & PIT)) {
-                                overlap.x = (x+1) - (pos1.x-size/2);
-                                overlap_x = 1;
+                            if(pos1.x > x+0.5) {
+                                if(x < MAP_W-1 &&
+                                   !(tile_data[m->tiles[x+1][y]].flags & WALL) &&
+                                   !(tile_data[m->tiles[x+1][y]].flags & PIT)) {
+                                    overlap.x = (x+1) - (pos1.x-b->size.x/2);
+                                    overlap_x = 1;
+                                }
                             }
-                        }
-                        else {
-                            if(x &&
-                               !(tile_data[m->tiles[x-1][y]].flags & WALL) &&
-                               !(tile_data[m->tiles[x-1][y]].flags & PIT)) {
-                                overlap.x = x-(pos1.x + size/2);
-                                overlap_x = 1;
+                            else {
+                                if(x &&
+                                   !(tile_data[m->tiles[x-1][y]].flags & WALL) &&
+                                   !(tile_data[m->tiles[x-1][y]].flags & PIT)) {
+                                    overlap.x = x-(pos1.x + b->size.x/2);
+                                    overlap_x = 1;
+                                }
                             }
-                        }
-                        
-                        if(pos1.y > y+0.5) {
-                            if(y < MAP_H-1 &&
-                               !(tile_data[m->tiles[x][y+1]].flags & WALL) &&
-                               !(tile_data[m->tiles[x][y+1]].flags & PIT)) {
-                                overlap.y = (y+1) - (pos1.y-size/2);
-                                overlap_y = 1;
+                            
+                            if(pos1.y > y+0.5) {
+                                if(y < MAP_H-1 &&
+                                   !(tile_data[m->tiles[x][y+1]].flags & WALL) &&
+                                   !(tile_data[m->tiles[x][y+1]].flags & PIT)) {
+                                    overlap.y = (y+1) - (pos1.y-b->size.y/2);
+                                    overlap_y = 1;
+                                }
                             }
-                        }
-                        else {
-                            if(y &&
-                               !(tile_data[m->tiles[x][y-1]].flags & WALL) &&
-                               !(tile_data[m->tiles[x][y-1]].flags & PIT)) {
-                                overlap.y = y-(pos1.y + size/2);
-                                overlap_y = 1;
+                            else {
+                                if(y &&
+                                   !(tile_data[m->tiles[x][y-1]].flags & WALL) &&
+                                   !(tile_data[m->tiles[x][y-1]].flags & PIT)) {
+                                    overlap.y = y-(pos1.y + b->size.y/2);
+                                    overlap_y = 1;
+                                }
                             }
-                        }
-                              
-                        v2 resolution = v2(0, 0);
-                        if(fabs(overlap.x) < fabs(overlap.y)) {
-                            if(!resolved_x && overlap_x) {
-                                resolution = v2(overlap.x, 0);
-                                resolved_x = 1;
+                                  
+                            v2 resolution = v2(0, 0);
+                            if(fabs(overlap.x) < fabs(overlap.y)) {
+                                if(!resolved_x && overlap_x) {
+                                    resolution = v2(overlap.x, 0);
+                                    resolved_x = 1;
+                                }
+                            } 
+                            else {
+                                if(!resolved_y && overlap_y) {
+                                    resolution = v2(0, overlap.y);
+                                    resolved_y = 1;
+                                }
                             }
-                        } 
-                        else {
-                            if(!resolved_y && overlap_y) {
-                                resolution = v2(0, overlap.y);
-                                resolved_y = 1;
-                            }
-                        }
 
-                        resolution_vel += resolution*i;
-                        
-                        found_colliding_tiles = 1;
+                            resolution_vel += resolution*i;
+                            
+                            found_colliding_tiles = 1;
+                        }
                     }
                 }
             }
-        }
 
-        if(found_colliding_tiles) {
-            *vel += resolution_vel;
-            break;
+            if(found_colliding_tiles) {
+                b->vel += resolution_vel;
+                break;
+            }
         }
+        ++b;
+        ++current_box;
     }
 }
 
-void collide_entity_with_projectiles(Map *m, v2 *pos, v2 *vel, r32 *health, r32 size) {
-    for(i32 i = (pos->x - size/2) * PROJ_MAP_CELLS_PER_TILE;
-        i <= (pos->x + size/2) * PROJ_MAP_CELLS_PER_TILE;
-        ++i) {
-        for(i32 j = (pos->y - size/2) * PROJ_MAP_CELLS_PER_TILE;
-            j <= (pos->y + size/2) * PROJ_MAP_CELLS_PER_TILE;
-            ++j) {
-            if(i >= 0 && i < MAP_W*PROJ_MAP_CELLS_PER_TILE &&
-               j >= 0 && j < MAP_H*PROJ_MAP_CELLS_PER_TILE &&
-               m->projectile_map[i][j] >= 0) {
-                v2 strike_vector = (*pos - m->projectiles.update[m->projectile_map[i][j]].pos);
-                strike_vector /= HMM_Length(strike_vector);
-                strike_vector *= 0.1 + (m->projectiles.update[m->projectile_map[i][j]].strength*0.5);
-                *vel += strike_vector;
-                *health -= (m->projectiles.update[m->projectile_map[i][j]].strength + 0.1) * 0.5;
-                remove_projectile(m, m->projectile_map[i][j]);
-                break;
+void collide_entity_with_projectiles(Map *m, BoxComponent *b, HealthComponent *h) { 
+
+}
+
+void update_attacks(Map *m, AttackComponent *a, i32 count) {
+    foreach(i, count) {
+        if(a[i].attacking) {
+            a[i].transition += (1-a[i].transition)*0.2;
+            a[i].charge += (1-a[i].charge) * 0.05;
+        }
+        else {
+            if(a[i].charge > 0.005) {
+                // @Attack Firing
+                switch(a[i].type) {
+                    case ATTACK_FIREBALL: {
+                        add_projectile(m, PROJECTILE_FIRE, 
+                                       a[i].pos,
+                                       a[i].target,
+                                       a[i].charge);
+                        break;
+                    }
+                    default: break;
+                }
             }
+            a[i].mana += (1-a[i].mana) * 0.005;
+            a[i].transition *= 0.9;
+            a[i].charge = 0;
         }
     }
 }
 
 void update_map(Map *m) {
-    if(!--m->enemy_anim_timer) {
-        m->enemy_anim_timer = 120;
-    }
-    
     { // @Update projectiles
-        foreach(i, m->projectiles.count) {
-            i32 map_x = m->projectiles.update[i].pos.x * PROJ_MAP_CELLS_PER_TILE,
-                map_y = m->projectiles.update[i].pos.y * PROJ_MAP_CELLS_PER_TILE;
-            
-            if(map_x < 0) {
-                map_x = 0;
-            }
-            else if(map_x >= MAP_W*PROJ_MAP_CELLS_PER_TILE) {
-                map_x = MAP_W*PROJ_MAP_CELLS_PER_TILE - 1;
-            }
-
-            if(map_y < 0) {
-                map_y = 0;
-            }
-            else if(map_y >= MAP_H*PROJ_MAP_CELLS_PER_TILE) {
-                map_y = MAP_H*PROJ_MAP_CELLS_PER_TILE - 1;
-            }
-            
-            m->projectile_map[map_x][map_y] = -1;
-        }
-
         for(u32 i = 0; i < (u32)m->projectiles.count;) {
             m->projectiles.update[i].pos += m->projectiles.update[i].vel;
             
-            i32 map_x = m->projectiles.update[i].pos.x * PROJ_MAP_CELLS_PER_TILE,
-                map_y = m->projectiles.update[i].pos.y * PROJ_MAP_CELLS_PER_TILE;
-            
-            if(map_x < 0) {
-                map_x = 0;
-            }
-            else if(map_x >= MAP_W*PROJ_MAP_CELLS_PER_TILE) {
-                map_x = MAP_W*PROJ_MAP_CELLS_PER_TILE - 1;
-            }
-
-            if(map_y < 0) {
-                map_y = 0;
-            }
-            else if(map_y >= MAP_H*PROJ_MAP_CELLS_PER_TILE) {
-                map_y = MAP_H*PROJ_MAP_CELLS_PER_TILE - 1;
-            }
-            
-            m->projectile_map[map_x][map_y] = i;
-
-            foreach(j, 1) {// + (m->projectiles.update[i].strength*10)) {
+            foreach(j, 1) {
                 do_particle(m, projectile_data[m->projectiles.type[i]].particle_type,
                             v3(m->projectiles.update[i].pos.x,
                                map_coordinate_height(m, m->projectiles.update[i].pos.x, m->projectiles.update[i].pos.y) + 0.5,
@@ -808,46 +782,34 @@ void update_map(Map *m) {
             }
         }
     }
+    
+    { // @Update player
+        collide_boxes_with_tiles(m, &m->player.box, 1);
+        m->player.box.pos += m->player.box.vel;
+    }
 
     { // @Update enemies
-        for(i32 i = 0; i < (i32)m->enemies.count;) {
-            collide_entity_with_tiles(m, &m->enemies.update[i].pos, &m->enemies.update[i].vel, 0.75);
-            collide_entity_with_projectiles(m, 
-                                            &m->enemies.update[i].pos, 
-                                            &m->enemies.update[i].vel,
-                                            &m->enemies.update[i].health,
-                                            0.75);
-            
-            m->enemies.update[i].update_dir_t -= 0.0085;
-            if(m->enemies.update[i].update_dir_t < 0.005) {
-                m->enemies.update[i].acc = v2(random32(-0.001, 0.001), random32(-0.001, 0.001));
-                m->enemies.update[i].update_dir_t = random32(1, 2);
-            }
-            else if(m->enemies.update[i].update_dir_t < 0.3) {
-                m->enemies.update[i].acc = v2(0, 0);
-                m->enemies.update[i].vel *= 0.85;
-            }
-            else {
-                m->enemies.update[i].vel *= 0.89;
-            }
-            
-            m->enemies.update[i].vel += m->enemies.update[i].acc;
-            m->enemies.update[i].pos += m->enemies.update[i].vel;
+        collide_boxes_with_tiles(m, m->enemies.box, m->enemies.count);
 
-            if(m->enemies.update[i].health <= 0) {
-                memmove(m->enemies.type + i, m->enemies.type + i + 1, sizeof(i16) * (m->enemies.count - i - 1));
-                memmove(m->enemies.update + i, m->enemies.update + i + 1, sizeof(EnemyUpdate) * (m->enemies.count - i - 1));
-                --m->enemies.count;
-            }
-            else {
-                ++i;
-            }
+        // update sprite position
+        foreach(i, m->enemies.count) {
+            m->enemies.box[i].pos += m->enemies.box[i].vel;
+            m->enemies.sprite[i].pos = v3(m->enemies.box[i].pos.x, 
+                                          map_coordinate_height(m, m->enemies.box[i].pos.x, m->enemies.box[i].pos.y) + 0.5, 
+                                          m->enemies.box[i].pos.y);
+        } 
+
+        // update attack position
+        foreach(i, m->enemies.count) {
+            m->enemies.attack[i].pos = m->enemies.box[i].pos;
         }
+
+        update_attacks(m, m->enemies.attack, m->enemies.count);
     }
-    
-    { // @Update particles
+
+{ // @Update particles
         update_particle_master(&m->particles);
-    }
+    } 
 }
 
 void draw_map(Map *m) {
@@ -890,14 +852,7 @@ void draw_map(Map *m) {
     }
 
     { // @Draw enemies
-        v2 pos;
-        foreach(i, m->enemies.count) {
-            pos = m->enemies.update[i].pos;
-            draw_billboard_texture(textures+TEX_ENEMY, 
-                                   v4(enemy_data[m->enemies.type[i]].tx*16, (m->enemy_anim_timer < 30)*16, 16, 16), 
-                                   v3(pos.X, map_coordinate_height(m, pos.X, pos.Y)+0.5, pos.Y), 
-                                   v2(0.5, 0.5));
-        }
+        draw_sprite_components(m->enemies.sprite, m->enemies.count); 
     }
 
     // @Draw particles

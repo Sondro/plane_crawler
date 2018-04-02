@@ -25,7 +25,7 @@ State init_title() {
     t->camera.pos = v3(0, 0, 0);
     t->camera.orientation = t->camera.target_orientation = v3(PI*(2.f/3), 0, 0);
     t->camera.interpolation_rate = 0.001;
-
+    
     generate_map(&t->map);
 
     foreach(i, MAP_W)

@@ -7,9 +7,6 @@ struct Game {
     r32 camera_bob_sin_pos;
     Camera camera;
 
-    // player data
-    Player player;
-
     // map data
     Map map;
     
@@ -33,16 +30,6 @@ State init_game() {
 
     generate_map(&g->map);
     
-    g->player = init_player(v2(0, 0));
-
-    foreach(i, MAP_W)
-    foreach(j, MAP_H) {
-        if(!(tile_data[g->map.tiles[i][j]].flags & WALL) &&
-           !(tile_data[g->map.tiles[i][j]].flags & PIT)) {
-            g->player.pos = v2(i+0.5, j+0.5);
-        }
-    }
-
     g->settings.state = -1;
 
     glfwSetInputMode(window, GLFW_CURSOR, g->paused ? GLFW_CURSOR_NORMAL : GLFW_CURSOR_DISABLED);
@@ -52,7 +39,7 @@ State init_game() {
 
 void clean_up_game(State *s) {
     Game *g = (Game *)s->mem;
-
+    
     clean_up_map(&g->map);
 
     free(s->mem);
@@ -64,43 +51,43 @@ void update_game() {
     Game *g = (Game *)state.mem;
     
     
-    if(g->paused) { // @Paused update
-        if(g->settings.state < 0) {
-            set_ui_title("PAUSED");
+    if(g->game_over) {
+        set_ui_title("GAME OVER");
 
-            begin_block(0, UI_STANDARD_W, UI_STANDARD_H*3);
-            {
-                if(do_button(GEN_ID, UI_STANDARD_W, UI_STANDARD_H, "RESUME")) {
-                    g->paused = 0;
-                }
-                if(do_button(GEN_ID, UI_STANDARD_W, UI_STANDARD_H, "SETTINGS")) {
-                    g->settings.state = 0;
-                }
-                if(do_button(GEN_ID, UI_STANDARD_W, UI_STANDARD_H, "QUIT")) {
-                    next_state = init_title();
-                }
+        begin_block(0, UI_STANDARD_W, UI_STANDARD_H*3);
+        {
+            if(do_button(GEN_ID, UI_STANDARD_W*2, UI_STANDARD_H, "RETURN TO MENU")) {
+                next_state = init_title();
+            } 
+            if(do_button(GEN_ID, UI_STANDARD_W*2, UI_STANDARD_H, "NEW DUNGEON")) {
+                next_state = init_game();
             }
-            end_block();
+            if(do_button(GEN_ID, UI_STANDARD_W*2, UI_STANDARD_H, "QUIT")) {
+                glfwSetWindowShouldClose(window, 1);
+            }
         }
-    }
+        end_block();
+    } 
     else {
-        if(g->game_over) {
-            set_ui_title("GAME OVER");
+        if(g->paused) { // @Paused update
+            if(g->settings.state < 0) {
+                set_ui_title("PAUSED");
 
-            begin_block(0, UI_STANDARD_W, UI_STANDARD_H*3);
-            {
-                if(do_button(GEN_ID, UI_STANDARD_W*2, UI_STANDARD_H, "RETURN TO MENU")) {
-                    next_state = init_title();
-                } 
-                if(do_button(GEN_ID, UI_STANDARD_W*2, UI_STANDARD_H, "NEW DUNGEON")) {
-                    next_state = init_game();
+                begin_block(0, UI_STANDARD_W, UI_STANDARD_H*3);
+                {
+                    if(do_button(GEN_ID, UI_STANDARD_W, UI_STANDARD_H, "RESUME")) {
+                        g->paused = 0;
+                    }
+                    if(do_button(GEN_ID, UI_STANDARD_W, UI_STANDARD_H, "SETTINGS")) {
+                        g->settings.state = 0;
+                    }
+                    if(do_button(GEN_ID, UI_STANDARD_W, UI_STANDARD_H, "QUIT")) {
+                        next_state = init_title();
+                    }
                 }
-                if(do_button(GEN_ID, UI_STANDARD_W*2, UI_STANDARD_H, "QUIT")) {
-                    glfwSetWindowShouldClose(window, 1);
-                }
+                end_block();
             }
-            end_block();
-        }
+        }   
         else { // @Unpaused update
             if(key_control_down(KC_TURN_LEFT)) {
                 g->camera.target_orientation.x -= 0.05;
@@ -108,40 +95,43 @@ void update_game() {
             if(key_control_down(KC_TURN_RIGHT)) {
                 g->camera.target_orientation.x += 0.05;
             }
-
-            r32 horizontal_movement = 0,
-                vertical_movement = 0;
-
-            if(key_control_down(KC_MOVE_FORWARD)) {
-                vertical_movement += 1;
-            }
-            if(key_control_down(KC_MOVE_BACKWARD)) {
-                vertical_movement -= 1;
-            }
-            if(key_control_down(KC_MOVE_LEFT)) {
-                horizontal_movement -= 1;
-            }
-            if(key_control_down(KC_MOVE_RIGHT)) {
-                horizontal_movement += 1;
-            }
-
-            r32 movement_length = sqrt(horizontal_movement*horizontal_movement + vertical_movement*vertical_movement);
-            if(movement_length) {
-                horizontal_movement /= movement_length;
-                vertical_movement /= movement_length;
-            }
-
-            r32 movement_speed = 0.012;
-
-            g->player.vel.x += cos(g->camera.orientation.x)*vertical_movement*movement_speed;
-            g->player.vel.y += sin(g->camera.orientation.x)*vertical_movement*movement_speed;
-
-            g->player.vel.x += cos(g->camera.orientation.x + PI/2)*horizontal_movement*movement_speed;
-            g->player.vel.y += sin(g->camera.orientation.x + PI/2)*horizontal_movement*movement_speed;
             
-            g->player.vel.x *= 0.85;
-            g->player.vel.y *= 0.85;
+            {
+                r32 horizontal_movement = 0,
+                    vertical_movement = 0;
+
+                if(key_control_down(KC_MOVE_FORWARD)) {
+                    vertical_movement += 1;
+                }
+                if(key_control_down(KC_MOVE_BACKWARD)) {
+                    vertical_movement -= 1;
+                }
+                if(key_control_down(KC_MOVE_LEFT)) {
+                    horizontal_movement -= 1;
+                }
+                if(key_control_down(KC_MOVE_RIGHT)) {
+                    horizontal_movement += 1;
+                }
+
+                r32 movement_length = sqrt(horizontal_movement*horizontal_movement + vertical_movement*vertical_movement);
+                if(movement_length) {
+                    horizontal_movement /= movement_length;
+                    vertical_movement /= movement_length;
+                }
+
+                r32 movement_speed = 0.012;
+
+                g->map.player.box.vel.x += cos(g->camera.orientation.x)*vertical_movement*movement_speed;
+                g->map.player.box.vel.y += sin(g->camera.orientation.x)*vertical_movement*movement_speed;
+
+                g->map.player.box.vel.x += cos(g->camera.orientation.x + PI/2)*horizontal_movement*movement_speed;
+                g->map.player.box.vel.y += sin(g->camera.orientation.x + PI/2)*horizontal_movement*movement_speed;
+                
+                g->map.player.box.vel.x *= 0.85;
+                g->map.player.box.vel.y *= 0.85;
             
+            
+            /*
             if(g->player.casting_spell) {
                 g->player.cast_t += (1-g->player.cast_t) * 0.2;
                 g->player.spell_strength += (1-g->player.spell_strength) * 0.05;
@@ -166,18 +156,19 @@ void update_game() {
             }
             if(g->player.mana < 0) g->player.mana = 0;
             else if(g->player.mana > 1) g->player.mana = 1;
+            */
+ 
+            update_map(&g->map);
             
-            collide_entity_with_tiles(&g->map, &g->player.pos, &g->player.vel, 0.25);
-            g->player.pos += g->player.vel;
-
             g->camera_bob_sin_pos += 0.25;
-            g->camera.pos.x = g->player.pos.x;
+            g->camera.pos.x = g->map.player.box.pos.x;
+            g->camera.pos.z = g->map.player.box.pos.y;
+
             g->camera.pos.y = map_coordinate_height(&g->map, g->camera.pos.x, g->camera.pos.z) + 0.8;
-            g->camera.pos.y += sin(g->camera_bob_sin_pos)*0.012*(HMM_Length(g->player.vel) / (movement_speed*2));
-            g->camera.pos.z = g->player.pos.y;
+            g->camera.pos.y += sin(g->camera_bob_sin_pos)*0.012*(HMM_Length(g->map.player.box.vel) / (movement_speed*2));
 
             update_camera(&g->camera);
-            update_map(&g->map);
+            }
         }
     }
 
@@ -193,6 +184,7 @@ void update_game() {
         }
 
         { // @Spell drawing
+            /*
             if(g->player.casting_spell) {
                 v3 target = g->camera.pos + v3(
                     cos(g->camera.orientation.x + 0.7)*0.3,
@@ -205,6 +197,7 @@ void update_game() {
                             v3(random32(-0.001, 0.001), random32(0.003, 0.0055), random32(-0.001, 0.001)), 
                             random32(0.05, 0.1));
             }
+            */
         }
  
         draw_map(&g->map);
@@ -214,6 +207,7 @@ void update_game() {
     prepare_for_ui_render(); // @UI Render
     {
         // draw hand
+        /*
         if(g->player.casting_spell) {
             draw_ui_texture(&textures[TEX_HAND], v4(0, 0, 16, 16), 
                             v4(
@@ -236,8 +230,10 @@ void update_game() {
                                );
             }
         }
+        */
         
         // draw health/mana bars
+        /*
         draw_ui_texture(&textures[TEX_STATUS_BARS], v4(0, 12, 64 * g->player.health, 12),
                         v4(16, window_h - 120, 64*4 * g->player.health, 12*4));
 
@@ -249,6 +245,7 @@ void update_game() {
 
         draw_ui_texture(&textures[TEX_STATUS_BARS], v4(0, 0, 64, 12),
                         v4(16, window_h - 64, 64*4, 12*4));
+        */
     }
     
     if(g->game_over) {
