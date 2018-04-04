@@ -30,10 +30,10 @@ void init_particle_master(ParticleMaster *p) {
 
     foreach(i, MAX_PARTICLE) {
         p->sets[i].count = 0;
-        
+
         glGenVertexArrays(1, &p->sets[i].vao);
         glBindVertexArray(p->sets[i].vao);
-        
+
         glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, 0);
         glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 0, 0);
 
@@ -41,7 +41,7 @@ void init_particle_master(ParticleMaster *p) {
         glBindBuffer(GL_ARRAY_BUFFER, p->sets[i].instance_vbo);
         glBufferData(GL_ARRAY_BUFFER, sizeof(r32)*instance_data_length*MAX_PARTICLE_COUNT,
                      p->sets[i].particle_data, GL_DYNAMIC_DRAW);
-        
+
         glVertexAttribPointer(2, 4, GL_FLOAT, GL_FALSE,
                               PARTICLE_INSTANCE_DATA_LENGTH*sizeof(GLfloat),
                               (void *)(0 * sizeof(GLfloat)));
@@ -85,12 +85,12 @@ void update_particle_master(ParticleMaster *p) {
         r32 *particle_data = 0;
         for(u32 j = 0; j < s->count;) {
             particle_data = s->particle_data + j*PARTICLE_DATA_LENGTH;
-            particle_data[0] += particle_data[3]; // x + x_vel
-            particle_data[1] += particle_data[4]; // y + y_vel
-            particle_data[2] += particle_data[5]; // z + z_vel
-            particle_data[6] -= 0.01;            // (decrease life)
+            particle_data[0] += particle_data[3]*delta_t; // x + x_vel
+            particle_data[1] += particle_data[4]*delta_t; // y + y_vel
+            particle_data[2] += particle_data[5]*delta_t; // z + z_vel
+            particle_data[6] -= 0.5*delta_t;            // (decrease life)
             if(particle_data[6] < 0.1) {
-                memmove(s->particle_data+j*PARTICLE_DATA_LENGTH, s->particle_data+(j+1)*PARTICLE_DATA_LENGTH, 
+                memmove(s->particle_data+j*PARTICLE_DATA_LENGTH, s->particle_data+(j+1)*PARTICLE_DATA_LENGTH,
                         sizeof(r32) * PARTICLE_DATA_LENGTH * (s->count - j - 1));
                 --s->count;
             }
@@ -110,8 +110,8 @@ void draw_particle_master(ParticleMaster *p) {
             particle_data = s->particle_data + j*PARTICLE_DATA_LENGTH;
             m4 particle_model = HMM_Translate(v3(particle_data[0], particle_data[1], particle_data[2]));
             r32 progress = 1-particle_data[6],
-                max_frames = (r32)particle_types[i].max_frames; 
-            
+                max_frames = (r32)particle_types[i].max_frames;
+
             foreach(x, 3)
             foreach(y, 3) {
                 particle_model.Elements[x][y] = view.Elements[y][x];
@@ -129,24 +129,24 @@ void draw_particle_master(ParticleMaster *p) {
             s->instance_render_data[k++] = max_frames;
         }
         glBindBuffer(GL_ARRAY_BUFFER, s->instance_vbo);
-        glBufferData(GL_ARRAY_BUFFER, s->count*PARTICLE_INSTANCE_DATA_LENGTH*sizeof(r32), s->instance_render_data, GL_STREAM_DRAW);
+        glBufferSubData(GL_ARRAY_BUFFER, 0, k*sizeof(r32), s->instance_render_data);
         glBindBuffer(GL_ARRAY_BUFFER, 0);
     }
 
     set_shader(SHADER_PARTICLE);
     {
         glDepthMask(GL_FALSE);
-        
+
         glUniformMatrix4fv(glGetUniformLocation(active_shader, "projection"), 1, GL_FALSE, &(projection.Elements[0][0]));
         glUniformMatrix4fv(glGetUniformLocation(active_shader, "view"), 1, GL_FALSE, &(view.Elements[0][0]));
-        
+
         glUniform1i(glGetUniformLocation(active_shader, "tex"), 0);
 
         glActiveTexture(GL_TEXTURE0);
-        
+
         foreach(i, MAX_PARTICLE) {
             ParticleSet *s = p->sets+i;
-            
+
             i8 additive = i == PARTICLE_FIRE;
 
             if(additive) {
@@ -175,9 +175,9 @@ void draw_particle_master(ParticleMaster *p) {
             glEnableVertexAttribArray(4);
             glEnableVertexAttribArray(5);
             glEnableVertexAttribArray(6);
-            
+
             glDrawArraysInstanced(GL_TRIANGLE_STRIP, 0, 4, s->count);
-           
+
             glDisableVertexAttribArray(2);
             glDisableVertexAttribArray(3);
             glDisableVertexAttribArray(4);

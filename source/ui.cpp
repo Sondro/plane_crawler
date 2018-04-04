@@ -1,3 +1,8 @@
+#define           MAX_UI_RENDER 256
+#define MAX_UI_RENDER_TEXT_SIZE 32
+#define           UI_STANDARD_W 256
+#define           UI_STANDARD_H 64
+
 #define GEN_ID (__LINE__ + UI_SRC_ID)
 #define ui_id_equ(id1, id2) ((int)(id1*1000) == (int)(id2*1000))
 
@@ -55,13 +60,13 @@ global struct {
     // renders
     u32 render_count;
     UIRender renders[MAX_UI_RENDER];
-    
+
     // focus data
     i8 focusing;
     u32 focus_count;
     ui_id focus_ids[MAX_UI_RENDER];
     i32 current_focus;
-    
+
     // block/auto-layout data
     i8 block_mode;
     u32 current_block;
@@ -98,12 +103,12 @@ void init_ui() {
 
     // render data
     ui.render_count = 0;
-    
+
     // focus data
     ui.focusing = 0;
     ui.focus_count = 0;
     ui.current_focus = 0;
-    
+
     // block/auto-layout data
     ui.block_mode = BLOCK_MODE_VERTICAL;
     ui.current_block = 0;
@@ -132,7 +137,7 @@ void ui_end() {
                 ui.current_focus = 0;
             }
         }
-        
+
         if((int)ui.last_mouse_x != (int)mouse_x || (int)ui.last_mouse_y != (int)mouse_y) {
             ui.current_focus = -1;
             ui.active = -1;
@@ -163,47 +168,47 @@ void ui_end() {
     for(u32 i = ui.render_count - 1; i >= 0 && i < ui.render_count; --i) {
         if(ui.renders[i].updated) {
             if(ui_id_equ(ui.hot, ui.renders[i].id)) {
-                ui.renders[i].t_hot += (1-ui.renders[i].t_hot) * 0.25;
+                ui.renders[i].t_hot += (1-ui.renders[i].t_hot) * 15*delta_t;
             }
             else {
-                ui.renders[i].t_hot *= 0.7;
+                ui.renders[i].t_hot -= (ui.renders[i].t_hot*8*delta_t);
             }
 
             if(ui_id_equ(ui.active, ui.renders[i].id)) {
-                ui.renders[i].t_active += (1-ui.renders[i].t_active) * 0.25;
+                ui.renders[i].t_active += (1-ui.renders[i].t_active) * 15*delta_t;
             }
             else {
-                ui.renders[i].t_active *= 0.7;
+                ui.renders[i].t_active *= (ui.renders[i].t_active*8*delta_t);
             }
 
             { // @UI Element Rendering
                 v4 bb = ui.renders[i].bb;
 
-                draw_ui_filled_rect(ui.renders[i].t_hot * v4(0.8, 0.8, 0.8, 1), 
-                                    v4(bb.x + bb.z/2 - (bb.z/2)*ui.renders[i].t_hot, 
-                                       bb.y + bb.w/2 + 24, 
+                draw_ui_filled_rect(ui.renders[i].t_hot * v4(0.8, 0.8, 0.8, 1),
+                                    v4(bb.x + bb.z/2 - (bb.z/2)*ui.renders[i].t_hot,
+                                       bb.y + bb.w/2 + 24,
                                        (bb.z - 4)*ui.renders[i].t_hot, 4));
-                draw_ui_filled_rect(ui.renders[i].t_hot * v4(0.8, 0.8, 0.8, 1), 
-                                    v4(bb.x + bb.z/2 - (bb.z/2)*ui.renders[i].t_hot, 
-                                       bb.y + bb.w/2 - 28, 
+                draw_ui_filled_rect(ui.renders[i].t_hot * v4(0.8, 0.8, 0.8, 1),
+                                    v4(bb.x + bb.z/2 - (bb.z/2)*ui.renders[i].t_hot,
+                                       bb.y + bb.w/2 - 28,
                                        (bb.z - 4)*ui.renders[i].t_hot, 4));
-                
+
                 if(ui.renders[i].type == ELEMENT_SLIDER) {
                     draw_ui_filled_rect(ui.renders[i].t_hot*v4(0.2, 0.2, 0.2, 0.2) + v4(0.5, 0.5, 0.5, 0.5),
                                         v4(bb.x, bb.y + 4, (bb.z-4)*ui.renders[i].slider_val, bb.w - 8));
                 }
-                
+
                 if(ui.renders[i].type == ELEMENT_TOGGLER) {
-                    draw_ui_text(ui.renders[i].text, 0, 
+                    draw_ui_text(ui.renders[i].text, 0,
                                  v2(
-                                     bb.x + 10 - 2*ui.renders[i].t_hot, 
+                                     bb.x + 10 - 2*ui.renders[i].t_hot,
                                      bb.y + bb.w/2
                                  )
                                 );
 
-                    draw_ui_text(ui.renders[i].text, 0, 
+                    draw_ui_text(ui.renders[i].text, 0,
                                  v2(
-                                     bb.x + 10 + 2*ui.renders[i].t_hot, 
+                                     bb.x + 10 + 2*ui.renders[i].t_hot,
                                      bb.y + bb.w/2
                                  )
                                 );
@@ -218,16 +223,16 @@ void ui_end() {
                     }
                 }
                 else {
-                    draw_ui_text(ui.renders[i].text, ALIGN_CENTER, 
+                    draw_ui_text(ui.renders[i].text, ALIGN_CENTER,
                                  v2(
-                                     bb.x + bb.z/2 - 2*ui.renders[i].t_hot, 
+                                     bb.x + bb.z/2 - 2*ui.renders[i].t_hot,
                                      bb.y + bb.w/2
                                  )
                                 );
 
-                    draw_ui_text(ui.renders[i].text, ALIGN_CENTER, 
+                    draw_ui_text(ui.renders[i].text, ALIGN_CENTER,
                                  v2(
-                                     bb.x + bb.z/2 + 2*ui.renders[i].t_hot, 
+                                     bb.x + bb.z/2 + 2*ui.renders[i].t_hot,
                                      bb.y + bb.w/2
                                  )
                                 );
@@ -268,7 +273,7 @@ void begin_block(u32 block_number, r32 x, r32 y, r32 w, r32 h) {
 
     ui.current_block_bb = v4(x, y, w, h);
     ui.focusing = (ui.current_block == block_number) || !block_number;
-    ui.current_element_pos = v2(x, y); 
+    ui.current_element_pos = v2(x, y);
 }
 
 void begin_block(u32 block_number, r32 w, r32 h) {
@@ -317,7 +322,7 @@ i8 do_button(ui_id id, r32 w, r32 h, const char *text) {
 
         r32 x = ui.current_element_pos.x,
             y = ui.current_element_pos.y;
-        
+
         if(ui.block_mode == BLOCK_MODE_VERTICAL) {
             x += (ui.current_block_bb.z-w) / 2;
         }
@@ -398,7 +403,7 @@ i8 do_toggler(ui_id id, r32 w, r32 h, const char *text, i8 value) {
 
         r32 x = ui.current_element_pos.x,
             y = ui.current_element_pos.y;
-         
+
         if(ui.block_mode == BLOCK_MODE_VERTICAL) {
             x += (ui.current_block_bb.z-w) / 2;
         }
@@ -467,7 +472,7 @@ i8 do_toggler(ui_id id, r32 w, r32 h, const char *text, i8 value) {
     }
 
     ++ui.update_pos;
-    
+
     if(fired) {
         value = !value;
     }
@@ -483,7 +488,7 @@ r32 do_slider(ui_id id, r32 w, r32 h, const char *text, r32 value) {
 
         r32 x = ui.current_element_pos.x,
             y = ui.current_element_pos.y;
-         
+
         if(ui.block_mode == BLOCK_MODE_VERTICAL) {
             x += (ui.current_block_bb.z-w) / 2;
         }
@@ -494,10 +499,10 @@ r32 do_slider(ui_id id, r32 w, r32 h, const char *text, r32 value) {
         if(ui.current_focus >= 0) { // @Keyboard controls
             if(ui_id_equ(id, ui.hot)) {
                 if(ui_right_down) {
-                    value += 0.025;   
+                    value += 1.6 * delta_t;
                 }
                 else if(ui_left_down) {
-                    value -= 0.025;
+                    value -= 1.6 * delta_t;
                 }
             }
         }
@@ -510,7 +515,7 @@ r32 do_slider(ui_id id, r32 w, r32 h, const char *text, r32 value) {
 
             if(ui_id_equ(id, ui.hot)) {
                 if(mouse_over) {
-                    if(!ui_id_equ(id, ui.active)) { 
+                    if(!ui_id_equ(id, ui.active)) {
                         if(left_mouse_down) {
                             ui.active = id;
                         }
@@ -525,7 +530,7 @@ r32 do_slider(ui_id id, r32 w, r32 h, const char *text, r32 value) {
                     if(mouse_over) {
                         ui.hot = id;
                     }
-                } 
+                }
             }
 
             if(ui_id_equ(ui.active, id)) {
@@ -555,6 +560,7 @@ r32 do_slider(ui_id id, r32 w, r32 h, const char *text, r32 value) {
             prev_loop->bb.w = h;
             prev_loop->slider_val = value;
             prev_loop->updated = 1;
+            strcpy(prev_loop->text, text);
         }
         else {
             UIRender render = init_element_render(id, ELEMENT_SLIDER, x, y, w, h, text);
@@ -563,13 +569,13 @@ r32 do_slider(ui_id id, r32 w, r32 h, const char *text, r32 value) {
         }
     }
 
-    ++ui.update_pos;  
+    ++ui.update_pos;
 
     return value;
 }
 
 //
-// @Settings Menu 
+// @Settings Menu
 //
 
 #define UI_SRC_ID 2000
@@ -583,26 +589,26 @@ void do_settings_menu(SettingsMenu *s) {
     enum {
         SETTINGS_MAIN,
         SETTINGS_CONTROLS,
-        SETTINGS_AUDIO,
         SETTINGS_GRAPHICS,
-        SETTINGS_SCREEN,
+        SETTINGS_AUDIO,
+        SETTINGS_VIDEO,
         MAX_SETTINGS
     };
-    
+
     const char *settings_titles[MAX_SETTINGS] = {
         "SETTINGS",
         "CONTROLS",
-        "AUDIO",
         "GRAPHICS",
-        "SCREEN",
+        "AUDIO",
+        "VIDEO",
     };
-    
+
     set_ui_title(settings_titles[s->state]);
 
     switch(s->state) {
         case SETTINGS_MAIN: {
             begin_block(0, UI_STANDARD_W, UI_STANDARD_H*(MAX_SETTINGS)+24);
-            {                
+            {
                 foreach(i, MAX_SETTINGS-1) {
                     if(do_button(GEN_ID+(i/100.f), UI_STANDARD_W, UI_STANDARD_H, settings_titles[i+1])) {
                         s->state = i+1;
@@ -624,7 +630,7 @@ void do_settings_menu(SettingsMenu *s) {
                 last_key = 0;
                 s->selected_control = -1;
             }
-            
+
             begin_block(0, UI_STANDARD_W, UI_STANDARD_H*MAX_KC);
             {
                 char control_name[32] = { 0 };
@@ -670,10 +676,13 @@ void do_settings_menu(SettingsMenu *s) {
             end_block();
             break;
         }
-        case SETTINGS_SCREEN: {
-            begin_block(0, UI_STANDARD_W, UI_STANDARD_H*2 + 24);
-            {   
+        case SETTINGS_VIDEO: {
+            begin_block(0, UI_STANDARD_W, UI_STANDARD_H*3 + 24);
+            {
                 fullscreen = do_toggler(GEN_ID, UI_STANDARD_W+112, UI_STANDARD_H, "FULLSCREEN", fullscreen);
+                char fps_str[16] = { 0 };
+                sprintf(fps_str, "FPS: %i", (int)fps);
+                fps = 30 + (do_slider(GEN_ID, UI_STANDARD_W*2, UI_STANDARD_H, fps_str, (fps - 30) / 330)) * 330;
                 do_divider();
                 if(do_button(GEN_ID, UI_STANDARD_W, UI_STANDARD_H, "BACK")) {
                     s->state = 0;

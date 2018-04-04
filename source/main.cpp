@@ -1,7 +1,7 @@
 /*
 
 TO-DO:
- 
+
  * Implement real spell casting
  * Stop calling glGetUniformLocation every frame (cache results once)
  * Make real room generation
@@ -11,21 +11,15 @@ TO-DO:
 */
 
 // Program Options
-#define                     FPS 60.0
-#define                   MAP_W 40
-#define                   MAP_H 40
 #define            RESOURCE_DIR "./resource/"
 #define              SHADER_DIR "shader/"
 #define              NOISE_SEED 123456
 
-#define           MAX_UI_RENDER 256
-#define MAX_UI_RENDER_TEXT_SIZE 32
-#define           UI_STANDARD_W 256
-#define           UI_STANDARD_H 64
+#define                   MAP_W 40
+#define                   MAP_H 40
 #define         MAX_ENEMY_COUNT 1024
 #define      MAX_PARTICLE_COUNT 4096
 #define    MAX_PROJECTILE_COUNT 256
-#define PROJ_MAP_CELLS_PER_TILE 4
 //
 
 // External Libraries/Related Code
@@ -47,14 +41,7 @@ TO-DO:
 
 #define HANDMADE_MATH_IMPLEMENTATION
 #include "ext/HandmadeMath.h"
-typedef hmm_v2 v2;
-typedef hmm_v3 v3;
-typedef hmm_v4 v4;
-typedef hmm_m4 m4;
-#define v2(x, y)        HMM_Vec2(x, y)
-#define v3(x, y, z)     HMM_Vec3(x, y, z)
-#define v4(x ,y, z, w)  HMM_Vec4(x, y, z, w)
-#define m4(d)           HMM_Mat4d(d)
+#include "hmm_wrapper.cpp"
 
 #define STB_IMAGE_IMPLEMENTATION
 #define STBI_ONLY_PNG
@@ -99,13 +86,17 @@ int main() {
 
                 state = init_title();
                 next_state.type = 0;
-                
+
                 i8 last_fullscreen;
 
                 while(!glfwWindowShouldClose(window)) {
-                    last_fullscreen = fullscreen;
-                    
+                    last_time = current_time;
                     current_time = glfwGetTime();
+                    if(delta_t > 1/10.f) {
+                        last_time = current_time - 1/10.f;
+                    }
+
+                    last_fullscreen = fullscreen;
 
                     last_key = 0;
                     last_char = 0;
@@ -133,7 +124,7 @@ int main() {
 
                     // @State change
                     if(next_state.type) {
-                        state_t += (1-state_t) * 0.2;
+                        state_t += (1-state_t) * 8 * delta_t;
                         if(state_t >= 0.95) {
                             clean_up_state();
                             state.mem = next_state.mem;
@@ -143,9 +134,9 @@ int main() {
                         }
                     }
                     else {
-                        state_t *= 0.85;
+                        state_t -= state_t * 8 * delta_t;
                     }
-                    
+
                     if(!keyboard_used && key_pressed[KEY_F11]) {
                         fullscreen = !fullscreen;
                     }
@@ -156,7 +147,9 @@ int main() {
                         glfwSetWindowMonitor(window, monitor, 0, 0, window_w, window_h, GLFW_DONT_CARE);
                     }
 
-                    while(glfwGetTime() < current_time + (1.0 / FPS));
+                    if(fps <= 359.f) {
+                        while(glfwGetTime() < current_time + (1.0 / fps));
+                    }
                 }
 
                 clean_up_state();

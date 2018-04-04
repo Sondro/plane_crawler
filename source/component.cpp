@@ -12,6 +12,13 @@ BoxComponent init_box_component(v2 pos, v2 size) {
     return b;
 }
 
+void update_boxes(BoxComponent *b, i32 count) {
+    foreach(i, count) {
+        b[i].pos += b[i].vel * delta_t;
+        b[i].vel -= b[i].vel * 6 * delta_t;
+    }
+}
+
 // @Sprite Component
 
 struct SpriteComponent {
@@ -48,6 +55,12 @@ struct HealthComponent {
 HealthComponent init_health_component(r32 health) {
     HealthComponent h = { health, health };
     return h;
+}
+
+void update_health(HealthComponent *h, i32 count) {
+    foreach(i, count) {
+        h[i].val += (h[i].target - h[i].val) * delta_t;
+    }
 }
 
 // @Attack Component

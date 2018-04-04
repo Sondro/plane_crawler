@@ -6,5 +6,5 @@ struct Camera {
 };
 
 void update_camera(Camera *c) {
-    c->orientation += (c->target_orientation - c->orientation) * c->interpolation_rate;
+    c->orientation += (c->target_orientation - c->orientation) * c->interpolation_rate * delta_t;
 }
