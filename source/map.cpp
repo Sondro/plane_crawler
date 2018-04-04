@@ -6,6 +6,7 @@
 
 #define WALL    0x01
 #define PIT     0x02
+#define TILE_SET_TILE_SIZE 32
 
 enum {
     TILE_BRICK,
@@ -27,7 +28,7 @@ struct {
     { 1, 0, 0 },
     { 0, 0, WALL },
     { 1, 0, WALL },
-    { 2, 0, 0 },
+    { 1, 0, 0 },
     { 1, 1, 0 },
     { 1, 0, PIT },
 };
@@ -238,10 +239,10 @@ void generate_map(Map *m) {
            v10 = v3(x,   m->heights[x][z+1],   z+1),
            v11 = v3(x+1, m->heights[x+1][z+1], z+1);
 
-         r32 tx = (tile_data[m->tiles[x][z]].tx*16.f)/(r32)textures[TEX_TILE].w,
-             ty = (tile_data[m->tiles[x][z]].ty*16.f)/(r32)textures[TEX_TILE].h,
-             tw = 16.f/textures[TEX_TILE].w,
-             th = 16.f/textures[TEX_TILE].h;
+         r32 tx = (tile_data[m->tiles[x][z]].tx*(r32)TILE_SET_TILE_SIZE)/(r32)textures[TEX_TILE].w,
+             ty = (tile_data[m->tiles[x][z]].ty*(r32)TILE_SET_TILE_SIZE)/(r32)textures[TEX_TILE].h,
+             tw = (r32)TILE_SET_TILE_SIZE/textures[TEX_TILE].w,
+             th = (r32)TILE_SET_TILE_SIZE/textures[TEX_TILE].h;
 
 
         if(tile_data[m->tiles[x][z]].flags & WALL) {
