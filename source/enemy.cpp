@@ -7,6 +7,7 @@ enum {
 
 struct EnemySet {
     u32 count;
+    i32               id[MAX_ENEMY_COUNT];
     BoxComponent      box[MAX_ENEMY_COUNT];
     SpriteComponent   sprite[MAX_ENEMY_COUNT];
     HealthComponent   health[MAX_ENEMY_COUNT];

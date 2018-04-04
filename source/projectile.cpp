@@ -9,15 +9,15 @@ struct {
     { PARTICLE_FIRE },
 };
 
-struct ParticleUpdate {
+struct ProjectileUpdate {
+    i32 origin;
     v2 pos,
-       vel;
-   
+       vel;   
     r32 strength;
 };
 
 struct ProjectileSet {
     i32 count;
     i16 type[MAX_PROJECTILE_COUNT];
-    ParticleUpdate update[MAX_PROJECTILE_COUNT];
+    ProjectileUpdate update[MAX_PROJECTILE_COUNT];
 };

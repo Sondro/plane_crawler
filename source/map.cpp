@@ -120,6 +120,15 @@ void do_particle(Map *m, i8 type, v3 pos, v3 vel, r32 scale) {
 void add_enemy(Map *m, i16 type, v2 pos) {
     if(m->enemies.count < MAX_ENEMY_COUNT) {
         u32 i = m->enemies.count;
+
+        i32 max_id = 1;
+        foreach(i, m->enemies.count) {
+            if(m->enemies.id[i] > max_id) {
+                max_id = m->enemies.id[i]+1;
+            }
+        }
+        
+        m->enemies.id[i] = max_id;
         init_enemy(type, pos, 
                    m->enemies.box + i,
                    m->enemies.sprite + i,
@@ -130,9 +139,24 @@ void add_enemy(Map *m, i16 type, v2 pos) {
     }
 }
 
-void add_projectile(Map *m, i16 type, v2 pos, v2 vel, r32 strength) {
+void remove_enemy(Map *m, i32 id) {
+    foreach(i, m->enemies.count) {
+        if(m->enemies.id[i] == id) {
+            memmove(m->enemies.id + i, m->enemies.id + i+1, sizeof(i32) * (m->enemies.count - i - 1));
+            memmove(m->enemies.box + i, m->enemies.box + i+1, sizeof(BoxComponent) * (m->enemies.count - i - 1));
+            memmove(m->enemies.sprite + i, m->enemies.sprite + i+1, sizeof(SpriteComponent) * (m->enemies.count - i - 1));
+            memmove(m->enemies.health + i, m->enemies.health + i+1, sizeof(HealthComponent) * (m->enemies.count - i - 1));
+            memmove(m->enemies.attack + i, m->enemies.attack + i+1, sizeof(AttackComponent) * (m->enemies.count - i - 1));
+            --m->enemies.count;
+            break;
+        }
+    }
+}
+
+void add_projectile(Map *m, i32 origin, i16 type, v2 pos, v2 vel, r32 strength) {
     if(m->projectiles.count < MAX_PROJECTILE_COUNT) {
         m->projectiles.type[m->projectiles.count] = type;
+        m->projectiles.update[m->projectiles.count].origin = origin;
         m->projectiles.update[m->projectiles.count].pos = pos;
         m->projectiles.update[m->projectiles.count].vel = vel;
         m->projectiles.update[m->projectiles.count].strength = strength;
@@ -155,7 +179,7 @@ void remove_projectile(Map *m, i32 i) {
         }
         
         memmove(m->projectiles.type+i, m->projectiles.type+i+1, sizeof(i16) * (m->projectiles.count - i - 1));
-        memmove(m->projectiles.update+i, m->projectiles.update+i+1, sizeof(ParticleUpdate) * (m->projectiles.count - i - 1));
+        memmove(m->projectiles.update+i, m->projectiles.update+i+1, sizeof(ProjectileUpdate) * (m->projectiles.count - i - 1));
         --m->projectiles.count; 
     }
 }
@@ -725,11 +749,31 @@ void collide_boxes_with_tiles(Map *m, BoxComponent *b, i32 count) {
     }
 }
 
-void collide_entity_with_projectiles(Map *m, BoxComponent *b, HealthComponent *h) { 
+void collide_boxes_with_projectiles(Map *m, i32 *id, BoxComponent *b, HealthComponent *h, i32 count) { 
+    foreach(i, count) {
+        foreach(j, m->projectiles.count) {
+            if(m->projectiles.update[j].origin != id[i]) {
+                v2 proj_pos0 = m->projectiles.update[j].pos,
+                   proj_vel = m->projectiles.update[j].vel;
 
+                for(r32 k = 0.2; k <= 1.0; k += 0.2) {
+                    v2 proj_pos = proj_pos0 + proj_vel * k;
+                    if(proj_pos.x >= b[i].pos.x - b[i].size.x/2 &&
+                       proj_pos.x <= b[i].pos.x + b[i].size.x/2 &&
+                       proj_pos.y >= b[i].pos.y - b[i].size.y/2 &&
+                       proj_pos.y <= b[i].pos.y + b[i].size.y/2) {
+                        h[i].target -= m->projectiles.update[j].strength/2;
+                        b[i].vel += proj_vel / 4;
+                        remove_projectile(m, j);
+                        break;
+                    }
+                }
+            }
+        }
+    }
 }
 
-void update_attacks(Map *m, AttackComponent *a, i32 count) {
+void update_attacks(Map *m, i32 *id, AttackComponent *a, i32 count) {
     foreach(i, count) {
         if(a[i].attacking) {
             a[i].transition += (1-a[i].transition)*0.2;
@@ -740,7 +784,7 @@ void update_attacks(Map *m, AttackComponent *a, i32 count) {
                 // @Attack Firing
                 switch(a[i].type) {
                     case ATTACK_FIREBALL: {
-                        add_projectile(m, PROJECTILE_FIRE, 
+                        add_projectile(m, id[i], PROJECTILE_FIRE, 
                                        a[i].pos,
                                        a[i].target,
                                        a[i].charge);
@@ -784,12 +828,19 @@ void update_map(Map *m) {
     }
     
     { // @Update player
+        i32 player_id = 0;
+
         collide_boxes_with_tiles(m, &m->player.box, 1);
+        collide_boxes_with_projectiles(m, &player_id, &m->player.box, &m->player.health, 1);
         m->player.box.pos += m->player.box.vel;
+        m->player.attack.pos = m->player.box.pos;
+        update_attacks(m, &player_id, &m->player.attack, 1);
+        m->player.health.val += (m->player.health.target - m->player.health.val) * 0.1;
     }
 
     { // @Update enemies
         collide_boxes_with_tiles(m, m->enemies.box, m->enemies.count);
+        collide_boxes_with_projectiles(m, m->enemies.id, m->enemies.box, m->enemies.health, m->enemies.count);
 
         // update sprite position
         foreach(i, m->enemies.count) {
@@ -804,10 +855,21 @@ void update_map(Map *m) {
             m->enemies.attack[i].pos = m->enemies.box[i].pos;
         }
 
-        update_attacks(m, m->enemies.attack, m->enemies.count);
+        update_attacks(m, m->enemies.id, m->enemies.attack, m->enemies.count);
+        
+        // update enemy health
+        for(u32 i = 0; i < m->enemies.count;) {
+            m->enemies.health[i].val += (m->enemies.health[i].target - m->enemies.health[i].val) * 0.1;
+            if(m->enemies.health[i].val <= 0.f) {
+                remove_enemy(m, m->enemies.id[i]);
+            }
+            else {
+                ++i;
+            }
+        }
     }
 
-{ // @Update particles
+    { // @Update particles
         update_particle_master(&m->particles);
     } 
 }

@@ -42,11 +42,11 @@ void draw_sprite_components(SpriteComponent *s, i32 count) {
 // @Health Component
 
 struct HealthComponent {
-    r32 val;
+    r32 val, target;
 };
 
 HealthComponent init_health_component(r32 health) {
-    HealthComponent h = { health };
+    HealthComponent h = { health, health };
     return h;
 }
 

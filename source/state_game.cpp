@@ -131,35 +131,17 @@ void update_game() {
                 g->map.player.box.vel.y *= 0.85;
             
             
-            /*
-            if(g->player.casting_spell) {
-                g->player.cast_t += (1-g->player.cast_t) * 0.2;
-                g->player.spell_strength += (1-g->player.spell_strength) * 0.05;
-                if(!key_down[KEY_SPACE] || g->player.mana < g->player.spell_strength) {
-                    add_projectile(&g->map, PROJECTILE_FIRE, v2(g->player.pos.x, g->player.pos.y), 
-                                   v2(cos(g->camera.orientation.x), sin(g->camera.orientation.x)) / 5,
-                                   g->player.spell_strength);
-                    g->player.casting_spell = 0;
-                    g->player.cast_t = 3;
-
-                    g->player.mana -= g->player.spell_strength / 2;
-                }
+            if(key_down[KEY_SPACE]) {
+                g->map.player.attack.attacking = 1;
             }
             else {
-                g->player.mana += (1-g->player.mana) * 0.005;
-                g->player.cast_t *= 0.90;
-                g->player.spell_strength = 0;
-                if(key_pressed[KEY_SPACE]) {
-                    g->player.casting_spell = 1;
-                    g->player.cast_t = 0;
-                }
+                g->map.player.attack.attacking = 0;
             }
-            if(g->player.mana < 0) g->player.mana = 0;
-            else if(g->player.mana > 1) g->player.mana = 1;
-            */
+
+            g->map.player.attack.target = v2(cos(g->camera.orientation.x), sin(g->camera.orientation.x)) * 0.5;
  
             update_map(&g->map);
-            
+
             g->camera_bob_sin_pos += 0.25;
             g->camera.pos.x = g->map.player.box.pos.x;
             g->camera.pos.z = g->map.player.box.pos.y;

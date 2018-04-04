@@ -10,6 +10,8 @@ global struct State {
     void *mem;
 } state, next_state;
 
+global r32 state_t = 1;
+
 #include "camera.cpp"
 
 State init_title();
