@@ -42,6 +42,7 @@
 		<Unit filename="resource/shader/texture_quad.info" />
 		<Unit filename="resource/shader/texture_quad.vert" />
 		<Unit filename="source/camera.cpp" />
+		<Unit filename="source/component.cpp" />
 		<Unit filename="source/draw.cpp" />
 		<Unit filename="source/ext/HandmadeMath.h" />
 		<Unit filename="source/ext/rf_utils.h" />
@@ -49,13 +50,19 @@
 		<Unit filename="source/gl_load.cpp" />
 		<Unit filename="source/gl_load.h" />
 		<Unit filename="source/globals.cpp" />
+		<Unit filename="source/hmm_wrapper.cpp" />
 		<Unit filename="source/input.cpp" />
+		<Unit filename="source/light.cpp" />
 		<Unit filename="source/main.cpp" />
+		<Unit filename="source/map.cpp" />
 		<Unit filename="source/noise.cpp" />
+		<Unit filename="source/particle.cpp" />
+		<Unit filename="source/projectile.cpp" />
 		<Unit filename="source/resource.cpp" />
 		<Unit filename="source/state.cpp" />
 		<Unit filename="source/state_game.cpp" />
 		<Unit filename="source/state_title.cpp" />
+		<Unit filename="source/ui.cpp" />
 		<Extensions>
 			<code_completion />
 			<envvars />
