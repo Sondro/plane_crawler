@@ -9,6 +9,7 @@ struct Game {
 
     // map data
     Map map;
+    FBO render_fbo;
 
     // settings data
     SettingsMenu settings;
@@ -20,19 +21,21 @@ State init_game() {
     s.mem = malloc(sizeof(Game));
     Game *g = (Game *)s.mem;
 
-    g->paused = 0;
-    g->game_over = 0;
+    { // @Init
+        g->paused = 0;
+        g->game_over = 0;
 
-    g->camera_bob_sin_pos = 0;
-    g->camera.pos = v3(0, 0, 0);
-    g->camera.orientation = g->camera.target_orientation = v3(0, 0, 0);
-    g->camera.interpolation_rate = 10;
+        g->camera_bob_sin_pos = 0;
+        g->camera.pos = v3(0, 0, 0);
+        g->camera.orientation = g->camera.target_orientation = v3(0, 0, 0);
+        g->camera.interpolation_rate = 10;
 
-    generate_map(&g->map);
+        generate_map(&g->map);
 
-    g->settings.state = -1;
+        g->settings.state = -1;
 
-    glfwSetInputMode(window, GLFW_CURSOR, g->paused ? GLFW_CURSOR_NORMAL : GLFW_CURSOR_DISABLED);
+        glfwSetInputMode(window, GLFW_CURSOR, g->paused ? GLFW_CURSOR_NORMAL : GLFW_CURSOR_DISABLED);
+    }
 
     return s;
 }
@@ -40,7 +43,9 @@ State init_game() {
 void clean_up_game(State *s) {
     Game *g = (Game *)s->mem;
 
-    clean_up_map(&g->map);
+    { // @Cleanup
+        clean_up_map(&g->map);
+    }
 
     free(s->mem);
     s->mem = 0;
@@ -144,11 +149,8 @@ void update_game() {
                     g->map.player.attack.attacking = 0;
                 }
 
-                g->map.player.attack.target = v2(cos(g->camera.orientation.x), sin(g->camera.orientation.x)) * 24;
+                g->map.player.attack.target = v2(cos(g->camera.orientation.x), sin(g->camera.orientation.x)) * 16;
             }
-
-            // @Map update
-            update_map(&g->map);
 
             { // @Camera update
                 g->camera_bob_sin_pos += 15*delta_t;
@@ -160,6 +162,17 @@ void update_game() {
 
                 update_camera(&g->camera);
             }
+
+            global r32 distance = 0.1;
+            if(key_down[KEY_5]) {
+                distance += 0.1;
+            }
+            if(key_down[KEY_6]) {
+                distance -= 0.1;
+            }
+
+            // @Map update
+            update_map(&g->map);
         }
     }
 
@@ -171,7 +184,7 @@ void update_game() {
                 sin(g->camera.orientation.y),
                 sin(g->camera.orientation.x)
             );
-            look_at(g->camera.pos, target);
+            view = m4_lookat(g->camera.pos, target);
         }
 
         { // @Spell drawing
@@ -192,7 +205,6 @@ void update_game() {
         }
 
         draw_map(&g->map);
-
     }
 
     prepare_for_ui_render(); // @UI Render

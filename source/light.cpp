@@ -2,6 +2,7 @@
 
 struct Light {
     v3 pos, color;
+    r32 radius, intensity;
 };
 
 struct LightState {

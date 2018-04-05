@@ -57,6 +57,7 @@
 		<Unit filename="source/map.cpp" />
 		<Unit filename="source/noise.cpp" />
 		<Unit filename="source/particle.cpp" />
+		<Unit filename="source/player.cpp" />
 		<Unit filename="source/projectile.cpp" />
 		<Unit filename="source/resource.cpp" />
 		<Unit filename="source/state.cpp" />

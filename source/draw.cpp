@@ -2,14 +2,33 @@
 #define ALIGN_RIGHT  1
 #define ALIGN_CENTER 2
 
-#define reset_model()        { model = HMM_Mat4d(1.f); }
-#define translate(x, y, z)   { model = HMM_Multiply(model, HMM_Translate(HMM_Vec3(x, y, z))); }
-#define scale(x, y, z)       { model = HMM_Multiply(model, HMM_Scale(HMM_Vec3(x, y, z))); }
-#define rotate(a, x, y, z)   { model = HMM_Multiply(model, HMM_Rotate(a, HMM_Vec3(x, y, z))); }
-#define look_at(p, t)        { view = HMM_LookAt(p, t, HMM_Vec3(0, 1, 0)); }
+#define uniform1i(location, v)  glUniform1i(location, (v))
+#define uniform1f(location, v)  glUniform1f(location, (v))
+#define uniform2f(location, v)  glUniform2f(location, (v).x, (v).y)
+#define uniform3f(location, v)  glUniform3f(location, (v).x, (v).y, (v).z)
+#define uniform4f(location, v)  glUniform4f(location, (v).x, (v).y, (v).z, (v).w)
+#define uniform_m4(location, v) glUniformMatrix4fv(location, 1, GL_FALSE, &v.Elements[0][0])
+#define uniform_loc(name)       glGetUniformLocation(active_shader, name)
+
+#define enable_depth()  { glEnable(GL_DEPTH_TEST); glDepthMask(GL_TRUE); }
+#define disable_depth() { glDisable(GL_DEPTH_TEST); glDepthMask(GL_FALSE); render_z = 0; }
+#define set_render_z(z) { render_z = (z); }
 
 struct FBO {
     GLuint id, texture;
+    i32 w, h;
+};
+
+enum {
+    GBUFFER_TEXTURE_ALBEDO,
+    GBUFFER_TEXTURE_NORMAL,
+    MAX_GBUFFER_TEXTURE
+};
+
+struct GBuffer {
+    GLuint fbo,
+           textures[MAX_GBUFFER_TEXTURE],
+           depth_texture;
     i32 w, h;
 };
 
@@ -24,6 +43,7 @@ enum {
     SHADER_TEXTURE,
     SHADER_HEIGHTMAP,
     SHADER_PARTICLE,
+    SHADER_MAP_RENDER,
     MAX_SHADER
 };
 
@@ -32,6 +52,7 @@ const char *shader_names[MAX_SHADER] = {
     "texture",
     "heightmap",
     "particle",
+    "map_render",
 };
 
 enum {
@@ -172,10 +193,65 @@ void force_fbo_size(FBO *f, i32 w, i32 h) {
     }
 }
 
+GBuffer init_g_buffer(i32 w, i32 h) {
+    GBuffer g;
+    g.w = w;
+    g.h = h;
+
+    glGenFramebuffers(1, &g.fbo);
+    glBindFramebuffer(GL_DRAW_FRAMEBUFFER, g.fbo);
+
+    glGenTextures(MAX_GBUFFER_TEXTURE, g.textures);
+    glGenTextures(1, &g.depth_texture);
+
+    glBindTexture(GL_TEXTURE_2D, g.textures[GBUFFER_TEXTURE_ALBEDO]);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, w, h, 0, GL_RGBA, GL_FLOAT, NULL);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    glFramebufferTexture2D(GL_DRAW_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, g.textures[GBUFFER_TEXTURE_ALBEDO], 0);
+
+    glBindTexture(GL_TEXTURE_2D, g.textures[GBUFFER_TEXTURE_NORMAL]);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, w, h, 0, GL_RGBA, GL_FLOAT, NULL);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    glFramebufferTexture2D(GL_DRAW_FRAMEBUFFER, GL_COLOR_ATTACHMENT1, GL_TEXTURE_2D, g.textures[GBUFFER_TEXTURE_NORMAL], 0);
+
+    glBindTexture(GL_TEXTURE_2D, g.depth_texture);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT16, w, h, 0, GL_DEPTH_COMPONENT, GL_FLOAT, NULL);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    glFramebufferTexture2D(GL_DRAW_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, g.depth_texture, 0);
+
+    glBindTexture(GL_TEXTURE_2D, 0);
+
+    glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
+
+    return g;
+}
+
+void clean_up_g_buffer(GBuffer *g) {
+    glDeleteTextures(1, &g->depth_texture);
+    glDeleteTextures(MAX_GBUFFER_TEXTURE, g->textures);
+    glDeleteFramebuffers(1, &g->fbo);
+}
+
+void force_g_buffer_size(GBuffer *g, i32 w, i32 h) {
+    if(g->w != w || g->h != h) {
+        clean_up_g_buffer(g);
+        *g = init_g_buffer(w, h);
+    }
+}
+
 void prepare_for_world_render() {
-    projection = HMM_Perspective(field_of_view, (r32)window_w/window_h, 0.01f, 300.f);
-    reset_model();
-    view = HMM_Mat4d(1);
+    projection = HMM_Perspective(field_of_view, (r32)window_w/window_h, 0.1f, 100.f);
+    model = m4d(1);
+    model = m4d(1);
     glEnable(GL_DEPTH_TEST);
 }
 
@@ -184,8 +260,8 @@ void prepare_for_ui_render() {
     glDisable(GL_DEPTH_TEST);
 
     projection = HMM_Perspective(field_of_view, (r32)window_w/window_h, 0.01f, 10.f);
-    reset_model();
-    look_at(v3(0, 0, 1), v3(0, 0, 0));
+    model = m4d(1);
+    view = m4_lookat(v3(0, 0, 1), v3(0, 0, 0));
 
     projection_inv = m4_inverse(projection);
     view_inv = m4_inverse(view);
@@ -242,6 +318,28 @@ void clear_fbo(FBO *fbo) {
     bind_fbo(NULL);
 }
 
+void bind_g_buffer(GBuffer *g) {
+    if(g) {
+        glBindFramebuffer(GL_FRAMEBUFFER, g->fbo);
+        glViewport(0, 0, g->w, g->h);
+        GLenum draw_buffers[] = { GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1 };
+        glDrawBuffers(2, draw_buffers);
+    }
+    else {
+        glBindFramebuffer(GL_FRAMEBUFFER, 0);
+        glViewport(0, 0, window_w, window_h);
+    }
+}
+
+void clear_g_buffer(GBuffer *g) {
+    bind_g_buffer(g);
+    {
+        glClearColor(0, 0, 0, 0);
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
+    }
+    bind_g_buffer(0);
+}
+
 //
 // @Note (Ryan)
 //
@@ -287,8 +385,8 @@ void draw_billboard_texture(Texture *texture, v4 tbb, v3 pos, v2 scale) {
     {
         bind_texture(texture, tbb.x, tbb.y, tbb.z, tbb.w);
 
-        reset_model();
-        translate(pos.x, pos.y, pos.z);
+        model = m4d(1);
+        model = m4_translate(model, v3(pos.x, pos.y, pos.z));
 
         foreach(i, 3) {
             foreach(j, 3) {
@@ -296,7 +394,7 @@ void draw_billboard_texture(Texture *texture, v4 tbb, v3 pos, v2 scale) {
             }
         }
 
-        scale(scale.x, scale.y, 1);
+        model = m4_scale(model, v3(scale.x, scale.y, 1));
 
         draw_quad();
     }
@@ -315,10 +413,10 @@ void draw_ui_rect(v4 color, v4 bb, r32 thickness) {
         glUniform4f(glGetUniformLocation(active_shader, "rect_color"), color.x, color.y, color.z, color.w);
         glUniform2f(glGetUniformLocation(active_shader, "thickness"), thickness/bb.z, thickness/bb.w);
 
-        reset_model();
-        translate(pos.x, pos.y, 0);
-        scale(size.x, size.y, 1);
-        translate(1, -1, 0);
+        model = m4d(1);
+        model = m4_translate(model, v3(pos.x, pos.y, 0));
+        model = m4_scale(model, v3(size.x, size.y, 1));
+        model = m4_translate(model, v3(1, -1, 0));
         draw_quad();
     }
     set_shader(-1);
@@ -336,10 +434,10 @@ void draw_ui_filled_rect(v4 color, v4 bb) {
         glUniform4f(glGetUniformLocation(active_shader, "rect_color"), color.x, color.y, color.z, color.w);
         glUniform2f(glGetUniformLocation(active_shader, "thickness"), -1, -1);
 
-        reset_model();
-        translate(pos.x, pos.y, 0);
-        scale(size.x, size.y, 1);
-        translate(1, -1, 0);
+        model = m4d(1);
+        model = m4_translate(model, v3(pos.x, pos.y, 0));
+        model = m4_scale(model, v3(size.x, size.y, 1));
+        model = m4_translate(model, v3(1, -1, 0));
         draw_quad();
     }
     set_shader(-1);
@@ -366,10 +464,10 @@ void draw_ui_texture(Texture *texture, v4 tbb, v4 bb) {
         pos = view_inv * projection_inv * pos;
         size = view_inv * projection_inv * size;
 
-        reset_model();
-        translate(pos.x, pos.y, 0);
-        scale(size.x, size.y, 1);
-        translate(1, -1, 0);
+        model = m4d(1);
+        model = m4_translate(model, v3(pos.x, pos.y, 0));
+        model = m4_scale(model, v3(size.x, size.y, 1));
+        model = m4_translate(model, v3(1, -1, 0));
         draw_quad();
     }
     set_shader(-1);
@@ -386,7 +484,7 @@ void draw_ui_fbo(FBO *fbo, v4 tbb, v4 bb) {
         texture.id = fbo->texture;
         texture.w = fbo->w;
         texture.h = -fbo->h;
-        bind_texture(&texture, tbb.x, tbb.y + texture.h, tbb.z, tbb.w);
+        bind_texture(&texture, tbb.x, tbb.y, tbb.z, tbb.w);
 
         v4 pos = v4((bb.x/window_w)*2 - 1, -(bb.y/window_h)*2 + 1, 0, 1);
         v4 size = v4(bb.z/window_w, bb.w/window_h, 0, 0);
@@ -394,13 +492,63 @@ void draw_ui_fbo(FBO *fbo, v4 tbb, v4 bb) {
         pos = view_inv * projection_inv * pos;
         size = view_inv * projection_inv * size;
 
-        reset_model();
-        translate(pos.x, pos.y, 0);
-        scale(size.x, size.y, 1);
-        translate(1, -1, 0);
+        model = m4d(1);
+        model = m4_translate(model, v3(pos.x, pos.y, 0));
+        model = m4_scale(model, v3(size.x, size.y, 1));
+        model = m4_translate(model, v3(1, -1, 0));
         draw_quad();
     }
     set_shader(-1);
+}
+
+void draw_ui_g_buffer(GBuffer *g, v4 bb) {
+    uniform1i(uniform_loc("albedo"), 0);
+    uniform1i(uniform_loc("normal"), 1);
+    uniform1i(uniform_loc("depth"), 2);
+
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D, g->textures[GBUFFER_TEXTURE_ALBEDO]);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+
+    glActiveTexture(GL_TEXTURE1);
+    glBindTexture(GL_TEXTURE_2D, g->textures[GBUFFER_TEXTURE_NORMAL]);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+
+    glActiveTexture(GL_TEXTURE2);
+    glBindTexture(GL_TEXTURE_2D, g->depth_texture);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+
+    v4 pos = v4((bb.x/window_w)*2 - 1, -(bb.y/window_h)*2 + 1, 0, 1);
+    v4 size = v4(bb.z/window_w, bb.w/window_h, 0, 0);
+
+    pos = view_inv * projection_inv * pos;
+    size = view_inv * projection_inv * size;
+
+    model = m4d(1);
+    model = m4_translate(model, v3(pos.x, pos.y, 0));
+    model = m4_scale(model, v3(size.x, size.y, 1));
+    model = m4_translate(model, v3(1, -1, 0));
+
+    draw_quad();
+
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D, 0);
+    glActiveTexture(GL_TEXTURE1);
+    glBindTexture(GL_TEXTURE_2D, 0);
+    glActiveTexture(GL_TEXTURE2);
+    glBindTexture(GL_TEXTURE_2D, 0);
+    glActiveTexture(GL_TEXTURE3);
+    glBindTexture(GL_TEXTURE_2D, 0);
+    glActiveTexture(GL_TEXTURE0);
 }
 
 void draw_ui_text(const char *text, int align, v2 position) {
@@ -420,8 +568,8 @@ void draw_ui_text(const char *text, int align, v2 position) {
         pos = view_inv * projection_inv * pos;
         size = view_inv * projection_inv * size;
 
-        reset_model();
-        translate(pos.x, pos.y, 0);
+        model = m4d(1);
+        model = m4_translate(model, v3(pos.x, pos.y, 0));
 
         glUniformMatrix4fv(glGetUniformLocation(active_shader, "view"), 1, GL_FALSE, &view.Elements[0][0]);
         glUniformMatrix4fv(glGetUniformLocation(active_shader, "projection"), 1, GL_FALSE, &projection.Elements[0][0]);
@@ -492,7 +640,7 @@ void draw_ui_text(const char *text, int align, v2 position) {
 
                 glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
             }
-            translate(size.x*2, 0, 0);
+            model = m4_translate(model, v3(size.x*2, 0, 0));
 
             tx = -1;
             ty = -1;
@@ -508,28 +656,3 @@ void draw_ui_text(const char *text, int align, v2 position) {
     }
     set_shader(-1);
 }
-
-/*
-void draw_hand (Player *p, Camera, c*){
-
-    //not sure all of what will go here
-    switch spell{
-        case (SPELL_FIRE):
-
-            break;
-        case (SPELL_ICE):
-
-            break;
-        case (SPELL_LIGHTNING):
-
-            break;
-        case (SPELL_WIND):
-
-            break;
-
-        default:
-
-            break;
-    }
-
-}*/

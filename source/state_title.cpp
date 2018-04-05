@@ -66,7 +66,7 @@ void update_title() {
                 sin(t->camera.orientation.y),
                 sin(t->camera.orientation.x)
             );
-            look_at(t->camera.pos, target);
+            view = m4_lookat(t->camera.pos, target);
         }
         draw_map(&t->map);
     }

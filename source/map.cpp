@@ -3,6 +3,7 @@
 #include "enemy.cpp"
 #include "particle.cpp"
 #include "projectile.cpp"
+#include "light.cpp"
 
 #define WALL    0x01
 #define PIT     0x02
@@ -38,6 +39,7 @@ struct Map {
 
     ProjectileSet projectiles;
     ParticleMaster particles;
+    LightState lighting;
 
     v3 light_vector;
 
@@ -46,6 +48,8 @@ struct Map {
            vertex_vbo,
            uv_vbo,
            normal_vbo;
+
+    GBuffer render;
 };
 
 void calculate_heightmap_normal(r32 *verts, r32 *norms) {
@@ -186,7 +190,7 @@ void generate_map(Map *m) {
     m->enemies.count = 0;
     m->projectiles.count = 0;
     init_particle_master(&m->particles);
-    m->light_vector = v3(1, 1, 1) / sqrt(3);
+    m->light_vector = v3(3, 4, 1) / sqrt(26);
 
     foreach(i, MAP_W)
     foreach(j, MAP_H) {
@@ -697,9 +701,13 @@ void generate_map(Map *m) {
             }
         }
     }
+
+    m->render = init_g_buffer(window_w, window_h);
+    init_light_state(&m->lighting);
 }
 
 void clean_up_map(Map *m) {
+    clean_up_g_buffer(&m->render);
     clean_up_particle_master(&m->particles);
 
     glDeleteBuffers(1, &m->normal_vbo);
@@ -813,6 +821,13 @@ void collide_boxes_with_projectiles(Map *m, i32 *id, BoxComponent *b, HealthComp
     }
 }
 
+void do_light(Map *m, v3 pos, v3 color, r32 radius, r32 intensity) {
+    if(m->lighting.light_count < MAX_LIGHT) {
+        Light l = { pos, color, radius, intensity };
+        m->lighting.lights[m->lighting.light_count++] = l;
+    }
+}
+
 void update_attacks(Map *m, i32 *id, AttackComponent *a, i32 count) {
     foreach(i, count) {
         if(a[i].attacking) {
@@ -844,6 +859,11 @@ void update_map(Map *m) {
     { // @Update projectiles
         for(u32 i = 0; i < (u32)m->projectiles.count;) {
             m->projectiles.update[i].pos += m->projectiles.update[i].vel*delta_t;
+            do_light(m,
+                     v3(m->projectiles.update[i].pos.x,
+                        map_coordinate_height(m, m->projectiles.update[i].pos.x, m->projectiles.update[i].pos.y) + 0.5,
+                        m->projectiles.update[i].pos.y),
+                     v3(1, 1, 0.8), 10 + 10*m->projectiles.update[i].strength, 2 + 2*m->projectiles.update[i].strength);
 
             if(current_time >= m->projectiles.update[i].particle_start_time + 1/60.f) {
                 foreach(j, 1) {
@@ -851,7 +871,7 @@ void update_map(Map *m) {
                                 v3(m->projectiles.update[i].pos.x,
                                    map_coordinate_height(m, m->projectiles.update[i].pos.x, m->projectiles.update[i].pos.y) + 0.5,
                                    m->projectiles.update[i].pos.y),
-                                v3(random32(-0.025, 0.025), random32(-0.025, 0.025), random32(-0.025, 0.025)) * m->projectiles.update[i].strength,
+                                v3(random32(-0.25, 0.25), random32(-0.25, 0.25), random32(-0.25, 0.25)) * m->projectiles.update[i].strength,
                                 random32(0.01, 0.25 + 0.75*m->projectiles.update[i].strength));
                 }
                 m->projectiles.update[i].particle_start_time = current_time;
@@ -915,11 +935,113 @@ void update_map(Map *m) {
     { // @Update particles
         update_particle_master(&m->particles);
     }
+
+    { // @Update lighting
+        i8 light_count = 0;
+
+        set_shader(SHADER_MAP_RENDER);
+        {
+            {
+                light_count = 0;
+
+                char str_1[24] = "lights[x].pos",
+                     str_2[24] = "lights[xx].pos";
+
+                foreach(i, m->lighting.light_count) {
+                    if(light_count < 10) {
+                        str_1[7] = '0' + light_count;
+                        uniform3f(uniform_loc(str_1), m->lighting.lights[i].pos);
+                    }
+                    else {
+                        str_2[7] = '0' + light_count/10;
+                        str_2[8] = '0' + (light_count - 10*(light_count/10));
+                        uniform3f(uniform_loc(str_2), m->lighting.lights[i].pos);
+                    }
+
+                    ++light_count;
+                }
+            }
+
+            {
+                light_count = 0;
+
+                char str_1[24] = "lights[x].color",
+                     str_2[24] = "lights[xx].color";
+
+                foreach(i, m->lighting.light_count) {
+                    if(light_count < 10) {
+                        str_1[7] = '0' + light_count;
+                        uniform3f(uniform_loc(str_1), m->lighting.lights[i].color);
+                    }
+                    else {
+                        str_2[7] = '0' + light_count/10;
+                        str_2[8] = '0' + (light_count - 10*(light_count/10));
+                        uniform3f(uniform_loc(str_2), m->lighting.lights[i].color);
+                    }
+
+                    ++light_count;
+                }
+            }
+
+            {
+                light_count = 0;
+
+                char str_1[24] = "lights[x].radius",
+                     str_2[24] = "lights[xx].radius";
+
+                foreach(i, m->lighting.light_count) {
+                    if(light_count < 10) {
+                        str_1[7] = '0' + light_count;
+                        uniform1f(uniform_loc(str_1), m->lighting.lights[i].radius);
+                    }
+                    else {
+                        str_2[7] = '0' + light_count/10;
+                        str_2[8] = '0' + (light_count - 10*(light_count/10));
+                        uniform1f(uniform_loc(str_2), m->lighting.lights[i].radius);
+                    }
+
+                    ++light_count;
+                }
+            }
+
+            {
+                light_count = 0;
+
+                char str_1[24] = "lights[x].intensity",
+                     str_2[24] = "lights[xx].intensity";
+
+                foreach(i, m->lighting.light_count) {
+                    if(light_count < 10) {
+                        str_1[7] = '0' + light_count;
+                        uniform1f(uniform_loc(str_1), m->lighting.lights[i].intensity);
+                    }
+                    else {
+                        str_2[7] = '0' + light_count/10;
+                        str_2[8] = '0' + (light_count - 10*(light_count/10));
+                        uniform1f(uniform_loc(str_2), m->lighting.lights[i].intensity);
+                    }
+
+                    ++light_count;
+                }
+            }
+        }
+
+        uniform1f(uniform_loc("brightness"), 0.5);
+        uniform3f(uniform_loc("light_vector"), m->light_vector);
+        uniform1i(uniform_loc("light_count"), light_count);
+        set_shader(-1);
+
+        m->lighting.light_count = 0;
+    }
 }
 
 void draw_map(Map *m) {
+    force_g_buffer_size(&m->render, window_w, window_h);
+    clear_g_buffer(&m->render);
+    bind_g_buffer(&m->render);
+
     { // @Draw heightmap/terrain
-        reset_model();
+        model = m4d(1);
 
         set_shader(SHADER_HEIGHTMAP);
 
@@ -961,4 +1083,13 @@ void draw_map(Map *m) {
 
     // @Draw particles
     draw_particle_master(&m->particles);
+
+    bind_g_buffer(0);
+
+    set_shader(SHADER_MAP_RENDER);
+    uniform_m4(uniform_loc("projection3d"), projection);
+    uniform_m4(uniform_loc("view3d"), view);
+    prepare_for_ui_render();
+    draw_ui_g_buffer(&m->render, v4(0, 0, window_w, window_h));
+    set_shader(-1);
 }
