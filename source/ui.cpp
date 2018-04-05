@@ -9,17 +9,17 @@
 #define BLOCK_MODE_VERTICAL     0
 #define BLOCK_MODE_HORIZONTAL   1
 
-#define ui_left_pressed         (last_key == KEY_LEFT  || last_key == KEY_A)
-#define ui_right_pressed        (last_key == KEY_RIGHT || last_key == KEY_D)
-#define ui_up_pressed           (last_key == KEY_UP    || last_key == KEY_W)
-#define ui_down_pressed         (last_key == KEY_DOWN  || last_key == KEY_S)
-#define ui_fire_pressed         (key_pressed[KEY_SPACE] || key_pressed[KEY_ENTER])
+#define ui_left_pressed         (last_key == KEY_LEFT  || last_key == KEY_A || gamepad_control_pressed(GC_MOVE_LEFT))
+#define ui_right_pressed        (last_key == KEY_RIGHT || last_key == KEY_D || gamepad_control_pressed(GC_MOVE_RIGHT))
+#define ui_up_pressed           (last_key == KEY_UP    || last_key == KEY_W || gamepad_control_pressed(GC_MOVE_FORWARD))
+#define ui_down_pressed         (last_key == KEY_DOWN  || last_key == KEY_S || gamepad_control_pressed(GC_MOVE_BACKWARD))
+#define ui_fire_pressed         (key_pressed[KEY_SPACE] || key_pressed[KEY_ENTER] || gamepad_control_pressed(GC_ATTACK))
 
-#define ui_left_down            (key_down[KEY_LEFT]  || key_down[KEY_A])
-#define ui_right_down           (key_down[KEY_RIGHT] || key_down[KEY_D])
-#define ui_up_down              (key_down[KEY_UP]    || key_down[KEY_W])
-#define ui_down_down            (key_down[KEY_DOWN]  || key_down[KEY_S])
-#define ui_fire_down            (key_down[KEY_SPACE] || key_down[KEY_ENTER])
+#define ui_left_down            (key_down[KEY_LEFT]  || key_down[KEY_A] || gamepad_control_down(GC_MOVE_LEFT))
+#define ui_right_down           (key_down[KEY_RIGHT] || key_down[KEY_D] || gamepad_control_down(GC_MOVE_RIGHT))
+#define ui_up_down              (key_down[KEY_UP]    || key_down[KEY_W] || gamepad_control_down(GC_MOVE_FORWARD))
+#define ui_down_down            (key_down[KEY_DOWN]  || key_down[KEY_S] || gamepad_control_down(GC_MOVE_BACKWARD))
+#define ui_fire_down            (key_down[KEY_SPACE] || key_down[KEY_ENTER] || gamepad_control_down(GC_ATTACK))
 
 typedef r64 ui_id;
 

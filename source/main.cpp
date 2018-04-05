@@ -111,7 +111,7 @@ int main() {
                         ui_begin();
                         update_state();
                         ui_end();
-                        draw_ui_filled_rect(v4(0, 0, 0, state_t), v4(0, 0, window_w, window_h));
+                        draw_ui_filled_rect(v4(0, 0, 0, state_t < 0.95 ? state_t : 1), v4(0, 0, window_w, window_h));
                     }
                     glfwSwapBuffers(window);
 
@@ -124,8 +124,8 @@ int main() {
 
                     // @State change
                     if(next_state.type) {
-                        state_t += (1-state_t) * 8 * delta_t;
-                        if(state_t >= 0.95) {
+                        state_t += (1-state_t) * 12 * delta_t;
+                        if(state_t >= 0.98) {
                             clean_up_state();
                             state.mem = next_state.mem;
                             state.type = next_state.type;
@@ -134,7 +134,7 @@ int main() {
                         }
                     }
                     else {
-                        state_t -= state_t * 8 * delta_t;
+                        state_t -= state_t * 12 * delta_t;
                     }
 
                     if(!keyboard_used && key_pressed[KEY_F11]) {

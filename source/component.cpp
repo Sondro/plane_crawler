@@ -43,6 +43,8 @@ void draw_sprite_components(SpriteComponent *s, i32 count) {
                                v4(s->tx, s->ty, s->tw, s->th),
                                s->pos,
                                v2(0.5 * (s->tw / 16.f), 0.5 * (s->th / 16.f)));
+
+        ++s;
     }
 }
 

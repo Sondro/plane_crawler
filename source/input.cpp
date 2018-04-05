@@ -1,14 +1,21 @@
+// Mouse
 global r64 mouse_x, mouse_y;
 global i8 mouse_state;
+global i8 mouse_pos_used = 0,
+          mouse_buttons_used = 0;
 
+// Keyboard
 global i8 key_down[GLFW_KEY_LAST] = { 0 },
           key_pressed[GLFW_KEY_LAST] = { 0 };
 global u8 last_char = 0;
 global i16 last_key = 0, last_char_mods = 0;
+global i8 keyboard_used = 0;
 
-global i8 mouse_pos_used = 0, 
-          mouse_buttons_used = 0,
-          keyboard_used = 0;
+// Gamepad
+global i32 gamepad_axis_count = 0, gamepad_button_count = 0;
+global const r32 *gamepad_axes = NULL;
+global const u8 *gamepad_button_states = NULL;
+global u8 last_gamepad_button_states[16];
 
 //
 // @Note (Ryan) Mouse state information:
@@ -32,6 +39,18 @@ global i8 mouse_pos_used = 0,
 
 #define key_control_down(i)     (!keyboard_used && key_down[key_control_maps[i]])
 #define key_control_pressed(i)  (!keyboard_used && key_pressed[key_control_maps[i]])
+
+#define joystick_1_x        (gamepad_axes ? gamepad_axes[0] : 0)
+#define joystick_1_y        (gamepad_axes && gamepad_axis_count > 1 ? gamepad_axes[1] : 0)
+#define joystick_2_x        (gamepad_axes && gamepad_axis_count > 2 ? gamepad_axes[2] : 0)
+#define joystick_2_y        (gamepad_axes && gamepad_axis_count > 3 ? gamepad_axes[3] : 0)
+
+#define gamepad_button_down(i)      (gamepad_button_count > i && gamepad_button_states ? gamepad_button_states[i] == GLFW_PRESS : 0)
+#define gamepad_button_pressed(i)   (gamepad_button_count > i && gamepad_button_states ? \
+                                     gamepad_button_states[i] == GLFW_PRESS && last_gamepad_button_states[i] != GLFW_PRESS : 0)
+
+#define gamepad_control_down(i)    (gamepad_button_down(gamepad_control_maps[i]))
+#define gamepad_control_pressed(i) (gamepad_button_pressed(gamepad_control_maps[i]))
 
 enum {
     KEY_SPACE               = GLFW_KEY_SPACE,
@@ -163,6 +182,7 @@ enum { // @Key Controls
     KC_MOVE_RIGHT,
     KC_TURN_LEFT,
     KC_TURN_RIGHT,
+    KC_ATTACK,
     KC_PAUSE,
     MAX_KC
 };
@@ -174,6 +194,7 @@ i16 key_control_maps[MAX_KC] = {
     KEY_D,
     KEY_LEFT,
     KEY_RIGHT,
+    KEY_SPACE,
     KEY_ESCAPE,
 };
 
@@ -184,6 +205,40 @@ const char *key_control_names[MAX_KC] = {
     "Move Right",
     "Turn Left",
     "Turn Right",
+    "Attack",
+    "Pause",
+};
+
+enum { // @Gamepad Controls
+    GC_MOVE_FORWARD,
+    GC_MOVE_BACKWARD,
+    GC_MOVE_LEFT,
+    GC_MOVE_RIGHT,
+    GC_TURN_LEFT,
+    GC_TURN_RIGHT,
+    GC_ATTACK,
+    GC_PAUSE,
+};
+
+i16 gamepad_control_maps[MAX_KC] = {
+    10,
+    12,
+    13,
+    11,
+    4,
+    5,
+    0,
+    7,
+};
+
+const char *gamepad_control_names[MAX_KC] = {
+    "Move Forward",
+    "Move Backward",
+    "Move Left",
+    "Move Right",
+    "Turn Left",
+    "Turn Right",
+    "Attack",
     "Pause",
 };
 
@@ -212,7 +267,7 @@ void init_input() {
 
 void update_input() {
     glfwGetCursorPos(window, &mouse_x, &mouse_y);
-    
+
     mouse_pos_used = 0;
     mouse_buttons_used = 0;
     keyboard_used = 0;
@@ -234,7 +289,7 @@ void update_input() {
     else {
         mouse_state &= ~(1<<6);
     }
-       
+
     for(i16 i = 0; i < GLFW_KEY_LAST; i++) {
         i32 key_state = glfwGetKey(window, i);
         if(key_state == GLFW_PRESS) {
@@ -246,6 +301,12 @@ void update_input() {
             key_pressed[i] = 0;
         }
     }
+
+    for(i8 i = 0; i < 16 && i < gamepad_button_count; i++) {
+        last_gamepad_button_states[i] = gamepad_button_states[i];
+    }
+    gamepad_axes = glfwGetJoystickAxes(0, &gamepad_axis_count);
+    gamepad_button_states = glfwGetJoystickButtons(0, &gamepad_button_count);
 }
 
 const char *key_name(u16 key) {

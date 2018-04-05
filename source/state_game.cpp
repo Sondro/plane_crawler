@@ -26,7 +26,7 @@ State init_game() {
     g->camera_bob_sin_pos = 0;
     g->camera.pos = v3(0, 0, 0);
     g->camera.orientation = g->camera.target_orientation = v3(0, 0, 0);
-    g->camera.interpolation_rate = 800*delta_t;
+    g->camera.interpolation_rate = 10;
 
     generate_map(&g->map);
 
@@ -92,33 +92,43 @@ void update_game() {
             r32 movement_speed = 30;
 
             { // @Controls update
-                if(key_control_down(KC_TURN_LEFT)) {
+                if(key_control_down(KC_TURN_LEFT) || gamepad_control_down(GC_TURN_LEFT)) {
                     g->camera.target_orientation.x -= 4.5*delta_t;
                 }
-                if(key_control_down(KC_TURN_RIGHT)) {
+                if(key_control_down(KC_TURN_RIGHT) || gamepad_control_down(GC_TURN_RIGHT)) {
                     g->camera.target_orientation.x += 4.5*delta_t;
+                }
+
+                if(fabs(joystick_2_x) > 0.001) {
+                    g->camera.target_orientation.x += joystick_2_x*4.5*delta_t;
                 }
 
                 r32 horizontal_movement = 0,
                     vertical_movement = 0;
 
-                if(key_control_down(KC_MOVE_FORWARD)) {
-                    vertical_movement += 1;
+                if(fabs(joystick_1_x) > 0.001 || fabs(joystick_1_y) > 0.001) {
+                    horizontal_movement = joystick_1_x;
+                    vertical_movement = joystick_1_y;
                 }
-                if(key_control_down(KC_MOVE_BACKWARD)) {
-                    vertical_movement -= 1;
-                }
-                if(key_control_down(KC_MOVE_LEFT)) {
-                    horizontal_movement -= 1;
-                }
-                if(key_control_down(KC_MOVE_RIGHT)) {
-                    horizontal_movement += 1;
-                }
+                else {
+                    if(key_control_down(KC_MOVE_FORWARD) || gamepad_control_down(GC_MOVE_FORWARD)) {
+                        vertical_movement += 1;
+                    }
+                    if(key_control_down(KC_MOVE_BACKWARD) || gamepad_control_down(GC_MOVE_BACKWARD)) {
+                        vertical_movement -= 1;
+                    }
+                    if(key_control_down(KC_MOVE_LEFT) || gamepad_control_down(GC_MOVE_LEFT)) {
+                        horizontal_movement -= 1;
+                    }
+                    if(key_control_down(KC_MOVE_RIGHT) || gamepad_control_down(GC_MOVE_RIGHT)) {
+                        horizontal_movement += 1;
+                    }
 
-                r32 movement_length = sqrt(horizontal_movement*horizontal_movement + vertical_movement*vertical_movement);
-                if(movement_length) {
-                    horizontal_movement /= movement_length;
-                    vertical_movement /= movement_length;
+                    r32 movement_length = sqrt(horizontal_movement*horizontal_movement + vertical_movement*vertical_movement);
+                    if(movement_length) {
+                        horizontal_movement /= movement_length;
+                        vertical_movement /= movement_length;
+                    }
                 }
 
                 g->map.player.box.vel.x += cos(g->camera.orientation.x)*vertical_movement*movement_speed*delta_t;
@@ -127,7 +137,7 @@ void update_game() {
                 g->map.player.box.vel.x += cos(g->camera.orientation.x + PI/2)*horizontal_movement*movement_speed*delta_t;
                 g->map.player.box.vel.y += sin(g->camera.orientation.x + PI/2)*horizontal_movement*movement_speed*delta_t;
 
-                if(key_down[KEY_SPACE]) {
+                if(key_control_down(KC_ATTACK) || gamepad_control_down(GC_ATTACK)) {
                     g->map.player.attack.attacking = 1;
                 }
                 else {
@@ -214,7 +224,8 @@ void update_game() {
         }
     }
 
-    if(key_control_pressed(KC_PAUSE)) {
+    if(key_control_pressed(KC_PAUSE) ||
+       gamepad_control_pressed(GC_PAUSE)) {
         g->paused = !g->paused;
         ui.current_focus = 0;
 

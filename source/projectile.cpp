@@ -12,8 +12,8 @@ struct {
 struct ProjectileUpdate {
     i32 origin;
     v2 pos,
-       vel;   
-    r32 strength;
+       vel;
+    r32 strength, particle_start_time;
 };
 
 struct ProjectileSet {

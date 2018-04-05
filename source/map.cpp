@@ -157,6 +157,7 @@ void add_projectile(Map *m, i32 origin, i16 type, v2 pos, v2 vel, r32 strength) 
         m->projectiles.update[m->projectiles.count].pos = pos;
         m->projectiles.update[m->projectiles.count].vel = vel;
         m->projectiles.update[m->projectiles.count].strength = strength;
+        m->projectiles.update[m->projectiles.count].particle_start_time = current_time;
         ++m->projectiles.count;
     }
 }
@@ -844,13 +845,16 @@ void update_map(Map *m) {
         for(u32 i = 0; i < (u32)m->projectiles.count;) {
             m->projectiles.update[i].pos += m->projectiles.update[i].vel*delta_t;
 
-            foreach(j, 1) {
-                do_particle(m, projectile_data[m->projectiles.type[i]].particle_type,
-                            v3(m->projectiles.update[i].pos.x,
-                               map_coordinate_height(m, m->projectiles.update[i].pos.x, m->projectiles.update[i].pos.y) + 0.5,
-                               m->projectiles.update[i].pos.y),
-                            v3(random32(-0.025, 0.025), random32(-0.025, 0.025), random32(-0.025, 0.025)) * m->projectiles.update[i].strength,
-                            random32(0.01, 0.25 + 0.75*m->projectiles.update[i].strength));
+            if(current_time >= m->projectiles.update[i].particle_start_time + 1/60.f) {
+                foreach(j, 1) {
+                    do_particle(m, projectile_data[m->projectiles.type[i]].particle_type,
+                                v3(m->projectiles.update[i].pos.x,
+                                   map_coordinate_height(m, m->projectiles.update[i].pos.x, m->projectiles.update[i].pos.y) + 0.5,
+                                   m->projectiles.update[i].pos.y),
+                                v3(random32(-0.025, 0.025), random32(-0.025, 0.025), random32(-0.025, 0.025)) * m->projectiles.update[i].strength,
+                                random32(0.01, 0.25 + 0.75*m->projectiles.update[i].strength));
+                }
+                m->projectiles.update[i].particle_start_time = current_time;
             }
 
             i32 tile_x = m->projectiles.update[i].pos.x,
@@ -952,9 +956,8 @@ void draw_map(Map *m) {
         set_shader(0);
     }
 
-    { // @Draw enemies
-        draw_sprite_components(m->enemies.sprite, m->enemies.count);
-    }
+    // @Draw enemies
+    draw_sprite_components(m->enemies.sprite, m->enemies.count);
 
     // @Draw particles
     draw_particle_master(&m->particles);
