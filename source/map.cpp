@@ -10,11 +10,9 @@
 
 enum {
     TILE_BRICK,
-    TILE_MOSSY_BRICK,
     TILE_BRICK_WALL,
-    TILE_MOSSY_BRICK_WALL,
     TILE_DIRT,
-    TILE_WATER,
+    TILE_BROKEN_STONE,
     TILE_PIT,
     MAX_TILE
 };
@@ -25,9 +23,7 @@ struct {
        flags;
 } tile_data[MAX_TILE] = {
     { 0, 0, 0 },
-    { 1, 0, 0 },
     { 0, 0, WALL },
-    { 1, 0, WALL },
     { 1, 0, 0 },
     { 1, 1, 0 },
     { 1, 0, PIT },
@@ -201,7 +197,8 @@ void generate_map(Map *m) {
     i32 room_count = 8;
 
     struct {
-        int x, y, w, h;
+        int x, y, w, h, ground_tile;
+        r32 height;
     } rooms[room_count];
 
     foreach(i, room_count) {
@@ -209,6 +206,8 @@ void generate_map(Map *m) {
         rooms[i].y = random32(0, MAP_H-1);
         rooms[i].w = random32(4, 24);
         rooms[i].h = random32(4, 24);
+        rooms[i].ground_tile = random32(0, 1) < 0.5 ? TILE_DIRT : TILE_BROKEN_STONE;
+        rooms[i].height = random32(0, 1);
     }
 
     foreach(i, room_count) {
@@ -217,9 +216,9 @@ void generate_map(Map *m) {
             if(x >= 1 && x < MAP_W-1 && y >= 1 && y < MAP_H-1) {
                 if(x < rooms[i].x + rooms[i].w && x < MAP_W-2 &&
                    y < rooms[i].y + rooms[i].h && y < MAP_H-2) {
-                    m->tiles[x][y] = TILE_DIRT;
+                    m->tiles[x][y] = rooms[i].ground_tile;
                 }
-                m->heights[x][y] = perlin_2d(x, y, 0.15, 12)*1.1;
+                m->heights[x][y] = rooms[i].height + perlin_2d(x, y, 0.15, 12)*1.1;
             }
         }
     }
@@ -244,9 +243,17 @@ void generate_map(Map *m) {
              tw = (r32)TILE_SET_TILE_SIZE/textures[TEX_TILE].w,
              th = (r32)TILE_SET_TILE_SIZE/textures[TEX_TILE].h;
 
-
         if(tile_data[m->tiles[x][z]].flags & WALL) {
             if(x && !(tile_data[m->tiles[x-1][z]].flags & WALL)) {
+                if(m->tiles[x-1][z] == TILE_BRICK_WALL) {
+                    if(random32(0, 1) < 0.2) {
+                        ty = 32.f/textures[TEX_TILE].w;
+                    }
+                    else {
+                        ty = 0;
+                    }
+                }
+
                 foreach(height, 4) {
                     r32 verts[] = {
                         v00.x, v00.y+height, v00.z,
@@ -286,6 +293,15 @@ void generate_map(Map *m) {
             }
             if(x<MAP_W-1 && !(tile_data[m->tiles[x+1][z]].flags & WALL)) {
                 foreach(height, 4) {
+                    if(m->tiles[x-1][z] == TILE_BRICK_WALL) {
+                        if(random32(0, 1) < 0.2) {
+                            ty = 32.f/textures[TEX_TILE].w;
+                        }
+                        else {
+                            ty = 0;
+                        }
+                    }
+
                     r32 verts[] = {
                         v01.x, v01.y+height, v01.z,
                         v11.x, v11.y+height, v11.z,
@@ -328,6 +344,15 @@ void generate_map(Map *m) {
             }
             if(z && !(tile_data[m->tiles[x][z-1]].flags & WALL)) {
                 foreach(height, 4) {
+                    if(m->tiles[x-1][z] == TILE_BRICK_WALL) {
+                        if(random32(0, 1) < 0.2) {
+                            ty = 32.f/textures[TEX_TILE].w;
+                        }
+                        else {
+                            ty = 0;
+                        }
+                    }
+
                     r32 verts[] = {
                         v00.x, v00.y+height, v00.z,
                         v01.x, v01.y+height, v01.z,
@@ -370,6 +395,15 @@ void generate_map(Map *m) {
             }
             if(z < MAP_H-1 && !(tile_data[m->tiles[x][z+1]].flags & WALL)) {
                 foreach(height, 4) {
+                    if(m->tiles[x-1][z] == TILE_BRICK_WALL) {
+                        if(random32(0, 1) < 0.2) {
+                            ty = 32.f/textures[TEX_TILE].w;
+                        }
+                        else {
+                            ty = 0;
+                        }
+                    }
+
                     r32 verts[] = {
                         v10.x, v10.y+height, v10.z,
                         v11.x, v11.y+height, v11.z,
@@ -410,6 +444,7 @@ void generate_map(Map *m) {
         else if(tile_data[m->tiles[x][z]].flags & PIT) {
             if(x && !(tile_data[m->tiles[x-1][z]].flags & PIT)) {
                 foreach(height, 4) {
+
                     r32 verts[] = {
                         v00.x, v00.y-4+height, v00.z,
                         v10.x, v10.y-4+height, v10.z,
@@ -448,6 +483,7 @@ void generate_map(Map *m) {
             }
             if(x<MAP_W-1 && !(tile_data[m->tiles[x+1][z]].flags & PIT)) {
                 foreach(height, 4) {
+
                     r32 verts[] = {
                         v01.x, v01.y-4+height, v01.z,
                         v11.x, v11.y-4+height, v11.z,
@@ -570,39 +606,46 @@ void generate_map(Map *m) {
             }
         }
         else {
-            r32 verts[] = {
-                v00.x, v00.y, v00.z,
-                v01.x, v01.y, v01.z,
-                v10.x, v10.y, v10.z,
+            foreach(k, 2) {
+                r32 verts[] = {
+                    v00.x, v00.y + k*4, v00.z,
+                    v01.x, v01.y + k*4, v01.z,
+                    v10.x, v10.y + k*4, v10.z,
 
-                v11.x, v11.y, v11.z,
-                v01.x, v01.y, v01.z,
-                v10.x, v10.y, v10.z,
-            };
+                    v11.x, v11.y + k*4, v11.z,
+                    v01.x, v01.y + k*4, v01.z,
+                    v10.x, v10.y + k*4, v10.z,
+                };
 
-            r32 uvs_[] = {
-                tx, ty,
-                tx, ty+th,
-                tx+tw, ty,
+                if(k) {
+                    tx = 64.f / textures[TEX_TILE].w,
+                    ty = 0.f;
+                }
 
-                tx+tw, ty+th,
-                tx, ty+th,
-                tx+tw, ty
-            };
+                r32 uvs_[] = {
+                    tx, ty,
+                    tx, ty+th,
+                    tx+tw, ty,
 
-            r32 norms[18] = { 0 };
+                    tx+tw, ty+th,
+                    tx, ty+th,
+                    tx+tw, ty
+                };
 
-            calculate_heightmap_normal(verts, norms);
-            calculate_heightmap_normal(verts+9, norms+9);
+                r32 norms[18] = { 0 };
 
-            foreach(i, sizeof(verts)/sizeof(verts[0])) {
-                da_push(vertices, verts[i]);
-            }
-            foreach(i, sizeof(uvs_)/sizeof(uvs_[0])) {
-                da_push(uvs, uvs_[i]);
-            }
-            foreach(i, sizeof(norms)/sizeof(norms[0])) {
-                da_push(normals, norms[i]);
+                calculate_heightmap_normal(verts, norms);
+                calculate_heightmap_normal(verts+9, norms+9);
+
+                foreach(i, sizeof(verts)/sizeof(verts[0])) {
+                    da_push(vertices, verts[i]);
+                }
+                foreach(i, sizeof(uvs_)/sizeof(uvs_[0])) {
+                    da_push(uvs, uvs_[i]);
+                }
+                foreach(i, sizeof(norms)/sizeof(norms[0])) {
+                    da_push(normals, norms[i]);
+                }
             }
         }
 
