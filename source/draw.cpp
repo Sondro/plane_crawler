@@ -324,9 +324,11 @@ void bind_g_buffer(GBuffer *g) {
         glViewport(0, 0, g->w, g->h);
         GLenum draw_buffers[] = { GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1 };
         glDrawBuffers(2, draw_buffers);
+        glDisable(GL_BLEND);
     }
     else {
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
+        glEnable(GL_BLEND);
         glViewport(0, 0, window_w, window_h);
     }
 }
@@ -338,6 +340,15 @@ void clear_g_buffer(GBuffer *g) {
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
     }
     bind_g_buffer(0);
+}
+
+void copy_g_buffer_depth(GBuffer *g) {
+    glBindFramebuffer(GL_READ_FRAMEBUFFER, g->fbo);
+    glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
+    glBlitFramebuffer(0, 0, g->w, g->h,
+                      0, 0, g->w, g->h,
+                      GL_DEPTH_BUFFER_BIT,
+                      GL_NEAREST);
 }
 
 //

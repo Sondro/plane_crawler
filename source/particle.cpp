@@ -133,6 +133,8 @@ void draw_particle_master(ParticleMaster *p) {
         glBindBuffer(GL_ARRAY_BUFFER, 0);
     }
 
+    glEnable(GL_BLEND);
+
     set_shader(SHADER_PARTICLE);
     {
         glDepthMask(GL_FALSE);

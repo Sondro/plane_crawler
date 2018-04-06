@@ -1037,6 +1037,7 @@ void update_map(Map *m) {
 
 void draw_map(Map *m) {
     force_g_buffer_size(&m->render, window_w, window_h);
+
     clear_g_buffer(&m->render);
     bind_g_buffer(&m->render);
 
@@ -1092,4 +1093,5 @@ void draw_map(Map *m) {
     prepare_for_ui_render();
     draw_ui_g_buffer(&m->render, v4(0, 0, window_w, window_h));
     set_shader(-1);
+    copy_g_buffer_depth(&m->render);
 }
