@@ -25,25 +25,20 @@ State init_title() {
     t->camera.pos = v3(0, 0, 0);
     t->camera.orientation = t->camera.target_orientation = v3(PI*(2.f/3), 0, 0);
     t->camera.interpolation_rate = 0.06;
-
-    generate_map(&t->map);
-
-    foreach(i, MAP_W)
-    foreach(j, MAP_H) {
-        if(!(tile_data[t->map.tiles[i][j]].flags & WALL)) {
-            t->camera.pos = v3(i+0.5, map_coordinate_height(&t->map, i+0.5, j+0.5)+2, j+0.5);
-            break;
-        }
-    }
-
-    t->camera.target_orientation = v3(PI*(4.f/3), 0, 0);
+    
+    request_map_assets();
+    
+    request_texture(TEX_logo);
 
     return s;
 }
 
 void clean_up_title(State *s) {
     Title *t = (Title *)s->mem;
+    
+    unrequest_texture(TEX_logo);
 
+    unrequest_map_assets();
     clean_up_map(&t->map);
 
     free(s->mem);
@@ -53,6 +48,20 @@ void clean_up_title(State *s) {
 
 void update_title() {
     Title *t = (Title *)state.mem;
+    
+    if(first_state_frame) {
+        generate_map(&t->map);
+
+        foreach(i, MAP_W)
+        foreach(j, MAP_H) {
+            if(!(tile_data[t->map.tiles[i][j]].flags & WALL)) {
+                t->camera.pos = v3(i+0.5, map_coordinate_height(&t->map, i+0.5, j+0.5)+2, j+0.5);
+                break;
+            }
+        }
+
+        t->camera.target_orientation = v3(PI*(4.f/3), 0, 0);
+    }
 
     update_camera(&t->camera);
     update_map(&t->map);
@@ -75,9 +84,9 @@ void update_title() {
     prepare_for_ui_render();
     {
         if(t->settings.state < 0 && t->state == TITLE_MAIN) {
-            r32 logo_w = textures[TEX_LOGO].w,
-                logo_h = textures[TEX_LOGO].h;
-            draw_ui_texture(&textures[TEX_LOGO], v4(window_w/2 - logo_w*2, window_h/2 - logo_h*4 + 32, logo_w*4, logo_h*4));
+            r32 logo_w = textures[TEX_logo].w,
+                logo_h = textures[TEX_logo].h;
+            draw_ui_texture(&textures[TEX_logo], v4(window_w/2 - logo_w*2, window_h/2 - logo_h*4 + 32, logo_w*4, logo_h*4));
         }
     }
 

@@ -30,7 +30,7 @@ State init_game() {
         g->camera.orientation = g->camera.target_orientation = v3(0, 0, 0);
         g->camera.interpolation_rate = 10;
 
-        generate_map(&g->map);
+        request_map_assets();
 
         g->settings.state = -1;
 
@@ -44,6 +44,7 @@ void clean_up_game(State *s) {
     Game *g = (Game *)s->mem;
 
     { // @Cleanup
+        unrequest_map_assets();
         clean_up_map(&g->map);
     }
 
@@ -54,7 +55,11 @@ void clean_up_game(State *s) {
 
 void update_game() {
     Game *g = (Game *)state.mem;
-
+   
+    // @Post Asset Loading Init
+    if(first_state_frame) {
+        generate_map(&g->map);
+    }
 
     if(g->game_over) {
         set_ui_title("GAME OVER");
@@ -161,14 +166,8 @@ void update_game() {
                 g->camera.pos.y += sin(g->camera_bob_sin_pos)*0.42*(HMM_Length(g->map.player.box.vel) / (movement_speed*2));
 
                 update_camera(&g->camera);
-            }
-
-            global r32 distance = 0.1;
-            if(key_down[KEY_5]) {
-                distance += 0.1;
-            }
-            if(key_down[KEY_6]) {
-                distance -= 0.1;
+               
+                do_light(&g->map, g->camera.pos, v3(1, 0.9, 0.8), 15, 2);
             }
 
             // @Map update

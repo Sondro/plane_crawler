@@ -1,6 +1,7 @@
 #include "component.cpp"
 #include "player.cpp"
 #include "enemy.cpp"
+#include "collectible.cpp"
 #include "particle.cpp"
 #include "projectile.cpp"
 #include "light.cpp"
@@ -34,8 +35,9 @@ struct Map {
     i8 tiles[MAP_W][MAP_H];
     r32 heights[MAP_W+1][MAP_H+1];
 
-    Player      player;
-    EnemySet    enemies;
+    Player          player;
+    EnemySet        enemies;
+    CollectibleSet  collectibles;
 
     ProjectileSet projectiles;
     ParticleMaster particles;
@@ -51,6 +53,34 @@ struct Map {
 
     GBuffer render;
 };
+
+void request_map_assets() {
+    request_shader(SHADER_heightmap);
+    request_shader(SHADER_map_texture);
+    request_shader(SHADER_map_render);
+    request_shader(SHADER_particle);
+    request_texture(TEX_tile);
+    request_texture(TEX_enemy);
+    request_texture(TEX_collectible);
+
+    foreach(i, MAX_PARTICLE) {
+        request_texture(particle_types[i].texture);
+    }
+}
+
+void unrequest_map_assets() {
+    unrequest_shader(SHADER_heightmap);
+    unrequest_shader(SHADER_map_texture);
+    unrequest_shader(SHADER_map_render);
+    unrequest_shader(SHADER_particle); 
+    unrequest_texture(TEX_tile);
+    unrequest_texture(TEX_enemy);
+    unrequest_texture(TEX_collectible);
+    
+    foreach(i, MAX_PARTICLE) {
+        unrequest_texture(particle_types[i].texture);
+    }
+}
 
 void calculate_heightmap_normal(r32 *verts, r32 *norms) {
     v3 vert1 = v3(verts[3]-verts[0], verts[4]-verts[1], verts[5]-verts[2]),
@@ -154,6 +184,23 @@ void remove_enemy(Map *m, i32 id) {
     }
 }
 
+void add_collectible(Map *m, i8 type, v2 pos) {
+    if(m->collectibles.count < MAX_COLLECTIBLE_COUNT) {
+        u32 i = m->collectibles.count;
+        init_collectible(type, pos, m->collectibles.type + i, m->collectibles.box + i, m->collectibles.sprite + i);
+        ++m->collectibles.count;
+    }
+}
+
+void remove_collectible(Map *m, u32 i) {
+    if(i >= 0 && i < m->collectibles.count) {
+        memmove(m->collectibles.type + i, m->collectibles.type + i + 1, sizeof(i8) * (m->collectibles.count - i - 1));
+        memmove(m->collectibles.box + i, m->collectibles.box + i + 1, sizeof(BoxComponent) * (m->collectibles.count - i - 1));
+        memmove(m->collectibles.sprite + i, m->collectibles.sprite + i + 1, sizeof(SpriteComponent) * (m->collectibles.count - i - 1));
+        --m->collectibles.count;
+    }
+}
+
 void add_projectile(Map *m, i32 origin, i16 type, v2 pos, v2 vel, r32 strength) {
     if(m->projectiles.count < MAX_PROJECTILE_COUNT) {
         m->projectiles.type[m->projectiles.count] = type;
@@ -188,9 +235,12 @@ void remove_projectile(Map *m, i32 i) {
 
 void generate_map(Map *m) {
     m->enemies.count = 0;
+    m->collectibles.count = 0;
+
     m->projectiles.count = 0;
     init_particle_master(&m->particles);
-    m->light_vector = v3(3, 4, 1) / sqrt(26);
+    
+    m->light_vector = v3(2, 1, 1) / sqrt(6);
 
     foreach(i, MAP_W)
     foreach(j, MAP_H) {
@@ -243,16 +293,16 @@ void generate_map(Map *m) {
            v10 = v3(x,   m->heights[x][z+1],   z+1),
            v11 = v3(x+1, m->heights[x+1][z+1], z+1);
 
-         r32 tx = (tile_data[m->tiles[x][z]].tx*(r32)TILE_SET_TILE_SIZE)/(r32)textures[TEX_TILE].w,
-             ty = (tile_data[m->tiles[x][z]].ty*(r32)TILE_SET_TILE_SIZE)/(r32)textures[TEX_TILE].h,
-             tw = (r32)TILE_SET_TILE_SIZE/textures[TEX_TILE].w,
-             th = (r32)TILE_SET_TILE_SIZE/textures[TEX_TILE].h;
+         r32 tx = (tile_data[m->tiles[x][z]].tx*(r32)TILE_SET_TILE_SIZE)/(r32)textures[TEX_tile].w,
+             ty = (tile_data[m->tiles[x][z]].ty*(r32)TILE_SET_TILE_SIZE)/(r32)textures[TEX_tile].h,
+             tw = (r32)TILE_SET_TILE_SIZE/textures[TEX_tile].w,
+             th = (r32)TILE_SET_TILE_SIZE/textures[TEX_tile].h;
 
         if(tile_data[m->tiles[x][z]].flags & WALL) {
             if(x && !(tile_data[m->tiles[x-1][z]].flags & WALL)) {
                 if(m->tiles[x-1][z] == TILE_BRICK_WALL) {
                     if(random32(0, 1) < 0.2) {
-                        ty = 32.f/textures[TEX_TILE].w;
+                        ty = 32.f/textures[TEX_tile].w;
                     }
                     else {
                         ty = 0;
@@ -298,9 +348,9 @@ void generate_map(Map *m) {
             }
             if(x<MAP_W-1 && !(tile_data[m->tiles[x+1][z]].flags & WALL)) {
                 foreach(height, 4) {
-                    if(m->tiles[x-1][z] == TILE_BRICK_WALL) {
+                    if(m->tiles[x+1][z] == TILE_BRICK_WALL) {
                         if(random32(0, 1) < 0.2) {
-                            ty = 32.f/textures[TEX_TILE].w;
+                            ty = 32.f/textures[TEX_tile].w;
                         }
                         else {
                             ty = 0;
@@ -349,9 +399,9 @@ void generate_map(Map *m) {
             }
             if(z && !(tile_data[m->tiles[x][z-1]].flags & WALL)) {
                 foreach(height, 4) {
-                    if(m->tiles[x-1][z] == TILE_BRICK_WALL) {
+                    if(m->tiles[x][z-1] == TILE_BRICK_WALL) {
                         if(random32(0, 1) < 0.2) {
-                            ty = 32.f/textures[TEX_TILE].w;
+                            ty = 32.f/textures[TEX_tile].w;
                         }
                         else {
                             ty = 0;
@@ -402,7 +452,7 @@ void generate_map(Map *m) {
                 foreach(height, 4) {
                     if(m->tiles[x-1][z] == TILE_BRICK_WALL) {
                         if(random32(0, 1) < 0.2) {
-                            ty = 32.f/textures[TEX_TILE].w;
+                            ty = 32.f/textures[TEX_tile].w;
                         }
                         else {
                             ty = 0;
@@ -623,7 +673,7 @@ void generate_map(Map *m) {
                 };
 
                 if(k) {
-                    tx = 64.f / textures[TEX_TILE].w,
+                    tx = 64.f / textures[TEX_tile].w,
                     ty = 0.f;
                 }
 
@@ -641,6 +691,12 @@ void generate_map(Map *m) {
 
                 calculate_heightmap_normal(verts, norms);
                 calculate_heightmap_normal(verts+9, norms+9);
+                
+                if(k) {
+                    foreach(l, 18) {
+                        norms[l] *= -1;
+                    }
+                }
 
                 foreach(i, sizeof(verts)/sizeof(verts[0])) {
                     da_push(vertices, verts[i]);
@@ -698,6 +754,9 @@ void generate_map(Map *m) {
 
             if(random32(0, 1) < 0.01) {
                 add_enemy(m, random32(0, MAX_ENEMY - 0.0001), v2(i, j));
+            }
+            if(random32(0, 1) < 0.01) {
+                add_collectible(m, random32(0, MAX_COLLECTIBLE - 0.0001), v2(i, j));
             }
         }
     }
@@ -838,8 +897,8 @@ void update_attacks(Map *m, i32 *id, AttackComponent *a, i32 count) {
             if(a[i].charge > 0.005) {
                 // @Attack Firing
                 switch(a[i].type) {
-                    case ATTACK_FIREBALL: {
-                        add_projectile(m, id[i], PROJECTILE_FIRE,
+                    case ATTACK_fireball: {
+                        add_projectile(m, id[i], PROJECTILE_fire,
                                        a[i].pos,
                                        a[i].target,
                                        a[i].charge);
@@ -852,6 +911,14 @@ void update_attacks(Map *m, i32 *id, AttackComponent *a, i32 count) {
             a[i].transition -= a[i].transition * 2 * delta_t;
             a[i].charge = 0;
         }
+    }
+}
+
+void track_sprites_to_boxes(Map *m, SpriteComponent *s, BoxComponent *b, i32 count) {
+    foreach(i, count) {
+        s->pos = v3(b->pos.x, map_coordinate_height(m, b->pos.x, b->pos.y) + 0.5, b->pos.y);
+        ++s;
+        ++b;
     }
 }
 
@@ -896,7 +963,45 @@ void update_map(Map *m) {
         collide_boxes_with_tiles(m, &m->player.box, 1);
         collide_boxes_with_projectiles(m, &player_id, &m->player.box, &m->player.health, 1);
         update_boxes(&m->player.box, 1);
+        
+        { // collide with collectibles
+            v4 bb1 = v4(m->player.box.pos.x - m->player.box.size.x/2, 
+                        m->player.box.pos.y - m->player.box.size.y/2,
+                        m->player.box.pos.x + m->player.box.size.x/2,
+                        m->player.box.pos.y + m->player.box.size.y/2);
+
+            v4 bb2;
+
+            for(u32 i = 0; i < m->collectibles.count;) {
+                bb2 = v4(m->collectibles.box[i].pos.x - m->collectibles.box[i].size.x/2,
+                         m->collectibles.box[i].pos.y - m->collectibles.box[i].size.y/2,
+                         m->collectibles.box[i].pos.x + m->collectibles.box[i].size.x/2,
+                         m->collectibles.box[i].pos.y + m->collectibles.box[i].size.y/2);
+                if(bb1.x <= bb2.z && bb1.z >= bb2.x &&
+                   bb1.y <= bb2.w && bb1.w >= bb2.y) {
+                    i8 collected = 0;
+                    foreach(j, 3) {
+                        if(m->player.inventory[j] < 0) {
+                            collected = 1;
+                            m->player.inventory[j] = m->collectibles.type[i];
+                            break;
+                        }
+                    }
+                    if(collected) {
+                        remove_collectible(m, i);
+                    }
+                    else {
+                        ++i;
+                    }
+                }
+                else {
+                    ++i;
+                }
+            }
+        }
+
         m->player.attack.pos = m->player.box.pos;
+        
         update_attacks(m, &player_id, &m->player.attack, 1);
         update_health(&m->player.health, 1);
     }
@@ -932,6 +1037,12 @@ void update_map(Map *m) {
         }
     }
 
+    { // @Update collectibles
+        collide_boxes_with_tiles(m, m->collectibles.box, m->collectibles.count);
+        update_boxes(m->collectibles.box, m->collectibles.count);
+        track_sprites_to_boxes(m, m->collectibles.sprite, m->collectibles.box, m->collectibles.count);
+    }
+
     { // @Update particles
         update_particle_master(&m->particles);
     }
@@ -939,7 +1050,7 @@ void update_map(Map *m) {
     { // @Update lighting
         i8 light_count = 0;
 
-        set_shader(SHADER_MAP_RENDER);
+        set_shader(SHADER_map_render);
         {
             {
                 light_count = 0;
@@ -1026,7 +1137,7 @@ void update_map(Map *m) {
             }
         }
 
-        uniform1f(uniform_loc("brightness"), 0.5);
+        uniform1f(uniform_loc("brightness"), 1);
         uniform3f(uniform_loc("light_vector"), m->light_vector);
         uniform1i(uniform_loc("light_count"), light_count);
         set_shader(-1);
@@ -1044,9 +1155,9 @@ void draw_map(Map *m) {
     { // @Draw heightmap/terrain
         model = m4d(1);
 
-        set_shader(SHADER_HEIGHTMAP);
+        set_shader(SHADER_heightmap);
 
-        glBindTexture(GL_TEXTURE_2D, textures[TEX_TILE].id);
+        glBindTexture(GL_TEXTURE_2D, textures[TEX_tile].id);
         glUniformMatrix4fv(glGetUniformLocation(active_shader, "model"), 1, GL_FALSE, &model.Elements[0][0]);
         glUniformMatrix4fv(glGetUniformLocation(active_shader, "view"), 1, GL_FALSE, &view.Elements[0][0]);
         glUniformMatrix4fv(glGetUniformLocation(active_shader, "projection"), 1, GL_FALSE, &projection.Elements[0][0]);
@@ -1081,13 +1192,16 @@ void draw_map(Map *m) {
 
     // @Draw enemies
     draw_sprite_components(m->enemies.sprite, m->enemies.count);
+    
+    // @Draw collectibles
+    draw_sprite_components(m->collectibles.sprite, m->collectibles.count);
 
     // @Draw particles
     draw_particle_master(&m->particles);
 
     bind_g_buffer(0);
 
-    set_shader(SHADER_MAP_RENDER);
+    set_shader(SHADER_map_render);
     uniform_m4(uniform_loc("projection3d"), projection);
     uniform_m4(uniform_loc("view3d"), view);
     prepare_for_ui_render();

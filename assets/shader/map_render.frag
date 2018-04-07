@@ -7,7 +7,6 @@ struct Light {
 
 in vec2 uv;
 out vec4 color;
-out float gl_FragDepth;
 
 uniform mat4 projection3d;
 uniform mat4 view3d;

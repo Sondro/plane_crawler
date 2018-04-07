@@ -11,19 +11,24 @@ TO-DO:
 */
 
 // Program Options
-#define            RESOURCE_DIR "./resource/"
-#define              SHADER_DIR "shader/"
-#define              NOISE_SEED 123456
+#define DEBUG
 
-#define                   MAP_W 40
-#define                   MAP_H 40
-#define         MAX_ENEMY_COUNT 1024
-#define      MAX_PARTICLE_COUNT 4096
-#define    MAX_PROJECTILE_COUNT 256
+#define ASSETS_DIR "./assets/"
+#define SHADER_DIR "shader/"
+#define TEXURE_DIR "./"
+
+#define NOISE_SEED 123456
+
+#define                 MAP_W 40
+#define                 MAP_H 40
+#define       MAX_ENEMY_COUNT 256
+#define    MAX_PARTICLE_COUNT 4096
+#define  MAX_PROJECTILE_COUNT 256
 //
 
 // External Libraries/Related Code
 #include "gl_load.cpp"
+#include <AL/al.h>
 #include <GLFW/glfw3.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -53,7 +58,13 @@ TO-DO:
 #include "audio.cpp"
 #include "noise.cpp"
 #include "input.cpp"
-#include "resource.cpp"
+
+#ifdef DEBUG
+#include "assets_loose.cpp"
+#elif
+#error "Release version has not been prepared; you must #define DEBUG"
+#endif
+
 #include "draw.cpp"
 #include "ui.cpp"
 #include "state.cpp"
@@ -65,8 +76,8 @@ int main() {
         glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
         glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
 
-        window_w = 1024;
-        window_h = 600;
+        window_w = 1280;
+        window_h = 768;
         window = glfwCreateWindow(window_w, window_h, "Plane Crawler", 0, 0);
         if(window) {
             { // @Note (Ryan) This centers the window...
@@ -79,6 +90,7 @@ int main() {
 
             if(ogl_LoadFunctions()) {
                 init_input();
+                init_assets();
                 init_draw();
                 init_ui();
 
@@ -88,6 +100,18 @@ int main() {
                 next_state.type = 0;
 
                 i8 last_fullscreen;
+                
+                //
+                // @Note (Ryan)
+                //
+                // Resources that will pretty much always
+                // need to be loaded:
+                //
+                request_texture(TEX_font);
+                request_shader(SHADER_texture);
+                request_shader(SHADER_rect);
+
+                update_assets();
 
                 while(!glfwWindowShouldClose(window)) {
                     last_time = current_time;
@@ -122,15 +146,20 @@ int main() {
                         }
                     }
 
-                    // @State change
-                    if(next_state.type) {
+                    // @State changes or updates
+                    if(next_state.type || need_asset_refresh) {
                         state_t += (1-state_t) * 12 * delta_t;
                         if(state_t >= 0.98) {
-                            clean_up_state();
-                            state.mem = next_state.mem;
-                            state.type = next_state.type;
-                            next_state.mem = 0;
-                            next_state.type = 0;
+                            update_assets();
+                            need_asset_refresh = 0;
+                            if(next_state.type) {
+                                clean_up_state();
+                                state.mem = next_state.mem;
+                                state.type = next_state.type;
+                                next_state.mem = 0;
+                                next_state.type = 0;
+                                first_state_frame = 1;
+                            }
                         }
                     }
                     else {
@@ -151,8 +180,9 @@ int main() {
                         while(glfwGetTime() < current_time + (1.0 / fps));
                     }
                 }
-
+                
                 clean_up_state();
+                clean_up_assets();
                 clean_up_draw();
             }
             else {

@@ -2,7 +2,7 @@
 #define PARTICLE_DATA_LENGTH 8
 
 enum {
-    PARTICLE_FIRE,
+    PARTICLE_fire,
     MAX_PARTICLE
 };
 
@@ -10,7 +10,7 @@ global
 struct {
     i32 texture, max_frames;
 } particle_types[MAX_PARTICLE] = {
-    { TEX_PARTICLE_FIRE, 16 },
+    { TEX_particle_fire, 16 },
 };
 
 struct ParticleSet {
@@ -135,7 +135,7 @@ void draw_particle_master(ParticleMaster *p) {
 
     glEnable(GL_BLEND);
 
-    set_shader(SHADER_PARTICLE);
+    set_shader(SHADER_particle);
     {
         glDepthMask(GL_FALSE);
 
@@ -149,7 +149,7 @@ void draw_particle_master(ParticleMaster *p) {
         foreach(i, MAX_PARTICLE) {
             ParticleSet *s = p->sets+i;
 
-            i8 additive = i == PARTICLE_FIRE;
+            i8 additive = i == PARTICLE_fire;
 
             if(additive) {
                 glBlendFunc(GL_SRC_ALPHA, GL_ONE);

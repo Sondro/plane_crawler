@@ -38,47 +38,6 @@ global m4 model, view, projection,
 global v2 uv_offset,
           uv_range;
 
-enum {
-    SHADER_RECT,
-    SHADER_TEXTURE,
-    SHADER_HEIGHTMAP,
-    SHADER_PARTICLE,
-    SHADER_MAP_RENDER,
-    MAX_SHADER
-};
-
-const char *shader_names[MAX_SHADER] = {
-    "rect",
-    "texture",
-    "heightmap",
-    "particle",
-    "map_render",
-};
-
-enum {
-    TEX_ENEMY,
-    TEX_TILE,
-    TEX_SMALL_FONT,
-    TEX_LOGO,
-    TEX_HAND,
-    TEX_STATUS_BARS,
-    TEX_PARTICLE_FIRE,
-    MAX_TEX
-};
-
-const char *tex_names[MAX_TEX] = {
-    "enemy",
-    "tile",
-    "font",
-    "logo",
-    "hand",
-    "status_bars",
-    "particle_fire",
-};
-
-global Shader shaders[MAX_SHADER];
-global Texture textures[MAX_TEX];
-
 GLuint active_shader = 0,
 
        quad_vao = 0,
@@ -94,14 +53,6 @@ void init_draw() {
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     glEnable(GL_DEPTH_TEST);
     glDepthFunc(GL_LESS);
-
-    foreach(i, MAX_SHADER) {
-        shaders[i] = load_shader(shader_names[i]);
-    }
-
-    foreach(i, MAX_TEX) {
-        textures[i] = load_texture(tex_names[i]);
-    }
 
     glGenVertexArrays(1, &quad_vao);
     glBindVertexArray(quad_vao);
@@ -392,7 +343,7 @@ void draw_quad() {
 }
 
 void draw_billboard_texture(Texture *texture, v4 tbb, v3 pos, v2 scale) {
-    set_shader(SHADER_TEXTURE);
+    set_shader(SHADER_map_texture);
     {
         bind_texture(texture, tbb.x, tbb.y, tbb.z, tbb.w);
 
@@ -413,7 +364,7 @@ void draw_billboard_texture(Texture *texture, v4 tbb, v3 pos, v2 scale) {
 }
 
 void draw_ui_rect(v4 color, v4 bb, r32 thickness) {
-    set_shader(SHADER_RECT);
+    set_shader(SHADER_rect);
     {
         v4 pos = v4((bb.x/window_w)*2 - 1, -(bb.y/window_h)*2 + 1, 0, 1);
         v4 size = v4(bb.z/window_w, bb.w/window_h, 0, 0);
@@ -434,7 +385,7 @@ void draw_ui_rect(v4 color, v4 bb, r32 thickness) {
 }
 
 void draw_ui_filled_rect(v4 color, v4 bb) {
-    set_shader(SHADER_RECT);
+    set_shader(SHADER_rect);
     {
         v4 pos = v4((bb.x/window_w)*2 - 1, -(bb.y/window_h)*2 + 1, 0, 1);
         v4 size = v4(bb.z/window_w, bb.w/window_h, 0, 0);
@@ -465,7 +416,7 @@ void draw_ui_filled_rect(v4 color, v4 bb) {
 //
 
 void draw_ui_texture(Texture *texture, v4 tbb, v4 bb) {
-    set_shader(SHADER_TEXTURE);
+    set_shader(SHADER_texture);
     {
         bind_texture(texture, tbb.x, tbb.y, tbb.z, tbb.w);
 
@@ -489,7 +440,7 @@ void draw_ui_texture(Texture *texture, v4 bb) {
 }
 
 void draw_ui_fbo(FBO *fbo, v4 tbb, v4 bb) {
-    set_shader(SHADER_TEXTURE);
+    set_shader(SHADER_texture);
     {
         Texture texture;
         texture.id = fbo->texture;
@@ -563,7 +514,7 @@ void draw_ui_g_buffer(GBuffer *g, v4 bb) {
 }
 
 void draw_ui_text(const char *text, int align, v2 position) {
-    set_shader(SHADER_TEXTURE);
+    set_shader(SHADER_texture);
     {
         u32 text_len = strlen(text);
 
@@ -603,7 +554,7 @@ void draw_ui_text(const char *text, int align, v2 position) {
         i32 tx = 0,
             ty = 0;
 
-        bind_texture(&textures[TEX_SMALL_FONT], 0, 0, 7, 8);
+        bind_texture(&textures[TEX_font], 0, 0, 7, 8);
 
         while((c = *text++)) {
             if(c >= 65 && c <= 90) {
@@ -640,7 +591,7 @@ void draw_ui_text(const char *text, int align, v2 position) {
             }
 
             if(tx >= 0 && ty >= 0) {
-                uv_offset = v2((r32)tx/textures[TEX_SMALL_FONT].w, (r32)ty/textures[TEX_SMALL_FONT].h);
+                uv_offset = v2((r32)tx/textures[TEX_font].w, (r32)ty/textures[TEX_font].h);
                 glUniform2f(glGetUniformLocation(active_shader, "uv_offset"), uv_offset.x, uv_offset.y);
 
                 {

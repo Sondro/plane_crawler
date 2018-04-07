@@ -68,7 +68,7 @@ void update_health(HealthComponent *h, i32 count) {
 // @Attack Component
 
 enum {
-    ATTACK_FIREBALL,
+    ATTACK_fireball,
 };
 
 struct AttackComponent {

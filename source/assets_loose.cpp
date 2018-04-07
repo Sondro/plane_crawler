@@ -1,3 +1,40 @@
+#define shaders_begin  enum {
+#define shaders_end    MAX_SHADER };
+#define shader(s)      SHADER_ ## s
+#include "assets_shader.cpp"
+#undef shaders_begin
+#undef shaders_end
+#undef shader
+
+#define shaders_begin  global const char *shader_names[] = {
+#define shaders_end    };
+#define shader(s)      #s
+#include "assets_shader.cpp"
+#undef shaders_begin
+#undef shaders_end
+#undef shader
+
+#define textures_begin  enum {
+#define textures_end    MAX_TEX };
+#define texture(t)      TEX_ ## t
+#include "assets_texture.cpp"
+#undef textures_begin
+#undef textures_end
+#undef texture
+
+#define textures_begin  global const char *tex_names[] = {
+#define textures_end    };
+#define texture(t)      #t
+#include "assets_texture.cpp"
+#undef textures_begin
+#undef textures_end
+#undef texture
+
+#define request_shader(i)    { ++shader_requests[i]; }
+#define unrequest_shader(i)  { --shader_requests[i]; }
+#define request_texture(i)   { ++texture_requests[i]; }
+#define unrequest_texture(i) { --texture_requests[i]; }
+
 struct Shader {
     GLuint id;
 };
@@ -6,6 +43,16 @@ struct Texture {
     GLuint id;
     i32 w, h;
 };
+
+struct Sound {
+    ALuint id;
+};
+
+global Shader  shaders[MAX_SHADER];
+global i32     shader_requests[MAX_SHADER] = { 0 };
+
+global Texture textures[MAX_TEX];
+global i32     texture_requests[MAX_TEX] = { 0 };
 
 Shader init_shader_from_data(void *vert, i64 vert_len,
                              void *frag, i64 frag_len,
@@ -160,9 +207,9 @@ Shader load_shader(const char *filename) {
          frag_filename[64] = { 0 },
          info_filename[64] = { 0 };
 
-    sprintf(vert_filename, "%s%s%s.%s", RESOURCE_DIR, SHADER_DIR, filename, "vert");
-    sprintf(frag_filename, "%s%s%s.%s", RESOURCE_DIR, SHADER_DIR, filename, "frag");
-    sprintf(info_filename, "%s%s%s.%s", RESOURCE_DIR, SHADER_DIR, filename, "info");
+    sprintf(vert_filename, "%s%s%s.%s", ASSETS_DIR, SHADER_DIR, filename, "vert");
+    sprintf(frag_filename, "%s%s%s.%s", ASSETS_DIR, SHADER_DIR, filename, "frag");
+    sprintf(info_filename, "%s%s%s.%s", ASSETS_DIR, SHADER_DIR, filename, "info");
 
     Shader s;
     s.id = 0;
@@ -258,8 +305,8 @@ void clean_up_shader(Shader *s) {
 }
 
 Texture load_texture(const char *filename) {
-    char pathed_filename[strlen(RESOURCE_DIR) + strlen(filename) + 1] = { 0 };
-    sprintf(pathed_filename, "%s%s.png", RESOURCE_DIR, filename);
+    char pathed_filename[strlen(ASSETS_DIR) + strlen(filename) + 1] = { 0 };
+    sprintf(pathed_filename, "%s%s.png", ASSETS_DIR, filename);
 
     Texture t = { 0, 0, 0 };
 
@@ -295,4 +342,37 @@ void clean_up_texture(Texture *t) {
     t->id = 0;
     t->w = 0;
     t->h = 0;
+}
+
+void init_assets() {
+    
+}
+
+void clean_up_assets() {
+    foreach(i, MAX_SHADER) {
+        clean_up_shader(shaders+i);
+    }
+    foreach(i, MAX_TEX) {
+        clean_up_texture(textures+i);
+    }
+}
+
+void update_assets() {
+    foreach(i, MAX_SHADER) {
+        if(!shaders[i].id && shader_requests[i]) {
+            shaders[i] = load_shader(shader_names[i]);
+        }
+        else if(shaders[i].id && !shader_requests[i]) {
+            clean_up_shader(shaders + i);
+        }
+    }
+
+    foreach(i, MAX_TEX) {
+        if(!textures[i].id && texture_requests[i]) {
+            textures[i] = load_texture(tex_names[i]);
+        }
+        else if(textures[i].id && !texture_requests[i]) {
+            clean_up_texture(textures + i);
+        }
+    }
 }

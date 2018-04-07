@@ -1,0 +1,10 @@
+textures_begin
+    texture(enemy),
+    texture(tile),
+    texture(font),
+    texture(logo),
+    texture(hand),
+    texture(status_bars),
+    texture(particle_fire),
+    texture(collectible),
+textures_end

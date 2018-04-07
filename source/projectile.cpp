@@ -1,12 +1,12 @@
 enum {
-    PROJECTILE_FIRE,
+    PROJECTILE_fire,
     MAX_PROJECTILE
 };
 
 struct {
     i32 particle_type;
 } projectile_data[MAX_PROJECTILE] = {
-    { PARTICLE_FIRE },
+    { PARTICLE_fire },
 };
 
 struct ProjectileUpdate {

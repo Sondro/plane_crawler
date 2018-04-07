@@ -11,6 +11,8 @@ global struct State {
 } state, next_state;
 
 global r32 state_t = 1;
+global i8 need_asset_refresh = 0,
+          first_state_frame = 1;
 
 #include "camera.cpp"
 
@@ -27,6 +29,8 @@ void update_state() {
         case STATE_GAME:  { update_game();  break; }
         default: break;
     }
+
+    first_state_frame = 0;
 }
 
 void clean_up_state() {
