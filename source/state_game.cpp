@@ -31,7 +31,9 @@ State init_game() {
         g->camera.interpolation_rate = 10;
 
         request_map_assets();
-
+        request_texture(TEX_status_bars);
+        request_texture(TEX_hand);
+        
         g->settings.state = -1;
 
         glfwSetInputMode(window, GLFW_CURSOR, g->paused ? GLFW_CURSOR_NORMAL : GLFW_CURSOR_DISABLED);
@@ -44,6 +46,9 @@ void clean_up_game(State *s) {
     Game *g = (Game *)s->mem;
 
     { // @Cleanup
+        unrequest_texture(TEX_status_bars);
+        unrequest_texture(TEX_hand);
+
         unrequest_map_assets();
         clean_up_map(&g->map);
     }
@@ -55,7 +60,9 @@ void clean_up_game(State *s) {
 
 void update_game() {
     Game *g = (Game *)state.mem;
-   
+    
+    r32 movement_factor = 0;
+
     // @Post Asset Loading Init
     if(first_state_frame) {
         generate_map(&g->map);
@@ -155,15 +162,17 @@ void update_game() {
                 }
 
                 g->map.player.attack.target = v2(cos(g->camera.orientation.x), sin(g->camera.orientation.x)) * 16;
-            }
+            } 
 
             { // @Camera update
+                movement_factor = (HMM_Length(g->map.player.box.vel) / (movement_speed*2));
+                
                 g->camera_bob_sin_pos += 15*delta_t;
                 g->camera.pos.x = g->map.player.box.pos.x;
                 g->camera.pos.z = g->map.player.box.pos.y;
 
                 g->camera.pos.y = map_coordinate_height(&g->map, g->camera.pos.x, g->camera.pos.z) + 0.8;
-                g->camera.pos.y += sin(g->camera_bob_sin_pos)*0.42*(HMM_Length(g->map.player.box.vel) / (movement_speed*2));
+                g->camera.pos.y += sin(g->camera_bob_sin_pos)*0.42*movement_factor;
 
                 update_camera(&g->camera);
                
@@ -184,44 +193,42 @@ void update_game() {
                 sin(g->camera.orientation.x)
             );
             view = m4_lookat(g->camera.pos, target);
-        }
+        } 
 
+        draw_map_begin(&g->map);
+        
         { // @Spell drawing
-            /*
-            if(g->player.casting_spell) {
-                v3 target = g->camera.pos + v3(
-                    cos(g->camera.orientation.x + 0.7)*0.3,
-                    sin(g->camera.orientation.y - 0.2)*0.3 - 0.1,
-                    sin(g->camera.orientation.x + 0.7)*0.3
-                );
+            v3 target = g->camera.pos + v3(
+                cos(g->camera.orientation.x + 0.5)*0.025,
+                sin(g->camera.orientation.y)*0.03 - 0.008 + movement_factor*sin(g->camera_bob_sin_pos)*0.002,
+                sin(g->camera.orientation.x + 0.5)*0.025
+            );
+            
+            m4 old_proj = projection;
+            projection = HMM_Perspective(90.f, (r32)window_w/window_h, 0.01f, 10.f);
+            draw_billboard_texture(&textures[TEX_hand], v4(0, 0, 64, 64), target, v2(0.01, 0.01));
 
-                do_particle(&g->map, PARTICLE_FIRE, target + v3(0, sin(current_time*5)*0.015, 0),
-                            v3(g->player.vel.x, 0, g->player.vel.y) +
-                            v3(random32(-0.001, 0.001), random32(0.003, 0.0055), random32(-0.001, 0.001)),
-                            random32(0.05, 0.1));
-            }
-            */
+            projection = old_proj;
         }
 
-        draw_map(&g->map);
+        draw_map_end(&g->map);
     }
 
     prepare_for_ui_render(); // @UI Render
     {
         // draw health/mana bars
-        /*
-        draw_ui_texture(&textures[TEX_STATUS_BARS], v4(0, 12, 64 * g->player.health, 12),
-                        v4(16, window_h - 120, 64*4 * g->player.health, 12*4));
+        
+        draw_ui_texture(&textures[TEX_status_bars], v4(0, 12, 64 * g->map.player.health.val, 12),
+                        v4(16, window_h - 120, 64*4 * g->map.player.health.val, 12*4));
 
-        draw_ui_texture(&textures[TEX_STATUS_BARS], v4(0, 0, 64, 12),
+        draw_ui_texture(&textures[TEX_status_bars], v4(0, 0, 64, 12),
                         v4(16, window_h - 120, 64*4, 12*4));
 
-        draw_ui_texture(&textures[TEX_STATUS_BARS], v4(0, 24, 64 * g->player.mana, 12),
-                        v4(16, window_h - 64, 64*4 * g->player.mana, 12*4));
+        draw_ui_texture(&textures[TEX_status_bars], v4(0, 24, 64 * g->map.player.attack.mana, 12),
+                        v4(16, window_h - 64, 64*4 * g->map.player.attack.mana, 12*4));
 
-        draw_ui_texture(&textures[TEX_STATUS_BARS], v4(0, 0, 64, 12),
+        draw_ui_texture(&textures[TEX_status_bars], v4(0, 0, 64, 12),
                         v4(16, window_h - 64, 64*4, 12*4));
-        */
     }
 
     if(g->game_over) {

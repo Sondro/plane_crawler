@@ -255,7 +255,10 @@ void generate_map(Map *m) {
         int x, y, w, h, ground_tile;
         r32 height;
     } rooms[room_count];
-
+    
+    // @Cleanup
+    //
+    // This block should be replaced with actual room generation
     foreach(i, room_count) {
         rooms[i].x = random32(0, MAP_W-1);
         rooms[i].y = random32(0, MAP_H-1);
@@ -264,6 +267,7 @@ void generate_map(Map *m) {
         rooms[i].ground_tile = random32(0, 1) < 0.5 ? TILE_DIRT : TILE_BROKEN_STONE;
         rooms[i].height = random32(0, 1);
     }
+    //
 
     foreach(i, room_count) {
         forrng(x, rooms[i].x, rooms[i].x + rooms[i].w+1)
@@ -1146,7 +1150,7 @@ void update_map(Map *m) {
     }
 }
 
-void draw_map(Map *m) {
+void draw_map_begin(Map *m) {
     force_g_buffer_size(&m->render, window_w, window_h);
 
     clear_g_buffer(&m->render);
@@ -1195,10 +1199,12 @@ void draw_map(Map *m) {
     
     // @Draw collectibles
     draw_sprite_components(m->collectibles.sprite, m->collectibles.count);
+}
 
+void draw_map_end(Map *m) {
     // @Draw particles
     draw_particle_master(&m->particles);
-
+    
     bind_g_buffer(0);
 
     set_shader(SHADER_map_render);

@@ -77,7 +77,8 @@ void update_title() {
             );
             view = m4_lookat(t->camera.pos, target);
         }
-        draw_map(&t->map);
+        draw_map_begin(&t->map);
+        draw_map_end(&t->map);
     }
 
     // @UI Render
