@@ -72,11 +72,11 @@ void unrequest_map_assets() {
     unrequest_shader(SHADER_heightmap);
     unrequest_shader(SHADER_map_texture);
     unrequest_shader(SHADER_map_render);
-    unrequest_shader(SHADER_particle); 
+    unrequest_shader(SHADER_particle);
     unrequest_texture(TEX_tile);
     unrequest_texture(TEX_enemy);
     unrequest_texture(TEX_collectible);
-    
+
     foreach(i, MAX_PARTICLE) {
         unrequest_texture(particle_types[i].texture);
     }
@@ -239,7 +239,7 @@ void generate_map(Map *m) {
 
     m->projectiles.count = 0;
     init_particle_master(&m->particles);
-    
+
     m->light_vector = v3(2, 1, 1) / sqrt(6);
 
     foreach(i, MAP_W)
@@ -249,23 +249,36 @@ void generate_map(Map *m) {
     }
 
     // @Room generation
-    i32 room_count = 8;
+    i32 room_count = 24;
 
     struct {
         int x, y, w, h, ground_tile;
         r32 height;
     } rooms[room_count];
-    
+
+    struct {
+        int x,
+            y,
+            w,
+            h,
+            ground_tile;
+        r32 height;
+    } halls[room_count * room_count];
+
     // @Cleanup
     //
     // This block should be replaced with actual room generation
-    foreach(i, room_count) {
+    foreach(i, room_count) {//generate rooms, based on prefab maps in folder
         rooms[i].x = random32(0, MAP_W-1);
         rooms[i].y = random32(0, MAP_H-1);
         rooms[i].w = random32(4, 24);
         rooms[i].h = random32(4, 24);
         rooms[i].ground_tile = random32(0, 1) < 0.5 ? TILE_DIRT : TILE_BROKEN_STONE;
         rooms[i].height = random32(0, 1);
+    }
+
+    foreach(i, MAP_W*MAP_H){
+
     }
     //
 
@@ -695,7 +708,7 @@ void generate_map(Map *m) {
 
                 calculate_heightmap_normal(verts, norms);
                 calculate_heightmap_normal(verts+9, norms+9);
-                
+
                 if(k) {
                     foreach(l, 18) {
                         norms[l] *= -1;
@@ -967,9 +980,9 @@ void update_map(Map *m) {
         collide_boxes_with_tiles(m, &m->player.box, 1);
         collide_boxes_with_projectiles(m, &player_id, &m->player.box, &m->player.health, 1);
         update_boxes(&m->player.box, 1);
-        
+
         { // collide with collectibles
-            v4 bb1 = v4(m->player.box.pos.x - m->player.box.size.x/2, 
+            v4 bb1 = v4(m->player.box.pos.x - m->player.box.size.x/2,
                         m->player.box.pos.y - m->player.box.size.y/2,
                         m->player.box.pos.x + m->player.box.size.x/2,
                         m->player.box.pos.y + m->player.box.size.y/2);
@@ -1005,7 +1018,7 @@ void update_map(Map *m) {
         }
 
         m->player.attack.pos = m->player.box.pos;
-        
+
         update_attacks(m, &player_id, &m->player.attack, 1);
         update_health(&m->player.health, 1);
     }
@@ -1196,7 +1209,7 @@ void draw_map_begin(Map *m) {
 
     // @Draw enemies
     draw_sprite_components(m->enemies.sprite, m->enemies.count);
-    
+
     // @Draw collectibles
     draw_sprite_components(m->collectibles.sprite, m->collectibles.count);
 }
@@ -1204,7 +1217,7 @@ void draw_map_begin(Map *m) {
 void draw_map_end(Map *m) {
     // @Draw particles
     draw_particle_master(&m->particles);
-    
+
     bind_g_buffer(0);
 
     set_shader(SHADER_map_render);

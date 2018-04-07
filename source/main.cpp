@@ -19,8 +19,8 @@ TO-DO:
 
 #define NOISE_SEED 123456
 
-#define                 MAP_W 40
-#define                 MAP_H 40
+#define                 MAP_W 256
+#define                 MAP_H 256
 #define       MAX_ENEMY_COUNT 256
 #define    MAX_PARTICLE_COUNT 4096
 #define  MAX_PROJECTILE_COUNT 256
@@ -100,7 +100,7 @@ int main() {
                 next_state.type = 0;
 
                 i8 last_fullscreen;
-                
+
                 //
                 // @Note (Ryan)
                 //
@@ -180,7 +180,7 @@ int main() {
                         while(glfwGetTime() < current_time + (1.0 / fps));
                     }
                 }
-                
+
                 clean_up_state();
                 clean_up_assets();
                 clean_up_draw();
