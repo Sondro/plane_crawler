@@ -200,7 +200,7 @@ void force_g_buffer_size(GBuffer *g, i32 w, i32 h) {
 }
 
 void prepare_for_world_render() {
-    projection = HMM_Perspective(field_of_view, (r32)window_w/window_h, 0.1f, 100.f);
+    projection = HMM_Perspective(field_of_view, (r32)window_w/window_h, 0.1f, 20.f);
     model = m4d(1);
     model = m4d(1);
     glEnable(GL_DEPTH_TEST);

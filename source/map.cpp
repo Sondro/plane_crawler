@@ -933,7 +933,7 @@ void update_attacks(Map *m, i32 *id, AttackComponent *a, i32 count) {
 
 void track_sprites_to_boxes(Map *m, SpriteComponent *s, BoxComponent *b, i32 count) {
     foreach(i, count) {
-        s->pos = v3(b->pos.x, map_coordinate_height(m, b->pos.x, b->pos.y) + 0.5, b->pos.y);
+        s->pos = v3(b->pos.x, map_coordinate_height(m, b->pos.x, b->pos.y) + (s->th / 16.f) * 0.5, b->pos.y);
         ++s;
         ++b;
     }
@@ -1029,11 +1029,7 @@ void update_map(Map *m) {
         update_boxes(m->enemies.box, m->enemies.count);
 
         // update sprite position
-        foreach(i, m->enemies.count) {
-            m->enemies.sprite[i].pos = v3(m->enemies.box[i].pos.x,
-                                          map_coordinate_height(m, m->enemies.box[i].pos.x, m->enemies.box[i].pos.y) + 0.5,
-                                          m->enemies.box[i].pos.y);
-        }
+        track_sprites_to_boxes(m, m->enemies.sprite, m->enemies.box, m->enemies.count);
 
         // update attack position
         foreach(i, m->enemies.count) {

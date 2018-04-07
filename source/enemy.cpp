@@ -28,7 +28,7 @@ void init_enemy(i16 type, v2 pos,
                 BoxComponent *b, SpriteComponent *s, HealthComponent *h, AttackComponent *a) {
     
     *b = init_box_component(pos, v2(0.6, 0.6));
-    *s = init_sprite_component(TEX_enemy, enemy_data[type].tx*16, 0, 16, 16);
+    *s = init_sprite_component(TEX_enemy, enemy_data[type].tx*24, 0, 24, 24);
     *h = init_health_component(1);
     *a = init_attack_component(ATTACK_fireball);
 }
