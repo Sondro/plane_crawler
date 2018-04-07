@@ -61,7 +61,7 @@ TO-DO:
 
 #ifdef DEBUG
 #include "assets_loose.cpp"
-#elif
+#else
 #error "Release version has not been prepared; you must #define DEBUG"
 #endif
 
