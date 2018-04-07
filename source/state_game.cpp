@@ -197,16 +197,28 @@ void update_game() {
 
         draw_map_begin(&g->map);
         
-        { // @Spell drawing
-            v3 target = g->camera.pos + v3(
-                cos(g->camera.orientation.x + 0.5)*0.025,
-                sin(g->camera.orientation.y)*0.03 - 0.008 + movement_factor*sin(g->camera_bob_sin_pos)*0.002,
-                sin(g->camera.orientation.x + 0.5)*0.025
-            );
-            
+        { // @Spell drawing 
             m4 old_proj = projection;
             projection = HMM_Perspective(90.f, (r32)window_w/window_h, 0.01f, 10.f);
-            draw_billboard_texture(&textures[TEX_hand], v4(0, 0, 64, 64), target, v2(0.01, 0.01));
+            
+            if(g->map.player.attack.attacking) {
+                v3 target = g->camera.pos + v3(
+                            cos(g->camera.orientation.x + 0.5)*0.025,
+                            sin(g->camera.orientation.y)*0.03 - 0.008 + movement_factor*sin(g->camera_bob_sin_pos)*0.002 -
+                            0.015*(1-g->map.player.attack.transition),
+                            sin(g->camera.orientation.x + 0.5)*0.025
+                );
+                draw_billboard_texture(&textures[TEX_hand], v4(0, 0, 64, 64), target, v2(0.01, 0.01));
+            }
+            else {
+                v3 target = g->camera.pos + v3(
+                            cos(g->camera.orientation.x + 0.5*(1-g->map.player.attack.transition))*0.025,
+                            sin(g->camera.orientation.y)*0.03 - 0.008 + movement_factor*sin(g->camera_bob_sin_pos)*0.002 -
+                            0.015*(1-g->map.player.attack.transition),
+                            sin(g->camera.orientation.x + 0.5*(1-g->map.player.attack.transition))*0.025
+                );
+                draw_billboard_texture(&textures[TEX_hand], v4(64, 0, 64, 64), target, v2(0.01, 0.01));
+            }
 
             projection = old_proj;
         }

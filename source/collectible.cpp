@@ -23,5 +23,5 @@ struct CollectibleSet {
 void init_collectible(i8 type, v2 pos, i8 *type_arr, BoxComponent *b, SpriteComponent *s) {
     *type_arr = type;
     *b = init_box_component(pos, v2(0.6, 0.6));
-    *s = init_sprite_component(TEX_collectible, collectible_data[type].tx*32, 0, 32, 32);
+    *s = init_sprite_component(TEX_collectible, collectible_data[type].tx*8, 0, 8, 8);
 }
