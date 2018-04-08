@@ -11,7 +11,7 @@
 #define uniform_loc(name)       glGetUniformLocation(active_shader, name)
 
 #define enable_depth()  { glEnable(GL_DEPTH_TEST); glDepthMask(GL_TRUE); }
-#define disable_depth() { glDisable(GL_DEPTH_TEST); glDepthMask(GL_FALSE); render_z = 0; }
+#define disable_depth() { glDisable(GL_DEPTH_TEST); glDepthMask(GL_FALSE); }
 #define set_render_z(z) { render_z = (z); }
 
 struct FBO {
@@ -172,7 +172,7 @@ GBuffer init_g_buffer(i32 w, i32 h) {
     glFramebufferTexture2D(GL_DRAW_FRAMEBUFFER, GL_COLOR_ATTACHMENT1, GL_TEXTURE_2D, g.textures[GBUFFER_TEXTURE_NORMAL], 0);
 
     glBindTexture(GL_TEXTURE_2D, g.depth_texture);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT16, w, h, 0, GL_DEPTH_COMPONENT, GL_FLOAT, NULL);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT, w, h, 0, GL_DEPTH_COMPONENT, GL_FLOAT, NULL);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
@@ -200,7 +200,7 @@ void force_g_buffer_size(GBuffer *g, i32 w, i32 h) {
 }
 
 void prepare_for_world_render() {
-    projection = HMM_Perspective(field_of_view, (r32)window_w/window_h, 0.1f, 20.f);
+    projection = HMM_Perspective(field_of_view, (r32)window_w/window_h, 0.1f, 100.f);
     model = m4d(1);
     model = m4d(1);
     glEnable(GL_DEPTH_TEST);
@@ -294,12 +294,15 @@ void clear_g_buffer(GBuffer *g) {
 }
 
 void copy_g_buffer_depth(GBuffer *g) {
+    glBindFramebuffer(GL_FRAMEBUFFER, g->fbo);
     glBindFramebuffer(GL_READ_FRAMEBUFFER, g->fbo);
     glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
     glBlitFramebuffer(0, 0, g->w, g->h,
                       0, 0, g->w, g->h,
                       GL_DEPTH_BUFFER_BIT,
                       GL_NEAREST);
+    glBindFramebuffer(GL_READ_FRAMEBUFFER, 0);
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
 }
 
 //

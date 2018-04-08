@@ -1211,16 +1211,23 @@ void draw_map_begin(Map *m) {
 }
 
 void draw_map_end(Map *m) {
-    // @Draw particles
-    draw_particle_master(&m->particles);
-
     bind_g_buffer(0);
+
+    m4 last_view = view;
 
     set_shader(SHADER_map_render);
     uniform_m4(uniform_loc("projection3d"), projection);
     uniform_m4(uniform_loc("view3d"), view);
     prepare_for_ui_render();
+    glDepthMask(GL_FALSE);
     draw_ui_g_buffer(&m->render, v4(0, 0, window_w, window_h));
+    glDepthMask(GL_TRUE);
     set_shader(-1);
+
     copy_g_buffer_depth(&m->render);
+
+    // @Draw particles
+    prepare_for_world_render();
+    view = last_view;
+    draw_particle_master(&m->particles);
 }

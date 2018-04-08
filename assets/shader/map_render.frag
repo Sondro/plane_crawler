@@ -23,7 +23,7 @@ uniform vec3 light_vector;
 
 void main(void) {
 	vec2 tex_uv = vec2(uv.x, 1-uv.y);
-	
+
 	vec3 albedo = texture(albedo, tex_uv).rgb;
 	vec3 normal = texture(normal, tex_uv).rgb;
 	float depth = texture(depth, tex_uv).r;
@@ -64,8 +64,4 @@ void main(void) {
 	if(color.b < original_color.b) color.b = original_color.b;
 
 	gl_FragDepth = depth;
-
-    float fog_factor = (1 - ((1-depth)/0.02)) * 1.5;
-    fog_factor = clamp(fog_factor, 0, 1);
-    color += (vec4(0.19, 0.2, 0.21, 1) - color) * fog_factor;
 }

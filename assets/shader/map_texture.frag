@@ -15,4 +15,5 @@ void main() {
     if(out_albedo.a < 0.5) {
         discard;
     }
+    out_albedo.a = 1;
 }

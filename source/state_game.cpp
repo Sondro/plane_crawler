@@ -33,7 +33,7 @@ State init_game() {
         request_map_assets();
         request_texture(TEX_status_bars);
         request_texture(TEX_hand);
-        
+
         g->settings.state = -1;
 
         glfwSetInputMode(window, GLFW_CURSOR, g->paused ? GLFW_CURSOR_NORMAL : GLFW_CURSOR_DISABLED);
@@ -60,7 +60,7 @@ void clean_up_game(State *s) {
 
 void update_game() {
     Game *g = (Game *)state.mem;
-    
+
     r32 movement_factor = 0;
 
     // @Post Asset Loading Init
@@ -162,11 +162,11 @@ void update_game() {
                 }
 
                 g->map.player.attack.target = v2(cos(g->camera.orientation.x), sin(g->camera.orientation.x)) * 16;
-            } 
+            }
 
             { // @Camera update
                 movement_factor = (HMM_Length(g->map.player.box.vel) / (movement_speed*2));
-                
+
                 g->camera_bob_sin_pos += 15*delta_t;
                 g->camera.pos.x = g->map.player.box.pos.x;
                 g->camera.pos.z = g->map.player.box.pos.y;
@@ -175,7 +175,7 @@ void update_game() {
                 g->camera.pos.y += sin(g->camera_bob_sin_pos)*0.42*movement_factor;
 
                 update_camera(&g->camera);
-               
+
                 do_light(&g->map, g->camera.pos, v3(1, 0.9, 0.8), 15, 2);
             }
 
@@ -193,14 +193,16 @@ void update_game() {
                 sin(g->camera.orientation.x)
             );
             view = m4_lookat(g->camera.pos, target);
-        } 
+        }
 
         draw_map_begin(&g->map);
-        
-        { // @Spell drawing 
+
+        { // @Spell drawing
+            disable_depth();
+
             m4 old_proj = projection;
             projection = HMM_Perspective(90.f, (r32)window_w/window_h, 0.01f, 10.f);
-            
+
             if(g->map.player.attack.attacking) {
                 v3 target = g->camera.pos + v3(
                             cos(g->camera.orientation.x + 0.5)*0.025,
@@ -221,6 +223,8 @@ void update_game() {
             }
 
             projection = old_proj;
+
+            enable_depth();
         }
 
         draw_map_end(&g->map);
@@ -229,7 +233,7 @@ void update_game() {
     prepare_for_ui_render(); // @UI Render
     {
         // draw health/mana bars
-        
+
         draw_ui_texture(&textures[TEX_status_bars], v4(0, 12, 64 * g->map.player.health.val, 12),
                         v4(16, window_h - 120, 64*4 * g->map.player.health.val, 12*4));
 
