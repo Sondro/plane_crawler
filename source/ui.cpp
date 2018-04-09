@@ -21,6 +21,9 @@
 #define ui_down_down            (key_down[KEY_DOWN]  || key_down[KEY_S] || gamepad_control_down(GC_MOVE_BACKWARD))
 #define ui_fire_down            (key_down[KEY_SPACE] || key_down[KEY_ENTER] || gamepad_control_down(GC_ATTACK))
 
+#define play_ui_hot_sound()     (play_sound(&sounds[SOUND_ui_hot], 1, 1, 0, AUDIO_UI))
+#define play_ui_fire_sound()    (play_sound(&sounds[SOUND_ui_fire], 1, 1, 0, AUDIO_UI))
+
 typedef r64 ui_id;
 
 enum {
@@ -115,6 +118,9 @@ void init_ui() {
     ui.current_element_pos = v2(0, 0);
 
     ui.update_pos = 0;
+
+    request_sound(SOUND_ui_hot);
+    request_sound(SOUND_ui_fire);
 }
 
 void ui_begin() {
@@ -125,37 +131,44 @@ void ui_begin() {
 }
 
 void ui_end() {
-    if(ui.current_focus >= 0) {
-        ui.hot = ui.active = ui.focus_ids[ui.current_focus];
-        if(ui_up_pressed) {
-            if(!ui.current_focus--) {
-                ui.current_focus = ui.focus_count - 1;
-            }
-        }
-        if(ui_down_pressed) {
-            if(++ui.current_focus >= (i32)ui.focus_count) {
-                ui.current_focus = 0;
-            }
-        }
+    if(ui.render_count) {
+        if(ui.current_focus >= 0) {
+            ui_id last_hot = ui.hot;
 
-        if((int)ui.last_mouse_x != (int)mouse_x || (int)ui.last_mouse_y != (int)mouse_y) {
-            ui.current_focus = -1;
-            ui.active = -1;
-            ui.hot = -1;
+            ui.hot = ui.active = ui.focus_ids[ui.current_focus];
+            if(ui_up_pressed) {
+                if(!ui.current_focus--) {
+                    ui.current_focus = ui.focus_count - 1;
+                }
+                play_ui_hot_sound();
+            }
+            if(ui_down_pressed) {
+                if(++ui.current_focus >= (i32)ui.focus_count) {
+                    ui.current_focus = 0;
+                }
+                play_ui_hot_sound();
+            }
+
+            if((int)ui.last_mouse_x != (int)mouse_x || (int)ui.last_mouse_y != (int)mouse_y) {
+                ui.current_focus = -1;
+                ui.active = -1;
+                ui.hot = -1;
+            }
         }
-    }
-    else {
-        if(ui_left_pressed || ui_right_pressed || ui_up_pressed || ui_down_pressed) {
-            if(ui.hot >= 0) {
-                foreach(i, ui.focus_count) {
-                    if(ui_id_equ(ui.hot, ui.focus_ids[i])) {
-                        ui.current_focus = i;
-                        break;
+        else {
+            if(ui_left_pressed || ui_right_pressed || ui_up_pressed || ui_down_pressed) {
+                if(ui.hot >= 0) {
+                    foreach(i, ui.focus_count) {
+                        if(ui_id_equ(ui.hot, ui.focus_ids[i])) {
+                            ui.current_focus = i;
+                            break;
+                        }
                     }
                 }
-            }
-            else {
-                ui.current_focus = 0;
+                else {
+                    ui.current_focus = 0;
+                }
+                play_ui_hot_sound();
             }
         }
     }
@@ -333,6 +346,7 @@ i8 do_button(ui_id id, r32 w, r32 h, const char *text) {
         if(ui.current_focus >= 0) { // @Keyboard controls
             if(ui_id_equ(id, ui.hot) && ui_fire_pressed) {
                 fired = 1;
+                play_ui_fire_sound();
             }
         }
         else { // @Mouse controls
@@ -347,6 +361,7 @@ i8 do_button(ui_id id, r32 w, r32 h, const char *text) {
                     if(ui_id_equ(id, ui.active)) {
                         if(!left_mouse_down) {
                             fired = 1;
+                            play_ui_fire_sound();
                             ui.active = -1;
                         }
                     }
@@ -364,6 +379,7 @@ i8 do_button(ui_id id, r32 w, r32 h, const char *text) {
                 if(ui.hot < 0) {
                     if(mouse_over) {
                         ui.hot = id;
+                        play_ui_hot_sound();
                     }
                 }
                 if(ui_id_equ(ui.active, id) && !left_mouse_down) {
@@ -414,6 +430,7 @@ i8 do_toggler(ui_id id, r32 w, r32 h, const char *text, i8 value) {
         if(ui.current_focus >= 0) { // @Keyboard controls
             if(ui_id_equ(id, ui.hot) && ui_fire_pressed) {
                 fired = 1;
+                play_ui_fire_sound();
             }
         }
         else { // @Mouse controls
@@ -429,6 +446,7 @@ i8 do_toggler(ui_id id, r32 w, r32 h, const char *text, i8 value) {
                         if(!left_mouse_down) {
                             fired = 1;
                             ui.active = -1;
+                            play_ui_fire_sound();
                         }
                     }
                     else {
@@ -445,6 +463,7 @@ i8 do_toggler(ui_id id, r32 w, r32 h, const char *text, i8 value) {
                 if(ui.hot < 0) {
                     if(mouse_over) {
                         ui.hot = id;
+                        play_ui_hot_sound();
                     }
                 }
                 if(ui_id_equ(ui.active, id) && !left_mouse_down) {
@@ -529,6 +548,7 @@ r32 do_slider(ui_id id, r32 w, r32 h, const char *text, r32 value) {
                 if(ui.hot < 0) {
                     if(mouse_over) {
                         ui.hot = id;
+                        play_ui_hot_sound();
                     }
                 }
             }

@@ -30,10 +30,28 @@
 #undef textures_end
 #undef texture
 
+#define sounds_begin  enum {
+#define sounds_end    MAX_SOUND };
+#define sound(s)      SOUND_ ## s
+#include "assets_sound.cpp"
+#undef sounds_begin
+#undef sounds_end
+#undef sound
+
+#define sounds_begin  global const char *sound_names[] = {
+#define sounds_end    };
+#define sound(s)      #s
+#include "assets_sound.cpp"
+#undef sounds_begin
+#undef sounds_end
+#undef sound
+
 #define request_shader(i)    { ++shader_requests[i]; }
 #define unrequest_shader(i)  { --shader_requests[i]; }
 #define request_texture(i)   { ++texture_requests[i]; }
 #define unrequest_texture(i) { --texture_requests[i]; }
+#define request_sound(i)     { ++sound_requests[i]; }
+#define unrequest_sound(i)   { --sound_requests[i]; }
 
 struct Shader {
     GLuint id;
@@ -46,6 +64,8 @@ struct Texture {
 
 struct Sound {
     ALuint id;
+    u64 sample_count;
+    u32 sample_rate;
 };
 
 global Shader  shaders[MAX_SHADER];
@@ -53,6 +73,27 @@ global i32     shader_requests[MAX_SHADER] = { 0 };
 
 global Texture textures[MAX_TEX];
 global i32     texture_requests[MAX_TEX] = { 0 };
+
+global Sound   sounds[MAX_SOUND];
+global i32     sound_requests[MAX_SOUND] = { 0 };
+
+void load_file_into_data(const char *filename, void **data, i64 *len) {
+    *data = 0;
+    *len = 0;
+    FILE *f = 0;
+    if((f = fopen(filename, "rb"))) {
+        fseek(f, 0, SEEK_END);
+        *len = ftell(f);
+        rewind(f);
+
+        *data = calloc(*len, 1);
+        fread(*data, 1, *len, f);
+        fclose(f);
+    }
+    else {
+        fprintf(log_file, "ERROR: Could not open \"%s\"\n", filename);
+    }
+}
 
 Shader init_shader_from_data(void *vert, i64 vert_len,
                              void *frag, i64 frag_len,
@@ -344,8 +385,133 @@ void clean_up_texture(Texture *t) {
     t->h = 0;
 }
 
+Sound init_sound_from_wav_data(void *data, i64 len) {
+    Sound s;
+
+    ALenum format = 0;
+
+    drwav *file = drwav_open_memory(data, len);
+    if(file) {
+        i16 *data_i = NULL;
+
+        s.sample_count = file->totalSampleCount;
+        s.sample_rate = file->sampleRate;
+
+        data_i = (i16 *)malloc(sizeof(i16) * s.sample_count);
+        r32 *sample_data_f = (r32 *)malloc(sizeof(r32) * s.sample_count);
+        drwav_read_f32(file, s.sample_count, sample_data_f);
+
+        for(u64 i = 0; i < s.sample_count; i++) {
+            data_i[i] = (i16)(sample_data_f[i] * 32767.f);
+        }
+
+        if(file->bitsPerSample == 16) {
+            if(file->channels == 1) {
+                format = AL_FORMAT_MONO16;
+            }
+            else if(file->channels == 2) {
+                format = AL_FORMAT_STEREO16;
+            }
+        }
+        else if(file->bitsPerSample == 8) {
+            if(file->channels == 1) {
+                format = AL_FORMAT_MONO8;
+            }
+            else if(file->channels == 2) {
+                format = AL_FORMAT_STEREO8;
+            }
+        }
+
+        alGenBuffers(1, &s.id);
+        alBufferData(s.id, format,
+                     data_i,
+                     s.sample_count * sizeof(i16),
+                     s.sample_rate);
+
+        free(data_i);
+        free(sample_data_f);
+        drwav_close(file);
+    }
+
+    return s;
+}
+
+Sound init_sound_from_ogg_data(void *data, i64 len) {
+    Sound s;
+
+    s.id = 0;
+    s.sample_count = 0;
+    s.sample_rate = 0;
+
+    i32 channels = 0, sample_rate = 0;
+    i16 *data_i = NULL;
+    ALenum format = 0;
+
+    s.sample_count = stb_vorbis_decode_memory((u8 *)data, len, &channels, &sample_rate, &data_i);
+    if(s.sample_count > 0) {
+        s.sample_rate = sample_rate;
+
+        if(channels == 1) {
+            format = AL_FORMAT_MONO16;
+        }
+        else if(channels == 2) {
+            format = AL_FORMAT_STEREO16;
+        }
+
+        alGenBuffers(1, &s.id);
+        alBufferData(s.id, format,
+                     data_i,
+                     s.sample_count * channels * sizeof(i16),
+                     s.sample_rate);
+
+        free(data_i);
+    }
+
+    return s;
+}
+
+Sound load_sound(const char *filename) {
+    i8 ogg = 0;
+    Sound s;
+    s.id = 0;
+
+    char full_filename[64] = { 0 };
+    sprintf(full_filename, "%s%s%s.wav", ASSETS_DIR, SOUND_DIR, filename);
+    if(!file_exists(full_filename)) {
+        sprintf(full_filename, "%s%s%s.ogg", ASSETS_DIR, SOUND_DIR, filename);
+        ogg = 1;
+    }
+
+    void *data = 0;
+    i64 len = 0;
+    load_file_into_data(full_filename, &data, &len);
+
+    if(data) {
+        s = ogg ? init_sound_from_ogg_data(data, len) :
+                  init_sound_from_wav_data(data, len);
+        free(data);
+    }
+
+    return s;
+}
+
+void clean_up_sound(Sound *s) {
+    if(s->id) {
+        alDeleteBuffers(1, &s->id);
+        s->id = 0;
+    }
+}
+
 void init_assets() {
-    
+    foreach(i, MAX_SHADER) {
+        shaders[i].id = 0;
+    }
+    foreach(i, MAX_TEX) {
+        textures[i].id = 0;
+    }
+    foreach(i, MAX_SOUND) {
+        sounds[i].id = 0;
+    }
 }
 
 void clean_up_assets() {
@@ -354,6 +520,9 @@ void clean_up_assets() {
     }
     foreach(i, MAX_TEX) {
         clean_up_texture(textures+i);
+    }
+    foreach(i, MAX_SOUND) {
+        clean_up_sound(sounds+i);
     }
 }
 
@@ -373,6 +542,15 @@ void update_assets() {
         }
         else if(textures[i].id && !texture_requests[i]) {
             clean_up_texture(textures + i);
+        }
+    }
+
+    foreach(i, MAX_SOUND) {
+        if(!sounds[i].id && sound_requests[i]) {
+            sounds[i] = load_sound(sound_names[i]);
+        }
+        else if(sounds[i].id && !sound_requests[i]) {
+            clean_up_sound(sounds + i);
         }
     }
 }

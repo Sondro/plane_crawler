@@ -4,7 +4,7 @@ textures_begin
     texture(font),
     texture(logo),
     texture(hand),
-    texture(status_bars),
+    texture(hud),
     texture(particle_fire),
     texture(collectible),
 textures_end

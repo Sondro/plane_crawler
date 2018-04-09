@@ -150,21 +150,21 @@ void do_particle(Map *m, i8 type, v3 pos, v3 vel, r32 scale) {
 
 void add_enemy(Map *m, i16 type, v2 pos) {
     if(m->enemies.count < MAX_ENEMY_COUNT) {
-        u32 i = m->enemies.count;
+        u32 it = m->enemies.count;
 
         i32 max_id = 1;
         foreach(i, m->enemies.count) {
-            if(m->enemies.id[i] > max_id) {
+            if(m->enemies.id[i] >= max_id) {
                 max_id = m->enemies.id[i]+1;
             }
         }
 
-        m->enemies.id[i] = max_id;
+        m->enemies.id[it] = max_id;
         init_enemy(type, pos,
-                   m->enemies.box + i,
-                   m->enemies.sprite + i,
-                   m->enemies.health + i,
-                   m->enemies.attack + i);
+                   m->enemies.box + it,
+                   m->enemies.sprite + it,
+                   m->enemies.health + it,
+                   m->enemies.attack + it);
 
         ++m->enemies.count;
     }
@@ -249,13 +249,14 @@ void generate_map(Map *m) {
     }
 
     // @Room generation
-    i32 room_count = 24;
+    i32 room_count = 50;
 
     struct {
         int x, y, w, h, ground_tile;
         r32 height;
     } rooms[room_count];
 
+    /*
     struct {
         int x,
             y,
@@ -263,12 +264,12 @@ void generate_map(Map *m) {
             h,
             ground_tile;
         r32 height;
-    } halls[room_count * room_count];
+    } halls[room_count * room_count];*/
 
     // @Cleanup
     //
     // This block should be replaced with actual room generation
-    foreach(i, room_count) {//generate rooms, based on prefab maps in folder
+    foreach(i, room_count) {
         rooms[i].x = random32(0, MAP_W-1);
         rooms[i].y = random32(0, MAP_H-1);
         rooms[i].w = random32(4, 24);
@@ -280,6 +281,7 @@ void generate_map(Map *m) {
     foreach(i, MAP_W*MAP_H){
 
     }
+
     //
 
     foreach(i, room_count) {
@@ -317,16 +319,14 @@ void generate_map(Map *m) {
 
         if(tile_data[m->tiles[x][z]].flags & WALL) {
             if(x && !(tile_data[m->tiles[x-1][z]].flags & WALL)) {
-                if(m->tiles[x-1][z] == TILE_BRICK_WALL) {
+                foreach(height, 3) {
                     if(random32(0, 1) < 0.2) {
                         ty = 32.f/textures[TEX_tile].w;
                     }
                     else {
                         ty = 0;
                     }
-                }
 
-                foreach(height, 4) {
                     r32 verts[] = {
                         v00.x, v00.y+height, v00.z,
                         v10.x, v10.y+height, v10.z,
@@ -364,14 +364,12 @@ void generate_map(Map *m) {
                 }
             }
             if(x<MAP_W-1 && !(tile_data[m->tiles[x+1][z]].flags & WALL)) {
-                foreach(height, 4) {
-                    if(m->tiles[x+1][z] == TILE_BRICK_WALL) {
-                        if(random32(0, 1) < 0.2) {
-                            ty = 32.f/textures[TEX_tile].w;
-                        }
-                        else {
-                            ty = 0;
-                        }
+                foreach(height, 3) {
+                    if(random32(0, 1) < 0.2) {
+                        ty = 32.f/textures[TEX_tile].w;
+                    }
+                    else {
+                        ty = 0;
                     }
 
                     r32 verts[] = {
@@ -415,14 +413,12 @@ void generate_map(Map *m) {
                 }
             }
             if(z && !(tile_data[m->tiles[x][z-1]].flags & WALL)) {
-                foreach(height, 4) {
-                    if(m->tiles[x][z-1] == TILE_BRICK_WALL) {
-                        if(random32(0, 1) < 0.2) {
-                            ty = 32.f/textures[TEX_tile].w;
-                        }
-                        else {
-                            ty = 0;
-                        }
+                foreach(height, 3) {
+                    if(random32(0, 1) < 0.2) {
+                        ty = 32.f/textures[TEX_tile].w;
+                    }
+                    else {
+                        ty = 0;
                     }
 
                     r32 verts[] = {
@@ -466,14 +462,12 @@ void generate_map(Map *m) {
                 }
             }
             if(z < MAP_H-1 && !(tile_data[m->tiles[x][z+1]].flags & WALL)) {
-                foreach(height, 4) {
-                    if(m->tiles[x-1][z] == TILE_BRICK_WALL) {
-                        if(random32(0, 1) < 0.2) {
-                            ty = 32.f/textures[TEX_tile].w;
-                        }
-                        else {
-                            ty = 0;
-                        }
+                foreach(height, 3) {
+                    if(random32(0, 1) < 0.2) {
+                        ty = 32.f/textures[TEX_tile].w;
+                    }
+                    else {
+                        ty = 0;
                     }
 
                     r32 verts[] = {
@@ -680,13 +674,13 @@ void generate_map(Map *m) {
         else {
             foreach(k, 2) {
                 r32 verts[] = {
-                    v00.x, v00.y + k*4, v00.z,
-                    v01.x, v01.y + k*4, v01.z,
-                    v10.x, v10.y + k*4, v10.z,
+                    v00.x, v00.y + k*3, v00.z,
+                    v01.x, v01.y + k*3, v01.z,
+                    v10.x, v10.y + k*3, v10.z,
 
-                    v11.x, v11.y + k*4, v11.z,
-                    v01.x, v01.y + k*4, v01.z,
-                    v10.x, v10.y + k*4, v10.z,
+                    v11.x, v11.y + k*3, v11.z,
+                    v01.x, v01.y + k*3, v01.z,
+                    v10.x, v10.y + k*3, v10.z,
                 };
 
                 if(k) {
@@ -875,23 +869,33 @@ void collide_boxes_with_tiles(Map *m, BoxComponent *b, i32 count) {
 
 void collide_boxes_with_projectiles(Map *m, i32 *id, BoxComponent *b, HealthComponent *h, i32 count) {
     foreach(i, count) {
-        foreach(j, m->projectiles.count) {
+        for(i32 j = 0; j < m->projectiles.count;) {
             if(m->projectiles.update[j].origin != id[i]) {
                 v2 proj_pos0 = m->projectiles.update[j].pos,
                    proj_vel = m->projectiles.update[j].vel;
-
+                i8 proj_hit = 0;
                 for(r32 k = 0.2; k <= 1.0; k += 0.2) {
                     v2 proj_pos = proj_pos0 + proj_vel * k * delta_t;
                     if(proj_pos.x >= b[i].pos.x - b[i].size.x/2 &&
                        proj_pos.x <= b[i].pos.x + b[i].size.x/2 &&
                        proj_pos.y >= b[i].pos.y - b[i].size.y/2 &&
                        proj_pos.y <= b[i].pos.y + b[i].size.y/2) {
-                        h[i].target -= m->projectiles.update[j].strength;
-                        b[i].vel += proj_vel / 2;
-                        remove_projectile(m, j);
+                        h[i].val -= m->projectiles.update[j].strength;
+                        h[i].target = h[i].val;
+                        b[i].vel += proj_vel / 1.5;
+                        proj_hit = 1;
                         break;
                     }
                 }
+                if(proj_hit) {
+                    remove_projectile(m, j);
+                }
+                else {
+                    ++j;
+                }
+            }
+            else {
+                ++j;
             }
         }
     }

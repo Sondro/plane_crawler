@@ -5,8 +5,6 @@ TO-DO:
  * Implement real spell casting
  * Stop calling glGetUniformLocation every frame (cache results once)
  * Make real room generation
- * Implement gamepad controls
- * Audio
 
 */
 
@@ -16,6 +14,7 @@ TO-DO:
 #define ASSETS_DIR "./assets/"
 #define SHADER_DIR "shader/"
 #define TEXURE_DIR "./"
+#define SOUND_DIR  "sound/"
 
 #define NOISE_SEED 123456
 
@@ -29,6 +28,7 @@ TO-DO:
 // External Libraries/Related Code
 #include "gl_load.cpp"
 #include <AL/al.h>
+#include <AL/alc.h>
 #include <GLFW/glfw3.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -51,11 +51,18 @@ TO-DO:
 #define STB_IMAGE_IMPLEMENTATION
 #define STBI_ONLY_PNG
 #include "ext/stb_image.h"
+
+#define DR_WAV_IMPLEMENTATION
+#include "ext/dr_wav.h"
+
+#include "ext/stb_vorbis.c"
+#undef R
+#undef L
+#undef C
 //
 
 // Game Code
 #include "globals.cpp"
-#include "audio.cpp"
 #include "noise.cpp"
 #include "input.cpp"
 
@@ -65,6 +72,7 @@ TO-DO:
 #error "Release version has not been prepared; you must #define DEBUG"
 #endif
 
+#include "audio.cpp"
 #include "draw.cpp"
 #include "ui.cpp"
 #include "state.cpp"
@@ -128,6 +136,8 @@ int main() {
                     glfwGetWindowSize(window, &window_w, &window_h);
                     update_input();
 
+                    update_audio();
+
                     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
                     glClearColor(0, 0, 0, 1);
                     glViewport(0, 0, window_w, window_h);
@@ -143,6 +153,13 @@ int main() {
                         GLenum err = glGetError();
                         if(err) {
                             fprintf(log_file, "ERROR [OpenGL]: %i\n\n", err);
+                        }
+                    }
+
+                    {
+                        ALenum err = alGetError();
+                        if(err) {
+                            fprintf(log_file, "ERROR [OpenAL]: %i\n\n", err);
                         }
                     }
 
@@ -199,6 +216,8 @@ int main() {
     else {
         fprintf(log_file, "ERROR: GLFW initialization failed\n\n");
     }
+
+    clean_up_audio();
 
     return 0;
 }

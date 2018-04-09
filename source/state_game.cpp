@@ -31,7 +31,7 @@ State init_game() {
         g->camera.interpolation_rate = 10;
 
         request_map_assets();
-        request_texture(TEX_status_bars);
+        request_texture(TEX_hud);
         request_texture(TEX_hand);
 
         g->settings.state = -1;
@@ -46,7 +46,7 @@ void clean_up_game(State *s) {
     Game *g = (Game *)s->mem;
 
     { // @Cleanup
-        unrequest_texture(TEX_status_bars);
+        unrequest_texture(TEX_hud);
         unrequest_texture(TEX_hand);
 
         unrequest_map_assets();
@@ -234,17 +234,27 @@ void update_game() {
     {
         // draw health/mana bars
 
-        draw_ui_texture(&textures[TEX_status_bars], v4(0, 12, 64 * g->map.player.health.val, 12),
+        draw_ui_texture(&textures[TEX_hud], v4(0, 12, 64 * g->map.player.health.val, 12),
                         v4(16, window_h - 120, 64*4 * g->map.player.health.val, 12*4));
 
-        draw_ui_texture(&textures[TEX_status_bars], v4(0, 0, 64, 12),
+        draw_ui_texture(&textures[TEX_hud], v4(0, 0, 64, 12),
                         v4(16, window_h - 120, 64*4, 12*4));
 
-        draw_ui_texture(&textures[TEX_status_bars], v4(0, 24, 64 * g->map.player.attack.mana, 12),
+        draw_ui_texture(&textures[TEX_hud], v4(0, 24, 64 * g->map.player.attack.mana, 12),
                         v4(16, window_h - 64, 64*4 * g->map.player.attack.mana, 12*4));
 
-        draw_ui_texture(&textures[TEX_status_bars], v4(0, 0, 64, 12),
+        draw_ui_texture(&textures[TEX_hud], v4(0, 0, 64, 12),
                         v4(16, window_h - 64, 64*4, 12*4));
+
+        // draw inventory
+        foreach(i, 3) {
+            if(g->map.player.inventory[i] >= 0) {
+                draw_ui_texture(&textures[TEX_collectible], v4(collectible_data[g->map.player.inventory[i]].tx*8, 0, 8, 8),
+                                v4(window_w - 3*64 + i*64 + 8, window_h - 64 + 8, 8*4, 8*4));
+            }
+            draw_ui_texture(&textures[TEX_hud], v4(64, 0, 12, 12),
+                            v4(window_w - 3*64 + i*64, window_h - 64, 12*4, 12*4));
+        }
     }
 
     if(g->game_over) {
