@@ -1,0 +1,11 @@
+#: walls
+O: pits
+ : empty
+%: locked door
+$: key
++: consumable
+&: Trophy
+S: (S)keleton
+J: (J)elly
+G: (G)host
+B: (B)oss
