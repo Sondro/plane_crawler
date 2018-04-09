@@ -25,9 +25,9 @@ State init_title() {
     t->camera.pos = v3(0, 0, 0);
     t->camera.orientation = t->camera.target_orientation = v3(PI*(2.f/3), 0, 0);
     t->camera.interpolation_rate = 0.06;
-    
+
     request_map_assets();
-    
+
     request_texture(TEX_logo);
 
     return s;
@@ -35,7 +35,7 @@ State init_title() {
 
 void clean_up_title(State *s) {
     Title *t = (Title *)s->mem;
-    
+
     unrequest_texture(TEX_logo);
 
     unrequest_map_assets();
@@ -48,7 +48,7 @@ void clean_up_title(State *s) {
 
 void update_title() {
     Title *t = (Title *)state.mem;
-    
+
     if(first_state_frame) {
         generate_map(&t->map);
 
@@ -62,6 +62,8 @@ void update_title() {
 
         t->camera.target_orientation = v3(PI*(4.f/3), 0, 0);
     }
+
+    do_light(&t->map, t->camera.pos, v3(1, 0.8, 0.6), 20, 0.9);
 
     update_camera(&t->camera);
     update_map(&t->map);

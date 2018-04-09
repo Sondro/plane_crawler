@@ -133,8 +133,6 @@ void ui_begin() {
 void ui_end() {
     if(ui.render_count) {
         if(ui.current_focus >= 0) {
-            ui_id last_hot = ui.hot;
-
             ui.hot = ui.active = ui.focus_ids[ui.current_focus];
             if(ui_up_pressed) {
                 if(!ui.current_focus--) {

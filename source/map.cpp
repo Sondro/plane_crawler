@@ -242,59 +242,99 @@ void generate_map(Map *m) {
 
     m->light_vector = v3(2, 1, 1) / sqrt(6);
 
-    foreach(i, MAP_W)
-    foreach(j, MAP_H) {
-        m->tiles[i][j] = TILE_BRICK_WALL;
-        m->heights[i][j] = 0;
-    }
-
     // @Room generation
-    i32 room_count = 50;
+    {
+        foreach(i, MAP_W)
+        foreach(j, MAP_H) {
+            m->tiles[i][j] = TILE_BRICK_WALL;
+            m->heights[i][j] = perlin_2d(i, j, 0.15, 12)*1.1;
+        }
 
-    struct {
-        int x, y, w, h, ground_tile;
-        r32 height;
-    } rooms[room_count];
+        i32 room_count = 10;
 
-    /*
-    struct {
-        int x,
-            y,
-            w,
-            h,
-            ground_tile;
-        r32 height;
-    } halls[room_count * room_count];*/
+        i16 current_room = 1;
 
-    // @Cleanup
-    //
-    // This block should be replaced with actual room generation
-    foreach(i, room_count) {
-        rooms[i].x = random32(0, MAP_W-1);
-        rooms[i].y = random32(0, MAP_H-1);
-        rooms[i].w = random32(4, 24);
-        rooms[i].h = random32(4, 24);
-        rooms[i].ground_tile = random32(0, 1) < 0.5 ? TILE_DIRT : TILE_BROKEN_STONE;
-        rooms[i].height = random32(0, 1);
-    }
+        struct Room {
+            i8 origin_dir, branch_depth;
+            i16 x, y, w, h, ground_tile;
+        } *rooms = heap_alloc(Room, room_count);
 
-    foreach(i, MAP_W*MAP_H){
+        rooms[0].origin_dir = -1;
+        rooms[0].branch_depth = 0;
+        rooms[0].x = MAP_W/2;
+        rooms[0].y = MAP_H/2;
+        rooms[0].w = 8;
+        rooms[0].h = 8;
+        rooms[0].ground_tile = TILE_BRICK;
 
-    }
+        foreach(i, current_room) {
+            if(current_room < room_count && rooms[i].branch_depth < 6) {
+                foreach(d, 4) {
+                    if(rooms[i].origin_dir != (int)d && (random32(0, 1) < 0.3 || !i)) {
+                        rooms[current_room].origin_dir = !i ? is_even(d) ? d+1 : d-1 : rooms[i].origin_dir;
+                        rooms[current_room].branch_depth = rooms[i].branch_depth + 1;
+                        rooms[current_room].w = random32(4, 16);
+                        rooms[current_room].h = random32(rooms[current_room].w-3, rooms[current_room].w+3);
+                        rooms[current_room].ground_tile = random32(0, 1) < 0.5 ? TILE_BROKEN_STONE : TILE_DIRT;
 
-    //
+                        i16 x_change = 0, y_change = 0;
+                        switch(d) {
+                            case 0: { // right
+                                x_change = rooms[i].w/2 + rooms[current_room].w/2 + random32(3, 10);
+                                y_change = 0;
+                                break;
+                            }
+                            case 1: { // left
+                                x_change = -(rooms[i].w/2 + rooms[current_room].w/2 + random32(3, 10));
+                                y_change = 0;
+                                break;
+                            }
+                            case 2: { // up
+                                x_change = 0;
+                                y_change = -(rooms[i].h/2 + rooms[current_room].h/2 + random32(3, 10));
+                                break;
+                            }
+                            case 3: { // down
+                                x_change = 0;
+                                y_change = rooms[i].h/2 + rooms[current_room].h/2 + random32(3, 10);
+                                break;
+                            }
+                            default: break;
+                        }
 
-    foreach(i, room_count) {
-        forrng(x, rooms[i].x, rooms[i].x + rooms[i].w+1)
-        forrng(y, rooms[i].y, rooms[i].y + rooms[i].h+1) {
-            if(x >= 1 && x < MAP_W-1 && y >= 1 && y < MAP_H-1) {
-                if(x < rooms[i].x + rooms[i].w && x < MAP_W-2 &&
-                   y < rooms[i].y + rooms[i].h && y < MAP_H-2) {
-                    m->tiles[x][y] = rooms[i].ground_tile;
+                        rooms[current_room].x = rooms[i].x + x_change;
+                        rooms[current_room].y = rooms[i].y + y_change;
+
+                        i16 hall_x = min(rooms[current_room].x, rooms[i].x),
+                            hall_y = min(rooms[current_room].y, rooms[i].y);
+
+                        forrng(x, hall_x, hall_x + abs(x_change)+1) {
+                            forrng(y, hall_y, hall_y + abs(y_change)+1) {
+                                if(x >= 1 && x < MAP_W-1 && y >= 1 && y < MAP_H-1) {
+                                    m->tiles[x][y] = TILE_BROKEN_STONE;
+                                }
+                            }
+                        }
+
+                        ++current_room;
+                    }
                 }
-                m->heights[x][y] = rooms[i].height + perlin_2d(x, y, 0.15, 12)*1.1;
             }
         }
+
+        foreach(i, room_count) {
+            forrng(x, rooms[i].x - rooms[i].w/2, rooms[i].x + rooms[i].w/2)
+            forrng(y, rooms[i].y - rooms[i].h/2, rooms[i].y + rooms[i].h/2) {
+                if(x >= 1 && x < MAP_W-1 && y >= 1 && y < MAP_H-1) {
+                    if(x < rooms[i].x + rooms[i].w && x < MAP_W-2 &&
+                       y < rooms[i].y + rooms[i].h && y < MAP_H-2) {
+                        m->tiles[x][y] = rooms[i].ground_tile;
+                    }
+                }
+            }
+        }
+
+        free(rooms);
     }
 
     //
@@ -752,17 +792,10 @@ void generate_map(Map *m) {
     da_free(uvs);
     da_free(normals);
 
-    i8 spawned_player = 0;
-
     foreach(i, MAP_W)
     foreach(j, MAP_H) {
         if(!(tile_data[m->tiles[i][j]].flags & WALL) &&
            !(tile_data[m->tiles[i][j]].flags & PIT)) {
-            if(!spawned_player) {
-                m->player = init_player(v2(i+0.5, j+0.5));
-                spawned_player = 1;
-            }
-
             if(random32(0, 1) < 0.01) {
                 add_enemy(m, random32(0, MAX_ENEMY - 0.0001), v2(i, j));
             }
@@ -771,6 +804,8 @@ void generate_map(Map *m) {
             }
         }
     }
+
+    m->player = init_player(v2(MAP_W/2, MAP_H/2));
 
     m->render = init_g_buffer(window_w, window_h);
     init_light_state(&m->lighting);
@@ -1154,7 +1189,7 @@ void update_map(Map *m) {
             }
         }
 
-        uniform1f(uniform_loc("brightness"), 1);
+        uniform1f(uniform_loc("brightness"), 0.2);
         uniform3f(uniform_loc("light_vector"), m->light_vector);
         uniform1i(uniform_loc("light_count"), light_count);
         set_shader(-1);
