@@ -1,3 +1,9 @@
+enum {
+    DUNGEON_TYPE_easy,
+    DUNGEON_TYPE_medium,
+    DUNGEON_TYPE_hard,
+};
+
 #define WALL    0x01
 #define PIT     0x02
 #define TILE_SET_TILE_SIZE 32

@@ -75,10 +75,10 @@ void update_dungeon_state() {
 
         begin_block(0, UI_STANDARD_W, UI_STANDARD_H*3);
         {
-            if(do_button(GEN_ID, UI_STANDARD_W*2, UI_STANDARD_H, "RETURN TO MENU")) {
+            if(do_button(GEN_ID, UI_STANDARD_W*2, UI_STANDARD_H, "RETURN TO HOUSE") && !next_state.type) {
                 next_state = init_title_state();
             }
-            if(do_button(GEN_ID, UI_STANDARD_W*2, UI_STANDARD_H, "NEW DUNGEON")) {
+            if(do_button(GEN_ID, UI_STANDARD_W*2, UI_STANDARD_H, "NEW DUNGEON") && !next_state.type) {
                 next_state = init_dungeon_state();
             }
             if(do_button(GEN_ID, UI_STANDARD_W*2, UI_STANDARD_H, "QUIT")) {
@@ -100,8 +100,8 @@ void update_dungeon_state() {
                     if(do_button(GEN_ID, UI_STANDARD_W, UI_STANDARD_H, "SETTINGS")) {
                         d->settings.state = 0;
                     }
-                    if(do_button(GEN_ID, UI_STANDARD_W, UI_STANDARD_H, "QUIT")) {
-                        next_state = init_title_state();
+                    if(do_button(GEN_ID, UI_STANDARD_W, UI_STANDARD_H, "RETURN TO HOUSE") && !next_state.type) {
+                        next_state = init_house_state();
                     }
                 }
                 end_block();

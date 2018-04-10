@@ -8,5 +8,7 @@ textures_begin
     texture(hud),
     texture(particle_fire),
     texture(particle_portal_easy),
+    texture(particle_portal_medium),
+    texture(particle_portal_hard),
     texture(collectible),
 textures_end

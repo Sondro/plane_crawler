@@ -129,7 +129,7 @@ void update_title_state() {
                     file_exists("./saves/save3")
                 };
 
-                if(do_button(GEN_ID, UI_STANDARD_W*2, UI_STANDARD_H, slots_full[0] ? "SLOT 1" : "SLOT 1 - Empty")) {
+                if(do_button(GEN_ID, UI_STANDARD_W*2, UI_STANDARD_H, slots_full[0] ? "SLOT 1" : "SLOT 1 - Empty") && !next_state.type) {
                     next_state = init_house_state();
                 }
                 if(do_button(GEN_ID, UI_STANDARD_W*2, UI_STANDARD_H, slots_full[1] ? "SLOT 2" : "SLOT 2 - Empty")) {

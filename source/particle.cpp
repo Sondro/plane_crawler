@@ -4,6 +4,8 @@
 enum {
     PARTICLE_fire,
     PARTICLE_portal_easy,
+    PARTICLE_portal_medium,
+    PARTICLE_portal_hard,
     MAX_PARTICLE
 };
 
@@ -13,6 +15,8 @@ struct {
 } particle_types[MAX_PARTICLE] = {
     { TEX_particle_fire, 16 },
     { TEX_particle_portal_easy, 12 },
+    { TEX_particle_portal_medium, 12 },
+    { TEX_particle_portal_hard, 12 },
 };
 
 struct ParticleSet {

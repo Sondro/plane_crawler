@@ -92,7 +92,7 @@ void update_house_state() {
                 if(do_button(GEN_ID, UI_STANDARD_W, UI_STANDARD_H, "SETTINGS")) {
                     h->settings.state = 0;
                 }
-                if(do_button(GEN_ID, UI_STANDARD_W, UI_STANDARD_H, "QUIT")) {
+                if(do_button(GEN_ID, UI_STANDARD_W, UI_STANDARD_H, "QUIT") && !next_state.type) {
                     next_state = init_title_state();
                 }
             }
@@ -100,7 +100,7 @@ void update_house_state() {
         }
     }
     else { // @Unpaused update
-        r32 movement_speed = 20;
+        r32 movement_speed = 17;
 
         { // @Controls update
             if(key_control_down(KC_TURN_LEFT) || gamepad_control_down(GC_TURN_LEFT)) {
@@ -162,12 +162,12 @@ void update_house_state() {
             movement_factor = (HMM_Length(h->player.box.vel) / (movement_speed*2));
 
             r32 last_camera_bob_sin_pos = h->camera_bob_sin_pos;
-            h->camera_bob_sin_pos += 10*delta_t;
+            h->camera_bob_sin_pos += 12*delta_t;
             h->camera.pos.x = h->player.box.pos.x;
             h->camera.pos.z = h->player.box.pos.y;
 
             h->camera.pos.y = 0.5;
-            h->camera.pos.y += sin(h->camera_bob_sin_pos)*0.42*movement_factor;
+            h->camera.pos.y += sin(h->camera_bob_sin_pos)*0.32*movement_factor;
 
             update_camera(&h->camera);
             if(HMM_Length(h->player.box.vel) > 0.1 && cos(last_camera_bob_sin_pos) < 0 && cos(h->camera_bob_sin_pos) > 0) {
