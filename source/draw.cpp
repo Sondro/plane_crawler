@@ -346,7 +346,7 @@ void draw_quad() {
 }
 
 void draw_billboard_texture(Texture *texture, v4 tbb, v3 pos, v2 scale) {
-    set_shader(SHADER_map_texture);
+    set_shader(SHADER_world_texture);
     {
         bind_texture(texture, tbb.x, tbb.y, tbb.z, tbb.w);
 

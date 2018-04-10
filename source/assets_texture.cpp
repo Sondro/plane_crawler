@@ -1,6 +1,7 @@
 textures_begin
     texture(enemy),
-    texture(tile),
+    texture(tile_dungeon),
+    texture(tile_house),
     texture(font),
     texture(logo),
     texture(hand),

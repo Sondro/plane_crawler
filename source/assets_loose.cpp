@@ -347,7 +347,7 @@ void clean_up_shader(Shader *s) {
 
 Texture load_texture(const char *filename) {
     char pathed_filename[strlen(ASSETS_DIR) + strlen(filename) + 1] = { 0 };
-    sprintf(pathed_filename, "%s%s.png", ASSETS_DIR, filename);
+    sprintf(pathed_filename, "%s%s%s.png", ASSETS_DIR, TEXTURE_DIR, filename);
 
     Texture t = { 0, 0, 0 };
 

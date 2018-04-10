@@ -695,9 +695,10 @@ void do_settings_menu(SettingsMenu *s) {
             break;
         }
         case SETTINGS_VIDEO: {
-            begin_block(0, UI_STANDARD_W, UI_STANDARD_H*3 + 24);
+            begin_block(0, UI_STANDARD_W, UI_STANDARD_H*4 + 24);
             {
                 fullscreen = do_toggler(GEN_ID, UI_STANDARD_W+112, UI_STANDARD_H, "FULLSCREEN", fullscreen);
+                vsync = do_toggler(GEN_ID, UI_STANDARD_W+112, UI_STANDARD_H, "VERTICAL SYNC", vsync);
                 char fps_str[16] = { 0 };
                 sprintf(fps_str, "FPS: %i", (int)fps);
                 fps = 30 + (do_slider(GEN_ID, UI_STANDARD_W*2, UI_STANDARD_H, fps_str, (fps - 30) / 330)) * 330;
@@ -705,6 +706,8 @@ void do_settings_menu(SettingsMenu *s) {
                 if(do_button(GEN_ID, UI_STANDARD_W, UI_STANDARD_H, "BACK")) {
                     s->state = 0;
                 }
+
+                glfwSwapInterval(vsync ? 1 : 0);
             }
             end_block();
             break;

@@ -10,10 +10,10 @@ struct Title {
     SettingsMenu settings;
 
     Camera camera;
-    Map map;
+    DungeonMap map;
 };
 
-State init_title() {
+State init_title_state() {
     State s;
     s.type = STATE_TITLE;
     s.mem = malloc(sizeof(Title));
@@ -26,36 +26,36 @@ State init_title() {
     t->camera.orientation = t->camera.target_orientation = v3(PI*(2.f/3), 0, 0);
     t->camera.interpolation_rate = 0.06;
 
-    request_map_assets();
+    request_dungeon_map_assets();
 
     request_texture(TEX_logo);
 
     return s;
 }
 
-void clean_up_title(State *s) {
+void clean_up_title_state(State *s) {
     Title *t = (Title *)s->mem;
 
     unrequest_texture(TEX_logo);
 
-    unrequest_map_assets();
-    clean_up_map(&t->map);
+    unrequest_dungeon_map_assets();
+    clean_up_dungeon_map(&t->map);
 
     free(s->mem);
     s->mem = 0;
     s->type = 0;
 }
 
-void update_title() {
+void update_title_state() {
     Title *t = (Title *)state.mem;
 
     if(first_state_frame) {
-        generate_map(&t->map);
+        generate_dungeon_map(&t->map);
 
         foreach(i, MAP_W)
         foreach(j, MAP_H) {
-            if(!(tile_data[t->map.tiles[i][j]].flags & WALL)) {
-                t->camera.pos = v3(i+0.5, map_coordinate_height(&t->map, i+0.5, j+0.5)+2, j+0.5);
+            if(!(dungeon_tile_data[t->map.tiles[i][j]].flags & WALL)) {
+                t->camera.pos = v3(i+0.5, dungeon_coordinate_height(&t->map, i+0.5, j+0.5)+2, j+0.5);
                 break;
             }
         }
@@ -66,7 +66,7 @@ void update_title() {
     do_light(&t->map, t->camera.pos, v3(1, 0.8, 0.6), 20, 0.9);
 
     update_camera(&t->camera);
-    update_map(&t->map);
+    update_dungeon_map(&t->map, 0);
 
     // @World Render
     prepare_for_world_render();
@@ -79,8 +79,8 @@ void update_title() {
             );
             view = m4_lookat(t->camera.pos, target);
         }
-        draw_map_begin(&t->map);
-        draw_map_end(&t->map);
+        draw_dungeon_map_begin(&t->map);
+        draw_dungeon_map_end(&t->map);
     }
 
     // @UI Render
@@ -130,7 +130,7 @@ void update_title() {
                 };
 
                 if(do_button(GEN_ID, UI_STANDARD_W*2, UI_STANDARD_H, slots_full[0] ? "SLOT 1" : "SLOT 1 - Empty")) {
-                    next_state = init_game();
+                    next_state = init_house_state();
                 }
                 if(do_button(GEN_ID, UI_STANDARD_W*2, UI_STANDARD_H, slots_full[1] ? "SLOT 2" : "SLOT 2 - Empty")) {
 

@@ -11,10 +11,10 @@ TO-DO:
 // Program Options
 #define DEBUG
 
-#define ASSETS_DIR "./assets/"
-#define SHADER_DIR "shader/"
-#define TEXURE_DIR "./"
-#define SOUND_DIR  "sound/"
+#define ASSETS_DIR  "./assets/"
+#define SHADER_DIR  "shader/"
+#define TEXTURE_DIR "texture/"
+#define SOUND_DIR   "sound/"
 
 #define NOISE_SEED 123456
 
@@ -94,7 +94,7 @@ int main() {
             }
 
             glfwMakeContextCurrent(window);
-            glfwSwapInterval(0);
+            glfwSwapInterval(vsync ? 1 : 0);
 
             if(ogl_LoadFunctions()) {
                 init_input();
@@ -104,7 +104,7 @@ int main() {
 
                 srand((unsigned int)time(NULL));
 
-                state = init_title();
+                state = init_title_state();
                 next_state.type = 0;
 
                 i8 last_fullscreen;
@@ -165,8 +165,9 @@ int main() {
 
                     // @State changes or updates
                     if(next_state.type || need_asset_refresh) {
-                        state_t += (1-state_t) * 12 * delta_t;
-                        if(state_t >= 0.98) {
+                        state_t += (1-state_t) * 8 * delta_t;
+                        if(state_t >= 0.99) {
+                            state_t = 1;
                             update_assets();
                             need_asset_refresh = 0;
                             if(next_state.type) {
@@ -180,7 +181,7 @@ int main() {
                         }
                     }
                     else {
-                        state_t -= state_t * 12 * delta_t;
+                        state_t -= state_t * 4 * delta_t;
                     }
 
                     if(!keyboard_used && key_pressed[KEY_F11]) {

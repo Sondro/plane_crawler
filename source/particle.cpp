@@ -101,6 +101,24 @@ void update_particle_master(ParticleMaster *p) {
     }
 }
 
+void do_particle(ParticleMaster *m, i8 type, v3 pos, v3 vel, r32 scale) {
+    ParticleSet *s = m->sets + type;
+    if(s->count < MAX_PARTICLE_COUNT) {
+        r32 particle_data[PARTICLE_DATA_LENGTH] = {
+            pos.x,
+            pos.y,
+            pos.z,
+            vel.x,
+            vel.y,
+            vel.z,
+            1,
+            scale
+        };
+        memcpy(s->particle_data + PARTICLE_DATA_LENGTH*s->count, particle_data, PARTICLE_DATA_LENGTH*sizeof(r32));
+        ++s->count;
+    }
+}
+
 void draw_particle_master(ParticleMaster *p) {
     foreach(i, MAX_PARTICLE) {
         ParticleSet *s = p->sets+i;

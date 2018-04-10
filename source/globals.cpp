@@ -6,7 +6,7 @@ global i32 window_w, window_h;
 global r64 current_time = 0, last_time = 0;
 
 // @Note (Ryan) global settings
-global i8 fullscreen = 0;
+global i8 fullscreen = 0, vsync = 0;
 global r32 field_of_view = 110.f;
 global r32 fps = 60.f;
 
