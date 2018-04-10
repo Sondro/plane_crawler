@@ -697,8 +697,8 @@ void do_settings_menu(SettingsMenu *s) {
         case SETTINGS_VIDEO: {
             begin_block(0, UI_STANDARD_W, UI_STANDARD_H*4 + 24);
             {
-                fullscreen = do_toggler(GEN_ID, UI_STANDARD_W+112, UI_STANDARD_H, "FULLSCREEN", fullscreen);
-                vsync = do_toggler(GEN_ID, UI_STANDARD_W+112, UI_STANDARD_H, "VERTICAL SYNC", vsync);
+                fullscreen = do_toggler(GEN_ID, UI_STANDARD_W*2, UI_STANDARD_H, "FULLSCREEN", fullscreen);
+                vsync = do_toggler(GEN_ID, UI_STANDARD_W*2, UI_STANDARD_H, "VERTICAL SYNC", vsync);
                 char fps_str[16] = { 0 };
                 sprintf(fps_str, "FPS: %i", (int)fps);
                 fps = 30 + (do_slider(GEN_ID, UI_STANDARD_W*2, UI_STANDARD_H, fps_str, (fps - 30) / 330)) * 330;

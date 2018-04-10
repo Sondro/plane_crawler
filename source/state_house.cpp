@@ -37,6 +37,7 @@ State init_house_state() {
 
         request_house_map_assets();
         request_sound(SOUND_house);
+        request_sound(SOUND_footstep_wood);
 
         h->bg_music = reserve_sound_source();
 
@@ -51,6 +52,7 @@ void clean_up_house_state(State *s) {
 
     { // @Cleanup
         stop_source(h->bg_music);
+        unrequest_sound(SOUND_footstep_wood);
         unrequest_sound(SOUND_house);
 
         unreserve_sound_source(h->bg_music);
@@ -159,6 +161,7 @@ void update_house_state() {
         { // @Camera update
             movement_factor = (HMM_Length(h->player.box.vel) / (movement_speed*2));
 
+            r32 last_camera_bob_sin_pos = h->camera_bob_sin_pos;
             h->camera_bob_sin_pos += 10*delta_t;
             h->camera.pos.x = h->player.box.pos.x;
             h->camera.pos.z = h->player.box.pos.y;
@@ -167,7 +170,9 @@ void update_house_state() {
             h->camera.pos.y += sin(h->camera_bob_sin_pos)*0.42*movement_factor;
 
             update_camera(&h->camera);
-
+            if(HMM_Length(h->player.box.vel) > 0.1 && cos(last_camera_bob_sin_pos) < 0 && cos(h->camera_bob_sin_pos) > 0) {
+                play_sound(&sounds[SOUND_footstep_wood], 1, random32(0.6, 1.4), 0, AUDIO_PLAYER);
+            }
         }
 
         do_light(&h->house, h->camera.pos, v3(1, 0.9, 0.8), 8, 2);

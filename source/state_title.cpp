@@ -124,9 +124,9 @@ void update_title_state() {
             begin_block(0, UI_STANDARD_W, UI_STANDARD_H*4 + 24);
             {
                 i8 slots_full[] = {
-                    file_exists("./save/save1"),
-                    file_exists("./save/save2"),
-                    file_exists("./save/save3")
+                    file_exists("./saves/save1"),
+                    file_exists("./saves/save2"),
+                    file_exists("./saves/save3")
                 };
 
                 if(do_button(GEN_ID, UI_STANDARD_W*2, UI_STANDARD_H, slots_full[0] ? "SLOT 1" : "SLOT 1 - Empty")) {

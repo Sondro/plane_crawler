@@ -7,5 +7,6 @@ textures_begin
     texture(hand),
     texture(hud),
     texture(particle_fire),
+    texture(particle_portal_easy),
     texture(collectible),
 textures_end

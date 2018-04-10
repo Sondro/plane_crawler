@@ -19,8 +19,15 @@ struct {
     { 2, 0, WALL },
 };
 
+struct HousePortal {
+    i16 x, y;
+    i8 difficulty;
+};
+
 struct HouseMap {
     i8 tiles[MAP_W][MAP_H];
+    i8 portal_count;
+    HousePortal portals[3];
 
     ParticleMaster particles;
     LightState lighting;
@@ -74,28 +81,38 @@ void init_house_map(HouseMap *h) {
     }
 
     const char *house_map[] = {
-        "##W#  #W##",
-        "#        #",
-        "W        W",
-        "#        #",
-        "#        #",
-        "#        #",
-        "#        #",
-        "W        W",
-        "#        #",
-        "##W#  #W##",
+        "##W# M E H #W##",
+        "#             #",
+        "W             W",
+        "#             #",
+        "#             #",
+        "#             #",
+        "#             #",
+        "W             W",
+        "#             #",
+        "##W#  #W#######",
     };
 
-    foreach(i, 10)
-    foreach(j, 10) {
+    h->portal_count = 0;
+
+    foreach(j, 10)
+    foreach(i, 15) {
         i16 tile = HOUSE_TILE_floor;
-        switch(house_map[i][j]) {
+        switch(house_map[j][i]) {
             case '#': { tile = HOUSE_TILE_wall; break; }
             case ' ': { tile = HOUSE_TILE_floor; break; }
             case 'W': { tile = HOUSE_TILE_window; break; }
+            case 'E':
+            case 'M':
+            case 'H': {
+                h->portals[h->portal_count].x = MAP_W/2 - 8 + i;
+                h->portals[h->portal_count].y = MAP_H/2 - 5 + j;
+                h->portals[h->portal_count++].difficulty = 0;
+                break;
+            }
             default: break;
         }
-        h->tiles[MAP_W/2 - 5 + i][MAP_H/2 - 5 + j] = tile;
+        h->tiles[MAP_W/2 - 8 + i][MAP_H/2 - 5 + j] = tile;
     }
 
     r32 *vertices = 0,
@@ -489,6 +506,13 @@ void update_house_map(HouseMap *h, Player *p) {
     if(p) { // @Update player
         collide_boxes_with_tiles(h, &p->box, 1);
         update_boxes(&p->box, 1);
+    }
+
+    { // @Update portals
+        foreach(i, h->portal_count) {
+            do_particle(h, PARTICLE_portal_easy, v3(h->portals[i].x + 0.5, 0.5, h->portals[i].y + 0.5), v3(random32(-0.3, 0.3), random32(-0.3, 0.3), random32(-0.3, 0.3)), random32(0.2, 0.7));
+            do_light(h, v3(h->portals[i].x + 0.5, 0.5, h->portals[i].y + 0.5), v3(0.4, 1, 0.5), 6, 1);
+        }
     }
 
     { // @Update particles

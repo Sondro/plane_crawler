@@ -3,6 +3,7 @@
 
 enum {
     PARTICLE_fire,
+    PARTICLE_portal_easy,
     MAX_PARTICLE
 };
 
@@ -11,6 +12,7 @@ struct {
     i32 texture, max_frames;
 } particle_types[MAX_PARTICLE] = {
     { TEX_particle_fire, 16 },
+    { TEX_particle_portal_easy, 12 },
 };
 
 struct ParticleSet {
@@ -167,7 +169,7 @@ void draw_particle_master(ParticleMaster *p) {
         foreach(i, MAX_PARTICLE) {
             ParticleSet *s = p->sets+i;
 
-            i8 additive = i == PARTICLE_fire;
+            i8 additive = 1;
 
             if(additive) {
                 glBlendFunc(GL_SRC_ALPHA, GL_ONE);
