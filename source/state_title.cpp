@@ -101,9 +101,9 @@ void update_title_state() {
             begin_block(0, window_w/2 - UI_STANDARD_W/2, window_h/2 - 96, UI_STANDARD_W, UI_STANDARD_H*3);
             {
                 do_divider();
-                do_divider();
-                do_divider();
-                do_divider();
+                do_divider(); // @Cleanup
+                do_divider(); //
+                do_divider(); // <-- What is this?
                 do_divider();
 
                 if(do_button(GEN_ID, UI_STANDARD_W, UI_STANDARD_H, "PLAY")) {

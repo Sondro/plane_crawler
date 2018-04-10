@@ -4,9 +4,12 @@ enum {
     DUNGEON_TYPE_hard,
 };
 
+#define MAP_W 256
+#define MAP_H 256
+
+#define TILE_SET_TILE_SIZE 32
 #define WALL    0x01
 #define PIT     0x02
-#define TILE_SET_TILE_SIZE 32
 
 void calculate_heightmap_normal(r32 *verts, r32 *norms) {
     v3 vert1 = v3(verts[3]-verts[0], verts[4]-verts[1], verts[5]-verts[2]),

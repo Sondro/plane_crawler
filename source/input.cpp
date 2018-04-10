@@ -266,6 +266,10 @@ void init_input() {
 }
 
 void update_input() {
+	last_key = 0;
+	last_char = 0;
+	glfwPollEvents();
+	glfwGetWindowSize(window, &window_w, &window_h);
     glfwGetCursorPos(window, &mouse_x, &mouse_y);
 
     mouse_pos_used = 0;

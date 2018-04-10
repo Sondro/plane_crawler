@@ -1,3 +1,5 @@
+#define NOISE_SEED 2271998
+
 global const u8 noise_lookup[] = {
 	51, 152, 157, 231, 235, 201, 241,
 	242, 116, 200, 78, 83, 248, 221,

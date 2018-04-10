@@ -1,29 +1,13 @@
-/*
-
-TO-DO:
-
- * Implement real spell casting
- * Stop calling glGetUniformLocation every frame (cache results once)
- * Make real room generation
-
-*/
-
 // Program Options
 #define DEBUG
 
-#define ASSETS_DIR  "./assets/"
-#define SHADER_DIR  "shader/"
-#define TEXTURE_DIR "texture/"
-#define SOUND_DIR   "sound/"
+#define  	 WINDOW_TITLE "Plane Crawler"
+#define  DEFAULT_WINDOW_W 1280
+#define  DEFAULT_WINDOW_H 720
 
-#define NOISE_SEED 123456
-
-#define                 MAP_W 256
-#define                 MAP_H 256
-#define       MAX_ENEMY_COUNT 256
-#define    MAX_PARTICLE_COUNT 4096
-#define  MAX_PROJECTILE_COUNT 256
-//
+#ifndef DEBUG
+#error "Release version has not been prepared; you must #define DEBUG"
+#endif
 
 // External Libraries/Related Code
 #include "gl_load.cpp"
@@ -35,7 +19,6 @@ TO-DO:
 #include <string.h>
 #include <time.h>
 #include <ctype.h>
-//
 
 // Internal Libraries
 #include "ext/rf_utils.h"
@@ -59,24 +42,19 @@ TO-DO:
 #undef R
 #undef L
 #undef C
-//
+// @Note (Ryan) stb_vorbis keeps R, L, and C defined
+//				for whatever reason... this hurts when
+//				we do something like some_vector.R
 
 // Game Code
 #include "globals.cpp"
 #include "noise.cpp"
 #include "input.cpp"
-
-#ifdef DEBUG
-#include "assets_loose.cpp"
-#else
-#error "Release version has not been prepared; you must #define DEBUG"
-#endif
-
+#include "assets.cpp"
 #include "audio.cpp"
 #include "draw.cpp"
 #include "ui.cpp"
 #include "state.cpp"
-//
 
 int main() {
     if(glfwInit()) {
@@ -84,9 +62,9 @@ int main() {
         glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
         glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
 
-        window_w = 1280;
-        window_h = 768;
-        window = glfwCreateWindow(window_w, window_h, "Plane Crawler", 0, 0);
+        window_w = DEFAULT_WINDOW_W;
+        window_h = DEFAULT_WINDOW_H;
+        window = glfwCreateWindow(window_w, window_h, WINDOW_TITLE, 0, 0);
         if(window) {
             { // @Note (Ryan) This centers the window...
                 const GLFWvidmode *mode = glfwGetVideoMode(glfwGetPrimaryMonitor());
@@ -118,45 +96,53 @@ int main() {
                 request_texture(TEX_font);
                 request_shader(SHADER_texture);
                 request_shader(SHADER_rect);
-
+				
+				// we'll call update_assets once because
+				// we want to load all of the defaultly loaded
+				// stuff
                 update_assets();
 
                 while(!glfwWindowShouldClose(window)) {
                     last_time = current_time;
                     current_time = glfwGetTime();
+					
+					//
+					// @Note (Ryan)
+					// 
+					// If the game is running slower than 10 FPS, bad
+					// things can happen, so we prevent delta_t from
+					// being larger than that.
+					//
                     if(delta_t > 1/10.f) {
                         last_time = current_time - 1/10.f;
                     }
 
                     last_fullscreen = fullscreen;
 
-                    last_key = 0;
-                    last_char = 0;
-                    glfwPollEvents();
-                    glfwGetWindowSize(window, &window_w, &window_h);
                     update_input();
-
                     update_audio();
-
-                    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
-                    glClearColor(0, 0, 0, 1);
-                    glViewport(0, 0, window_w, window_h);
-                    { // @Update
-                        ui_begin();
-                        update_state();
-                        ui_end();
-                        draw_ui_filled_rect(v4(0, 0, 0, state_t < 0.95 ? state_t : 1), v4(0, 0, window_w, window_h));
-                    }
-                    glfwSwapBuffers(window);
-
-                    {
+					
+					{ // @Update
+						glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
+						glClearColor(0, 0, 0, 1);
+						glViewport(0, 0, window_w, window_h);
+						
+						ui_begin();
+						update_state();
+						ui_end();
+						draw_ui_filled_rect(v4(0, 0, 0, state_t < 0.95 ? state_t : 1), v4(0, 0, window_w, window_h));
+						
+						glfwSwapBuffers(window);
+					}
+					
+                    { // @OpenGL Error Checking
                         GLenum err = glGetError();
                         if(err) {
                             fprintf(log_file, "ERROR [OpenGL]: %i\n\n", err);
                         }
                     }
 
-                    {
+                    { // @OpenAL Error Checking
                         ALenum err = alGetError();
                         if(err) {
                             fprintf(log_file, "ERROR [OpenAL]: %i\n\n", err);
@@ -183,17 +169,19 @@ int main() {
                     else {
                         state_t -= state_t * 4 * delta_t;
                     }
-
+					
+					// @Fullscreen toggle
                     if(!keyboard_used && key_pressed[KEY_F11]) {
                         fullscreen = !fullscreen;
                     }
-
+					
+					// @Fullscreen change
                     if(fullscreen != last_fullscreen) {
                         GLFWmonitor *monitor = glfwGetWindowMonitor(window) ? NULL : glfwGetPrimaryMonitor();
                         glfwWindowHint(GLFW_RESIZABLE, 1);
                         glfwSetWindowMonitor(window, monitor, 0, 0, window_w, window_h, GLFW_DONT_CARE);
                     }
-
+					
                     if(fps <= 359.f) {
                         while(glfwGetTime() < current_time + (1.0 / fps));
                     }
@@ -204,18 +192,18 @@ int main() {
                 clean_up_draw();
             }
             else {
-                fprintf(log_file, "ERROR: OpenGL loading failed\n\n");
+                fprintf(log_file, "ERROR: OpenGL loading failed - terminating...\n\n");
             }
 
             glfwDestroyWindow(window);
         }
         else {
-            fprintf(log_file, "ERROR: GLFW window creation failed\n\n");
+            fprintf(log_file, "ERROR: GLFW window creation failed - terminating...\n\n");
         }
         glfwTerminate();
     }
     else {
-        fprintf(log_file, "ERROR: GLFW initialization failed\n\n");
+        fprintf(log_file, "ERROR: GLFW initialization failed - terminating...\n\n");
     }
 
     clean_up_audio();

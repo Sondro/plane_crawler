@@ -1,4 +1,4 @@
-#define UI_SRC_ID 0
+#define UI_SRC_ID 2000
 
 struct House {
     i8 paused;

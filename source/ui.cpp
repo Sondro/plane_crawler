@@ -596,7 +596,7 @@ r32 do_slider(ui_id id, r32 w, r32 h, const char *text, r32 value) {
 // @Settings Menu
 //
 
-#define UI_SRC_ID 2000
+#define UI_SRC_ID 0
 
 struct SettingsMenu {
     i8 state;

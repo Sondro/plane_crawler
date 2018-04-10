@@ -1,3 +1,5 @@
+#define MAX_ENEMY_COUNT 256
+
 enum {
     ENEMY_skeleton,
     ENEMY_spirit,

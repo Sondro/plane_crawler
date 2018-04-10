@@ -1,3 +1,10 @@
+#define ASSETS_DIR  "./assets/"
+#define SHADER_DIR  "shader/"
+#define TEXTURE_DIR "texture/"
+#define SOUND_DIR   "sound/"
+
+// let the hacky C preprocessor commence
+
 #define shaders_begin  enum {
 #define shaders_end    MAX_SHADER };
 #define shader(s)      SHADER_ ## s

@@ -1,3 +1,5 @@
+#define MAX_PROJECTILE_COUNT 256
+
 enum {
     PROJECTILE_fire,
     MAX_PROJECTILE

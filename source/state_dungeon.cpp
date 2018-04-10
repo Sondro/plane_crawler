@@ -1,4 +1,4 @@
-#define UI_SRC_ID 0
+#define UI_SRC_ID 3000
 
 struct Dungeon {
     i8 paused, game_over;
