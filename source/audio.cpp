@@ -181,6 +181,8 @@ void clean_up_audio() {
     for(i16 i = 0; i < SOUND_SOURCE_COUNT; i++) {
         clean_up_sound_source(sound_sources + i);
     }
+    alcDestroyContext(audio_context);
+    alcCloseDevice(audio_device);
 }
 
 void update_audio() {

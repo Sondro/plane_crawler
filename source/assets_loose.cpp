@@ -3,7 +3,7 @@
 #define TEXTURE_DIR "texture/"
 #define SOUND_DIR   "sound/"
 
-// let the hacky C preprocessor commence
+// let the hacky C preprocessor shenanigans commence
 
 #define shaders_begin  enum {
 #define shaders_end    MAX_SHADER };

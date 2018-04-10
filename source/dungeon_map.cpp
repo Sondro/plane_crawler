@@ -228,7 +228,7 @@ void generate_dungeon_map(DungeonMap *d) {
         foreach(i, current_room) {
             if(current_room < room_count && rooms[i].branch_depth < 6) {
                 foreach(dir, 4) {
-                    if(rooms[i].origin_dir != (int)d && (random32(0, 1) < 0.3 || !i)) {
+                    if(rooms[i].origin_dir != (int)dir && (random32(0, 1) < 0.3 || !i)) {
                         rooms[current_room].origin_dir = !i ? is_even(dir) ? dir+1 : dir-1 : rooms[i].origin_dir;
                         rooms[current_room].branch_depth = rooms[i].branch_depth + 1;
                         rooms[current_room].w = random32(4, 16);
