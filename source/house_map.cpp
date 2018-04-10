@@ -519,17 +519,17 @@ void update_house_map(HouseMap *h, Player *p) {
             switch(h->portals[i].difficulty) {
                 case DUNGEON_TYPE_easy: {
                     do_particle(h, PARTICLE_portal_easy, v3(h->portals[i].x + 0.5, 0.5, h->portals[i].y + 0.5), v3(random32(-0.1, 0.1), random32(-0.3, 0.3), 0), random32(0.2, 0.5));
-                    do_light(h, v3(h->portals[i].x + 0.5, 0.5, h->portals[i].y + 0.5), v3(0.4, 1, 0.5), 6, 1);
+                    do_light(h, v3(h->portals[i].x + 0.5, 0.5, h->portals[i].y + 0.5), v3(0.4, 1, 0.5), 9, 3);
                     break;
                 }
                 case DUNGEON_TYPE_medium: {
                     do_particle(h, PARTICLE_portal_medium, v3(h->portals[i].x + 0.5, 0.5, h->portals[i].y + 0.5), v3(random32(-0.1, 0.1), random32(-0.3, 0.3), 0), random32(0.2, 0.5));
-                    do_light(h, v3(h->portals[i].x + 0.5, 0.5, h->portals[i].y + 0.5), v3(0.4, 0.5, 1), 6, 1);
+                    do_light(h, v3(h->portals[i].x + 0.5, 0.5, h->portals[i].y + 0.5), v3(0.4, 0.5, 1), 9, 3);
                     break;
                 }
                 case DUNGEON_TYPE_hard: {
                     do_particle(h, PARTICLE_portal_hard, v3(h->portals[i].x + 0.5, 0.5, h->portals[i].y + 0.5), v3(random32(-0.1, 0.1), random32(-0.3, 0.3), 0), random32(0.2, 0.5));
-                    do_light(h, v3(h->portals[i].x + 0.5, 0.5, h->portals[i].y + 0.5), v3(1, 0.5, 0.4), 6, 1);
+                    do_light(h, v3(h->portals[i].x + 0.5, 0.5, h->portals[i].y + 0.5), v3(1, 0.5, 0.4), 9, 3);
                     break;
                 }
                 default: break;

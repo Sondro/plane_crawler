@@ -55,6 +55,9 @@ void main(void) {
 		color.xyz /= diffuse;
 	}
 
+	float albedo_brightness = (0.299*albedo.r + 0.587*albedo.g + 0.114*albedo.b);
+    light_addition *= clamp(albedo_brightness, 0.6, 1);
+
 	if(light_addition.r > 1.5) light_addition.r = 1.5;
 	if(light_addition.g > 1.5) light_addition.g = 1.5;
 	if(light_addition.b > 1.5) light_addition.b = 1.5;
