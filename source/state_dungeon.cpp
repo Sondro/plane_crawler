@@ -12,6 +12,9 @@ struct Dungeon {
     Player player;
     FBO render_fbo;
 
+    // bg music data
+    SoundSource *bg_music;
+
     // settings data
     SettingsMenu settings;
 };
@@ -30,10 +33,12 @@ State init_dungeon_state() {
         d->camera.pos = v3(0, 0, 0);
         d->camera.orientation = d->camera.target_orientation = v3(0, 0, 0);
         d->camera.interpolation_rate = 10;
+        d->bg_music = reserve_sound_source();
 
         request_dungeon_map_assets();
         request_texture(TEX_hud);
         request_texture(TEX_hand);
+        request_sound(SOUND_dungeon1);
 
         d->settings.state = -1;
 
@@ -49,9 +54,12 @@ void clean_up_dungeon_state(State *s) {
     { // @Cleanup
         unrequest_texture(TEX_hud);
         unrequest_texture(TEX_hand);
-
+        unrequest_sound(SOUND_dungeon1);
         unrequest_dungeon_map_assets();
         clean_up_dungeon_map(&d->map);
+
+        stop_source(d->bg_music);
+        unreserve_sound_source(d->bg_music);
     }
 
     free(s->mem);
@@ -68,6 +76,10 @@ void update_dungeon_state() {
     if(first_state_frame) {
         generate_dungeon_map(&d->map);
         d->player = init_player(v2(MAP_W/2, MAP_H/2));
+        play_source(d->bg_music, &sounds[SOUND_dungeon1], 1, 1, 1, AUDIO_MUSIC);
+    }
+    else {
+        set_source_volume(d->bg_music, 1-state_t);
     }
 
     if(d->game_over) {

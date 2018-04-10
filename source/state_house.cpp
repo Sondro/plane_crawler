@@ -74,6 +74,8 @@ void update_house_state() {
     if(first_state_frame) {
         init_house_map(&h->house);
         h->player = init_player(v2(MAP_W/2, MAP_H/2));
+        h->camera.target_orientation.x = -PI/2;
+        h->camera.orientation.x = -PI/2;
         play_source(h->bg_music, &sounds[SOUND_house], 0, 1, 1, AUDIO_MUSIC);
     }
     else {
