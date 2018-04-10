@@ -68,7 +68,6 @@
 		<Unit filename="source/ext/rf_utils.h" />
 		<Unit filename="source/ext/stb_image.h" />
 		<Unit filename="source/gl_load.cpp" />
-		<Unit filename="source/gl_load.h" />
 		<Unit filename="source/globals.cpp" />
 		<Unit filename="source/hmm_wrapper.cpp" />
 		<Unit filename="source/input.cpp" />
