@@ -88,3 +88,58 @@ AttackComponent init_attack_component(i8 type) {
     a.target_mana = 0;
     return a;
 }
+
+// @AI Component
+
+enum {
+    AI_idle,
+    AI_roam,
+    AI_melee,
+    AI_ranged,
+    MAX_AI
+};
+
+struct AIComponent {
+    i8 state, moving;
+    i32 target_id;
+    v2 move_vel;
+    r32 wait_start_time, wait_duration;
+};
+
+AIComponent init_ai_component(i8 default_state) {
+    AIComponent a;
+    a.state = default_state;
+    a.moving = 0;
+    a.target_id = -1;
+    a.move_vel = v2(0, 0);
+    a.wait_start_time = current_time;
+    a.wait_duration = 5;
+    return a;
+}
+
+void update_ai(AIComponent *a, i32 count) {
+    foreach(i, count) {
+        switch(a->state) {
+            case AI_roam: { 
+                if(current_time >= a->wait_start_time + a->wait_duration) { 
+                    a->wait_start_time = current_time;
+                    a->wait_duration = a->moving ? random32(3, 6) : random32(1, 5);
+                    a->move_vel = a->moving ? v2(0, 0) : v2(random32(-5, 5), random32(-5, 5));
+                    a->moving = !a->moving;
+                }
+                break;
+            }
+            default: break;
+        }
+        ++a;
+    }
+}
+
+void move_boxes_with_ai(BoxComponent *b, AIComponent *a, i32 count) {
+    foreach(i, count) {
+        b->vel += (a->move_vel - b->vel) * 6 * delta_t;
+
+        ++a;
+        ++b;
+    }
+}
