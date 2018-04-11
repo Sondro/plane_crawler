@@ -121,24 +121,15 @@ void add_enemy(DungeonMap *d, i16 type, v2 pos) {
                    d->enemies.box + it,
                    d->enemies.sprite + it,
                    d->enemies.health + it,
-                   d->enemies.attack + it);
+                   d->enemies.attack + it,
+                   d->enemies.ai + it);
 
         ++d->enemies.count;
     }
 }
 
 void remove_enemy(DungeonMap *d, i32 id) {
-    foreach(i, d->enemies.count) {
-        if(d->enemies.id[i] == id) {
-            memmove(d->enemies.id + i, d->enemies.id + i+1, sizeof(i32) * (d->enemies.count - i - 1));
-            memmove(d->enemies.box + i, d->enemies.box + i+1, sizeof(BoxComponent) * (d->enemies.count - i - 1));
-            memmove(d->enemies.sprite + i, d->enemies.sprite + i+1, sizeof(SpriteComponent) * (d->enemies.count - i - 1));
-            memmove(d->enemies.health + i, d->enemies.health + i+1, sizeof(HealthComponent) * (d->enemies.count - i - 1));
-            memmove(d->enemies.attack + i, d->enemies.attack + i+1, sizeof(AttackComponent) * (d->enemies.count - i - 1));
-            --d->enemies.count;
-            break;
-        }
-    }
+    remove_enemy(&d->enemies, id); 
 }
 
 void add_collectible(DungeonMap *d, i8 type, v2 pos) {
@@ -1026,6 +1017,9 @@ void update_dungeon_map(DungeonMap *d, Player *p) {
     }
 
     { // @Update enemies
+        update_ai(d->enemies.ai, d->enemies.count);
+        move_boxes_with_ai(d->enemies.box, d->enemies.ai, d->enemies.count);
+        
         collide_boxes_with_tiles(d, d->enemies.box, d->enemies.count);
         collide_boxes_with_projectiles(d, d->enemies.id, d->enemies.box, d->enemies.health, d->enemies.count);
         update_boxes(d->enemies.box, d->enemies.count);
@@ -1039,7 +1033,7 @@ void update_dungeon_map(DungeonMap *d, Player *p) {
         }
 
         update_attacks(d, d->enemies.id, d->enemies.attack, d->enemies.count);
-
+ 
         // update enemy health
         update_health(d->enemies.health, d->enemies.count);
         for(u32 i = 0; i < d->enemies.count;) {
