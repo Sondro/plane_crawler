@@ -2,6 +2,9 @@
 
 enum {
     PROJECTILE_fire,
+    PROJECTILE_lightning,
+    PROJECTILE_ice,
+    PROJECTILE_wind,
     MAX_PROJECTILE
 };
 

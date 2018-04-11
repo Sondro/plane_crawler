@@ -4,6 +4,9 @@
 
 enum {
     PARTICLE_fire,
+    PARTICLE_lightning,
+    PARTICLE_ice,
+    PARTICLE_wind,
     PARTICLE_portal_easy,
     PARTICLE_portal_medium,
     PARTICLE_portal_hard,
@@ -15,6 +18,9 @@ struct {
     i32 texture, max_frames;
 } particle_types[MAX_PARTICLE] = {
     { TEX_particle_fire, 16 },
+    { TEX_particle_lightning, 16 },
+    { TEX_particle_ice, 16 },
+    { TEX_particle_wind, 16 },
     { TEX_particle_portal_easy, 12 },
     { TEX_particle_portal_medium, 12 },
     { TEX_particle_portal_hard, 12 },
