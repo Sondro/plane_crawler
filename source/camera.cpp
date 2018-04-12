@@ -1,7 +1,7 @@
 struct Camera {
     v3 pos,
-       orientation,             // @Note (Ryan) X, Y, Z -> Yaw, Pitch, Roll (respectively)
-       target_orientation;
+    orientation,             // NOTE(Ryan):  X, Y, Z -> Yaw, Pitch, Roll (respectively)
+    target_orientation;
     r32 interpolation_rate;
 };
 

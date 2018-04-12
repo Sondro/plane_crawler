@@ -2,11 +2,11 @@
 global r64 mouse_x, mouse_y;
 global i8 mouse_state;
 global i8 mouse_pos_used = 0,
-          mouse_buttons_used = 0;
+mouse_buttons_used = 0;
 
 // Keyboard
 global i8 key_down[GLFW_KEY_LAST] = { 0 },
-          key_pressed[GLFW_KEY_LAST] = { 0 };
+key_pressed[GLFW_KEY_LAST] = { 0 };
 global u8 last_char = 0;
 global i16 last_key = 0, last_char_mods = 0;
 global i8 keyboard_used = 0;
@@ -17,8 +17,7 @@ global const r32 *gamepad_axes = NULL;
 global const u8 *gamepad_button_states = NULL;
 global u8 last_gamepad_button_states[16];
 
-//
-// @Note (Ryan) Mouse state information:
+// NOTE(Ryan): Mouse state information:
 //
 //   bytes in the mouse_state var:
 //      01234567
@@ -47,7 +46,7 @@ global u8 last_gamepad_button_states[16];
 
 #define gamepad_button_down(i)      (gamepad_button_count > i && gamepad_button_states ? gamepad_button_states[i] == GLFW_PRESS : 0)
 #define gamepad_button_pressed(i)   (gamepad_button_count > i && gamepad_button_states ? \
-                                     gamepad_button_states[i] == GLFW_PRESS && last_gamepad_button_states[i] != GLFW_PRESS : 0)
+gamepad_button_states[i] == GLFW_PRESS && last_gamepad_button_states[i] != GLFW_PRESS : 0)
 
 #define gamepad_control_down(i)    (gamepad_button_down(gamepad_control_maps[i]))
 #define gamepad_control_pressed(i) (gamepad_button_pressed(gamepad_control_maps[i]))
@@ -266,19 +265,19 @@ void init_input() {
 }
 
 void update_input() {
-	last_key = 0;
-	last_char = 0;
-	glfwPollEvents();
-	glfwGetWindowSize(window, &window_w, &window_h);
+    last_key = 0;
+    last_char = 0;
+    glfwPollEvents();
+    glfwGetWindowSize(window, &window_w, &window_h);
     glfwGetCursorPos(window, &mouse_x, &mouse_y);
-
+    
     mouse_pos_used = 0;
     mouse_buttons_used = 0;
     keyboard_used = 0;
-
+    
     i32 left_mouse_button = glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT),
-        right_mouse_button = glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_RIGHT);
-
+    right_mouse_button = glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_RIGHT);
+    
     mouse_state >>= 2;
     if(left_mouse_button) {
         mouse_state |= (1<<7);
@@ -286,14 +285,14 @@ void update_input() {
     else {
         mouse_state &= ~(1<<7);
     }
-
+    
     if(right_mouse_button) {
         mouse_state |= (1<<6);
     }
     else {
         mouse_state &= ~(1<<6);
     }
-
+    
     for(i16 i = 0; i < GLFW_KEY_LAST; i++) {
         i32 key_state = glfwGetKey(window, i);
         if(key_state == GLFW_PRESS) {
@@ -305,7 +304,7 @@ void update_input() {
             key_pressed[i] = 0;
         }
     }
-
+    
     for(i8 i = 0; i < 16 && i < gamepad_button_count; i++) {
         last_gamepad_button_states[i] = gamepad_button_states[i];
     }

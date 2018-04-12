@@ -1,9 +1,9 @@
 // Program Options
 #define DEBUG
 
-#define  	 WINDOW_TITLE "Plane Crawler"
-#define  DEFAULT_WINDOW_W 1280
-#define  DEFAULT_WINDOW_H 720
+#define WINDOW_TITLE      "Plane Crawler"
+#define DEFAULT_WINDOW_W  1280
+#define DEFAULT_WINDOW_H  720
 
 #ifndef DEBUG
 #error "Release version has not been prepared; you must #define DEBUG"
@@ -42,9 +42,9 @@
 #undef R
 #undef L
 #undef C
-// @Note (Ryan) stb_vorbis keeps R, L, and C defined
-//				for whatever reason... this hurts when
-//				we do something like some_vector.R
+// NOTE(Ryan): stb_vorbis keeps R, L, and C defined
+//             for whatever reason... this hurts when
+//             we do something like some_vector.R
 
 // Game Code
 #include "globals.cpp"
@@ -61,95 +61,93 @@ int main() {
         glfwWindowHint(GLFW_RESIZABLE, 1);
         glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
         glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
-
+        
         window_w = DEFAULT_WINDOW_W;
         window_h = DEFAULT_WINDOW_H;
         window = glfwCreateWindow(window_w, window_h, WINDOW_TITLE, 0, 0);
         if(window) {
-            { // @Note (Ryan) This centers the window...
+            { // NOTE(Ryan): This centers the window...
                 const GLFWvidmode *mode = glfwGetVideoMode(glfwGetPrimaryMonitor());
                 glfwSetWindowPos(window, mode->width/2 - window_w/2, mode->height/2 - window_h/2);
             }
-
+            
             glfwMakeContextCurrent(window);
             glfwSwapInterval(vsync ? 1 : 0);
-
+            
             if(ogl_LoadFunctions()) {
                 init_input();
                 init_assets();
                 init_draw();
                 init_ui();
-
+                
                 srand((unsigned int)time(NULL));
-
+                
                 state = init_title_state();
                 next_state.type = 0;
-
+                
                 i8 last_fullscreen;
-
-                //
-                // @Note (Ryan)
+                
+                
+                // NOTE(Ryan):
                 //
                 // Resources that will pretty much always
                 // need to be loaded:
-                //
                 request_texture(TEX_font);
                 request_shader(SHADER_texture);
                 request_shader(SHADER_rect);
-				
-				// we'll call update_assets once because
-				// we want to load all of the defaultly loaded
-				// stuff
+                
+                // we'll call update_assets once because
+                // we want to load all of the defaultly loaded
+                // stuff
                 update_assets();
-
+                
                 while(!glfwWindowShouldClose(window)) {
                     last_time = current_time;
                     current_time = glfwGetTime();
-					
-					//
-					// @Note (Ryan)
-					// 
-					// If the game is running slower than 10 FPS, bad
-					// things can happen, so we prevent delta_t from
-					// being larger than that.
-					//
+                    
+                    
+                    // NOTE(Ryan): 
+                    // 
+                    // If the game is running slower than 10 FPS, bad
+                    // things can happen, so we prevent delta_t from
+                    // being larger than that.
                     if(delta_t > 1/10.f) {
                         last_time = current_time - 1/10.f;
                     }
-
+                    
                     last_fullscreen = fullscreen;
-
+                    
                     update_input();
                     update_audio();
-					
-					{ // @Update
-						glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
-						glClearColor(0, 0, 0, 1);
-						glViewport(0, 0, window_w, window_h);
-						
-						ui_begin();
-						update_state();
-						ui_end();
-						draw_ui_filled_rect(v4(0, 0, 0, state_t < 0.95 ? state_t : 1), v4(0, 0, window_w, window_h));
-						
-						glfwSwapBuffers(window);
-					}
-					
-                    { // @OpenGL Error Checking
+                    
+                    { // @Game Update
+                        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
+                        glClearColor(0, 0, 0, 1);
+                        glViewport(0, 0, window_w, window_h);
+                        
+                        ui_begin();
+                        update_state();
+                        ui_end();
+                        draw_ui_filled_rect(v4(0, 0, 0, state_t < 0.95 ? state_t : 1), v4(0, 0, window_w, window_h));
+                        
+                        glfwSwapBuffers(window);
+                    }
+                    
+                    { // OpenGL Error Checking
                         GLenum err = glGetError();
                         if(err) {
                             fprintf(log_file, "ERROR [OpenGL]: %i\n\n", err);
                         }
                     }
-
-                    { // @OpenAL Error Checking
+                    
+                    { // OpenAL Error Checking
                         ALenum err = alGetError();
                         if(err) {
                             fprintf(log_file, "ERROR [OpenAL]: %i\n\n", err);
                         }
                     }
-
-                    // @State changes or updates
+                    
+                    // State changes or updates
                     if(next_state.type || need_asset_refresh) {
                         state_t += (1-state_t) * 8 * delta_t;
                         if(state_t >= 0.99) {
@@ -169,24 +167,24 @@ int main() {
                     else {
                         state_t -= state_t * 4 * delta_t;
                     }
-					
-					// @Fullscreen toggle
+                    
+                    // Fullscreen toggle
                     if(!keyboard_used && key_pressed[KEY_F11]) {
                         fullscreen = !fullscreen;
                     }
-					
-					// @Fullscreen change
+                    
+                    // Fullscreen change (if necessary)
                     if(fullscreen != last_fullscreen) {
                         GLFWmonitor *monitor = glfwGetWindowMonitor(window) ? NULL : glfwGetPrimaryMonitor();
                         glfwWindowHint(GLFW_RESIZABLE, 1);
                         glfwSetWindowMonitor(window, monitor, 0, 0, window_w, window_h, GLFW_DONT_CARE);
                     }
-					
+                    
                     if(fps <= 359.f) {
                         while(glfwGetTime() < current_time + (1.0 / fps));
                     }
                 }
-
+                
                 clean_up_state();
                 clean_up_assets();
                 clean_up_draw();
@@ -194,7 +192,7 @@ int main() {
             else {
                 fprintf(log_file, "ERROR: OpenGL loading failed - terminating...\n\n");
             }
-
+            
             glfwDestroyWindow(window);
         }
         else {
@@ -205,8 +203,8 @@ int main() {
     else {
         fprintf(log_file, "ERROR: GLFW initialization failed - terminating...\n\n");
     }
-
+    
     clean_up_audio();
-
+    
     return 0;
 }
