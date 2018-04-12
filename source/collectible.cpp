@@ -1,5 +1,7 @@
 #define MAX_COLLECTIBLE_COUNT 256
 
+// @Collectible Types
+
 enum {
     COLLECTIBLE_health_pot,
     COLLECTIBLE_key,

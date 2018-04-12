@@ -13,7 +13,7 @@ global struct State {
 
 global r32 state_t = 1;
 global i8 need_asset_refresh = 0,
-          first_state_frame = 1;
+first_state_frame = 1;
 
 State init_title_state();
 State init_dungeon_state();
@@ -25,6 +25,7 @@ State init_house_state();
 #include "light.cpp"
 #include "particle.cpp"
 #include "map.cpp"
+#include "control.cpp"
 
 #include "state_title.cpp"
 #include "state_dungeon.cpp"
@@ -37,7 +38,7 @@ void update_state() {
         case STATE_HOUSE:    { update_house_state(); break; }
         default: break;
     }
-
+    
     first_state_frame = 0;
 }
 

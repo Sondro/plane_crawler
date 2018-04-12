@@ -1,8 +1,8 @@
-// TODO(Ryan): Fix the crash when lightning/ice/wind particles exist...
-
 #define MAX_PARTICLE_COUNT 1024
 #define PARTICLE_INSTANCE_DATA_LENGTH 18
 #define PARTICLE_DATA_LENGTH 8
+
+// @Particle Types
 
 enum {
     PARTICLE_fire,
@@ -15,7 +15,7 @@ enum {
     MAX_PARTICLE
 };
 
-global
+global 
 struct {
     i32 texture, max_frames;
 } particle_types[MAX_PARTICLE] = {
@@ -29,7 +29,8 @@ struct {
 };
 
 struct ParticleSet {
-    // @Particle data: x, y, z, x_vel, y_vel, z_vel, life, scale
+    // NOTE(Ryan): Particle data is in this order: 
+    //             x, y, z, x_vel, y_vel, z_vel, life, scale
     u32 count;
     r32 particle_data[MAX_PARTICLE_COUNT*PARTICLE_DATA_LENGTH],
     instance_render_data[MAX_PARTICLE_COUNT*PARTICLE_INSTANCE_DATA_LENGTH];

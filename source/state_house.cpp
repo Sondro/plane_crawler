@@ -82,7 +82,7 @@ void update_house_state() {
         set_source_volume(h->bg_music, 1-state_t);
     }
     
-    if(h->paused) { // @Paused update
+    if(h->paused) { // paused update
         if(h->settings.state < 0) {
             set_ui_title("PAUSED");
             
@@ -101,66 +101,11 @@ void update_house_state() {
             end_block();
         }
     }
-    else { // @Unpaused update
+    else { // @House Update
         r32 movement_speed = 17;
+        control_player_and_camera(&h->camera, &h->player, movement_speed);
         
-        { // @Controls update
-            if(key_control_down(KC_TURN_LEFT) || gamepad_control_down(GC_TURN_LEFT)) {
-                h->camera.target_orientation.x -= 4.5*delta_t;
-            }
-            if(key_control_down(KC_TURN_RIGHT) || gamepad_control_down(GC_TURN_RIGHT)) {
-                h->camera.target_orientation.x += 4.5*delta_t;
-            }
-            
-            if(fabs(joystick_2_x) > 0.001) {
-                h->camera.target_orientation.x += joystick_2_x*4.5*delta_t;
-            }
-            
-            r32 horizontal_movement = 0,
-            vertical_movement = 0;
-            
-            if(fabs(joystick_1_x) > 0.001 || fabs(joystick_1_y) > 0.001) {
-                horizontal_movement = joystick_1_x;
-                vertical_movement = joystick_1_y;
-            }
-            else {
-                if(key_control_down(KC_MOVE_FORWARD) || gamepad_control_down(GC_MOVE_FORWARD)) {
-                    vertical_movement += 1;
-                }
-                if(key_control_down(KC_MOVE_BACKWARD) || gamepad_control_down(GC_MOVE_BACKWARD)) {
-                    vertical_movement -= 1;
-                }
-                if(key_control_down(KC_MOVE_LEFT) || gamepad_control_down(GC_MOVE_LEFT)) {
-                    horizontal_movement -= 1;
-                }
-                if(key_control_down(KC_MOVE_RIGHT) || gamepad_control_down(GC_MOVE_RIGHT)) {
-                    horizontal_movement += 1;
-                }
-                
-                r32 movement_length = sqrt(horizontal_movement*horizontal_movement + vertical_movement*vertical_movement);
-                if(movement_length) {
-                    horizontal_movement /= movement_length;
-                    vertical_movement /= movement_length;
-                }
-            }
-            
-            h->player.box.vel.x += cos(h->camera.orientation.x)*vertical_movement*movement_speed*delta_t;
-            h->player.box.vel.y += sin(h->camera.orientation.x)*vertical_movement*movement_speed*delta_t;
-            
-            h->player.box.vel.x += cos(h->camera.orientation.x + PI/2)*horizontal_movement*movement_speed*delta_t;
-            h->player.box.vel.y += sin(h->camera.orientation.x + PI/2)*horizontal_movement*movement_speed*delta_t;
-            
-            if(key_control_down(KC_ATTACK) || gamepad_control_down(GC_ATTACK)) {
-                h->player.attack.attacking = 1;
-            }
-            else {
-                h->player.attack.attacking = 0;
-            }
-            
-            h->player.attack.target = v2(cos(h->camera.orientation.x), sin(h->camera.orientation.x)) * 16;
-        }
-        
-        { // @Camera update
+        { // camera update
             movement_factor = (HMM_Length(h->player.box.vel) / (movement_speed*2));
             
             r32 last_camera_bob_sin_pos = h->camera_bob_sin_pos;
@@ -179,7 +124,6 @@ void update_house_state() {
         
         do_light(&h->house, h->camera.pos, v3(1, 0.9, 0.8), 8, 2);
         
-        // @House Map Update
         update_house_map(&h->house, &h->player);
     }
     
