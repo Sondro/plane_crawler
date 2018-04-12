@@ -1,3 +1,54 @@
+//-------------------------------------------------------
+//
+// Source Notes
+//
+//-------------------------------------------------------
+//
+// Comments beginning with @ are located at
+// notable places in the source code that might
+// need to be often revisited or modified in
+// feature addition.
+//
+// Note comments begin with NOTE
+// Todo comments begin with TODO
+//
+//-------------------------------------------------------
+//
+// Variables/functions are lower_case_with_underscores
+//
+// Typenames except for primitive types and math types
+// are UpperCamelCase
+//
+// Enum values are prefixed with their type in all caps,
+// and are then in lowercase (ENUM_value)
+//
+// Constants are UPPER_CASE_WITH_UNDERSCORES
+//
+// Macro functions are named in the same fashion as
+// actual functions
+//
+//-------------------------------------------------------
+//
+// For fixed-size and floating-point types, there are
+// some typedefs that are used:
+//
+// * int<n>_t is typedef'd as i<n>, where n (without 
+//   the angle brackets) is a number of bits. For 
+//   example, i32
+//
+// * uint<n>_t is typedef'd as u<n>, in similar fashion
+//   as signed integers
+//
+// * r32 for float
+// * r64 for double
+//
+// This is all provided by "ext/rf_utils.h", which also
+// has other stuff that is commonly used (like foreach
+// loops or forrng loops). Look in that file to get more
+// thorough information
+//
+//-------------------------------------------------------
+
 // Program Options
 #define DEBUG
 
