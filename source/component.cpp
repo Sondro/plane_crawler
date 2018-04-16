@@ -69,6 +69,9 @@ void update_health(HealthComponent *h, i32 count) {
 
 enum {
     ATTACK_fireball,
+    ATTACK_lightning,
+    ATTACK_ice,
+    ATTACK_wind,
 };
 
 struct AttackComponent {
@@ -120,8 +123,8 @@ AIComponent init_ai_component(i8 default_state) {
 void update_ai(AIComponent *a, i32 count) {
     foreach(i, count) {
         switch(a->state) {
-            case AI_roam: { 
-                if(current_time >= a->wait_start_time + a->wait_duration) { 
+            case AI_roam: {
+                if(current_time >= a->wait_start_time + a->wait_duration) {
                     a->wait_start_time = current_time;
                     a->wait_duration = a->moving ? random32(3, 6) : random32(1, 5);
                     a->move_vel = a->moving ? v2(0, 0) : v2(random32(-5, 5), random32(-5, 5));

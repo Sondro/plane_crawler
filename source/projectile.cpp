@@ -12,6 +12,9 @@ struct {
     i32 particle_type;
 } projectile_data[MAX_PROJECTILE] = {
     { PARTICLE_fire },
+    { PARTICLE_lightning },
+    { PARTICLE_ice },
+    { PARTICLE_wind },
 };
 
 struct ProjectileUpdate {

@@ -183,6 +183,10 @@ enum { // @Key Controls
     KC_TURN_RIGHT,
     KC_ATTACK,
     KC_PAUSE,
+    KC_S_FIRE,
+    KC_S_LIGHTNING,
+    KC_S_ICE,
+    KC_S_WIND,
     MAX_KC
 };
 
@@ -195,6 +199,10 @@ i16 key_control_maps[MAX_KC] = {
     KEY_RIGHT,
     KEY_SPACE,
     KEY_ESCAPE,
+    KEY_1,
+    KEY_2,
+    KEY_3,
+    KEY_4,
 };
 
 const char *key_control_names[MAX_KC] = {
@@ -206,6 +214,10 @@ const char *key_control_names[MAX_KC] = {
     "Turn Right",
     "Attack",
     "Pause",
+    "Switch: Fire",
+    "Switch: Lightning",
+    "Switch: Ice",
+    "Switch: Wind",
 };
 
 enum { // @Gamepad Controls
@@ -217,6 +229,10 @@ enum { // @Gamepad Controls
     GC_TURN_RIGHT,
     GC_ATTACK,
     GC_PAUSE,
+    //GC_S_FIRE,
+    //GC_S_LIGHTNING,
+    //GC_S_ICE,
+    //GC_S_WIND,
 };
 
 i16 gamepad_control_maps[MAX_KC] = {
@@ -239,6 +255,10 @@ const char *gamepad_control_names[MAX_KC] = {
     "Turn Right",
     "Attack",
     "Pause",
+    //"Switch: Fire",
+    //"Switch: Lightning",
+    //"Switch: Ice",
+    //"Switch: Wind",
 };
 
 static void key_callback(GLFWwindow *window, int key, int scancode, int action, int mods) {
@@ -270,14 +290,14 @@ void update_input() {
     glfwPollEvents();
     glfwGetWindowSize(window, &window_w, &window_h);
     glfwGetCursorPos(window, &mouse_x, &mouse_y);
-    
+
     mouse_pos_used = 0;
     mouse_buttons_used = 0;
     keyboard_used = 0;
-    
+
     i32 left_mouse_button = glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT),
     right_mouse_button = glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_RIGHT);
-    
+
     mouse_state >>= 2;
     if(left_mouse_button) {
         mouse_state |= (1<<7);
@@ -285,14 +305,14 @@ void update_input() {
     else {
         mouse_state &= ~(1<<7);
     }
-    
+
     if(right_mouse_button) {
         mouse_state |= (1<<6);
     }
     else {
         mouse_state &= ~(1<<6);
     }
-    
+
     for(i16 i = 0; i < GLFW_KEY_LAST; i++) {
         i32 key_state = glfwGetKey(window, i);
         if(key_state == GLFW_PRESS) {
@@ -304,12 +324,14 @@ void update_input() {
             key_pressed[i] = 0;
         }
     }
-    
+
     for(i8 i = 0; i < 16 && i < gamepad_button_count; i++) {
         last_gamepad_button_states[i] = gamepad_button_states[i];
     }
     gamepad_axes = glfwGetJoystickAxes(0, &gamepad_axis_count);
     gamepad_button_states = glfwGetJoystickButtons(0, &gamepad_button_count);
+
+
 }
 
 const char *key_name(u16 key) {
