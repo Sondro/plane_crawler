@@ -1,6 +1,6 @@
 struct Player {
     i8 inventory[3];
-
+    
     BoxComponent        box;
     HealthComponent     health;
     AttackComponent     attack;

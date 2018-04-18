@@ -1,6 +1,5 @@
 #include "enemy.cpp"
 #include "collectible.cpp"
-#include "projectile.cpp"
 
 enum {
     DUNGEON_TILE_brick,
@@ -903,21 +902,70 @@ void update_attacks(DungeonMap *d, i32 *id, AttackComponent *a, i32 count) {
                 a[i].mana -= a[i].charge;
                 
                 // @Attack Firing
-                switch(a[i].type) {
-                    case ATTACK_fireball: {
-                        add_projectile(d, id[i], PROJECTILE_fire,
-                                       a[i].pos,
-                                       a[i].target,
-                                       a[i].charge);
-                        break;
-                    }
-                    default: break;
-                }
+                add_projectile(d, id[i], attack_data[a[i].type].projectile_type,
+                               a[i].pos,
+                               a[i].target,
+                               a[i].charge);
             }
             a[i].mana += (1-a[i].mana) * delta_t * 0.25;
             a[i].transition -= a[i].transition * 2 * delta_t;
             a[i].charge = 0;
         }
+    }
+}
+
+void update_ai(AIComponent *a, AttackComponent *attack, DungeonMap *d, Player *p, i32 count) {
+    v2 target_pos;
+    foreach(i, count) {
+        if(!a->target_id) {
+            target_pos = p ? p->box.pos : v2(-10000, -10000);
+        }
+        else {
+            foreach(j, d->enemies.count) {
+                if(d->enemies.id[j] == a->target_id) {
+                    target_pos = d->enemies.box[j].pos;
+                    break;
+                }
+            }
+        }
+        
+        switch(a->state) {
+            case AI_STATE_idle:
+            case AI_STATE_roam: { 
+                if(a->attack_type >= 0 && distance2_32(target_pos, a->pos) <= 64.f) {
+                    a->state = AI_STATE_attack;
+                }
+                
+                if(a->state == AI_STATE_roam) {
+                    if(current_time >= a->wait_start_time + a->wait_duration) { 
+                        a->wait_start_time = current_time;
+                        a->wait_duration = a->moving ? random32(3, 6) : random32(1, 5);
+                        a->move_vel = a->moving ? v2(0, 0) : v2(random32(-5, 5), random32(-5, 5));
+                        a->moving = !a->moving;
+                    }
+                }
+                
+                break;
+            }
+            case AI_STATE_attack: {
+                a->move_vel = 2*(target_pos - a->pos) / length(target_pos - a->pos);
+                a->moving = 1;
+                attack->target = ((target_pos - a->pos) / length(target_pos - a->pos))*16;
+                attack->attacking = 1;
+                attack->pos = a->pos;
+                
+                if(attack->charge > attack->mana*0.2) {
+                    if(random32(0, attack->mana) < attack->charge) {
+                        attack->attacking = 0;
+                    }
+                }
+                
+                break;
+            }
+            default: break;
+        }
+        ++a;
+        ++attack;
     }
 }
 
@@ -1017,7 +1065,6 @@ void update_dungeon_map(DungeonMap *d, Player *p) {
     }
     
     { // @Update dungeon enemies
-        update_ai(d->enemies.ai, d->enemies.count);
         move_boxes_with_ai(d->enemies.box, d->enemies.ai, d->enemies.count);
         
         collide_boxes_with_tiles(d, d->enemies.box, d->enemies.count);
@@ -1033,6 +1080,12 @@ void update_dungeon_map(DungeonMap *d, Player *p) {
         }
         
         update_attacks(d, d->enemies.id, d->enemies.attack, d->enemies.count);
+        
+        // update ai position
+        foreach(i, d->enemies.count) {
+            d->enemies.ai[i].pos = d->enemies.box[i].pos;
+        }
+        update_ai(d->enemies.ai, d->enemies.attack, d, p, d->enemies.count);
         
         // update enemy health
         update_health(d->enemies.health, d->enemies.count);

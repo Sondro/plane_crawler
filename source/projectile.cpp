@@ -8,6 +8,7 @@ enum {
     MAX_PROJECTILE
 };
 
+global
 struct {
     i32 particle_type;
 } projectile_data[MAX_PROJECTILE] = {
@@ -20,7 +21,7 @@ struct {
 struct ProjectileUpdate {
     i32 origin;
     v2 pos,
-       vel;
+    vel;
     r32 strength, particle_start_time;
 };
 

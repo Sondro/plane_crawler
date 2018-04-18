@@ -20,10 +20,11 @@ State init_dungeon_state();
 State init_house_state();
 
 #include "camera.cpp"
+#include "particle.cpp"
+#include "projectile.cpp"
 #include "component.cpp"
 #include "player.cpp"
 #include "light.cpp"
-#include "particle.cpp"
 #include "map.cpp"
 #include "control.cpp"
 

@@ -43,7 +43,7 @@ void draw_sprite_components(SpriteComponent *s, i32 count) {
                                v4(s->tx, s->ty, s->tw, s->th),
                                s->pos,
                                v2(0.5 * (s->tw / 16.f), 0.5 * (s->th / 16.f)));
-
+        
         ++s;
     }
 }
@@ -72,13 +72,23 @@ enum {
     ATTACK_lightning,
     ATTACK_ice,
     ATTACK_wind,
+    MAX_ATTACK
+};
+
+global struct {
+    i32 projectile_type;
+} attack_data[MAX_ATTACK] = {
+    { PROJECTILE_fire, },
+    { PROJECTILE_lightning, },
+    { PROJECTILE_ice, },
+    { PROJECTILE_wind, },
 };
 
 struct AttackComponent {
     v2 pos, target;
     i8 type, attacking;
     r32 charge, transition,
-        mana, target_mana;
+    mana, target_mana;
 };
 
 AttackComponent init_attack_component(i8 type) {
@@ -95,53 +105,38 @@ AttackComponent init_attack_component(i8 type) {
 // @AI Component
 
 enum {
-    AI_idle,
-    AI_roam,
-    AI_melee,
-    AI_ranged,
-    MAX_AI
+    AI_STATE_idle,
+    AI_STATE_roam,
+    AI_STATE_attack,
+    MAX_AI_STATE
 };
 
 struct AIComponent {
-    i8 state, moving;
+    v2 pos;
+    i8 attack_type, state, moving;
     i32 target_id;
     v2 move_vel;
     r32 wait_start_time, wait_duration;
 };
 
-AIComponent init_ai_component(i8 default_state) {
+AIComponent init_ai_component(i8 default_state, i8 attack_type) {
     AIComponent a;
+    a.pos = v2(0, 0);
     a.state = default_state;
+    a.attack_type = attack_type;
     a.moving = 0;
-    a.target_id = -1;
+    a.target_id = 0;
     a.move_vel = v2(0, 0);
     a.wait_start_time = current_time;
     a.wait_duration = 5;
     return a;
 }
 
-void update_ai(AIComponent *a, i32 count) {
-    foreach(i, count) {
-        switch(a->state) {
-            case AI_roam: {
-                if(current_time >= a->wait_start_time + a->wait_duration) {
-                    a->wait_start_time = current_time;
-                    a->wait_duration = a->moving ? random32(3, 6) : random32(1, 5);
-                    a->move_vel = a->moving ? v2(0, 0) : v2(random32(-5, 5), random32(-5, 5));
-                    a->moving = !a->moving;
-                }
-                break;
-            }
-            default: break;
-        }
-        ++a;
-    }
-}
-
 void move_boxes_with_ai(BoxComponent *b, AIComponent *a, i32 count) {
     foreach(i, count) {
+        a->pos = b->pos;
         b->vel += (a->move_vel - b->vel) * 6 * delta_t;
-
+        
         ++a;
         ++b;
     }

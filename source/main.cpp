@@ -180,7 +180,6 @@ int main() {
                         update_state();
                         ui_end();
                         draw_ui_filled_rect(v4(0, 0, 0, state_t < 0.95 ? state_t : 1), v4(0, 0, window_w, window_h));
-                        
                         glfwSwapBuffers(window);
                     }
                     

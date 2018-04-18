@@ -33,7 +33,7 @@ void init_enemy(i16 type, v2 pos,
     *s = init_sprite_component(TEX_enemy, enemy_data[type].tx*24, 0, 24, 24);
     *h = init_health_component(1);
     *a = init_attack_component(ATTACK_fireball);
-    *ai = init_ai_component(AI_roam);
+    *ai = init_ai_component(AI_STATE_roam, a->type);
 }
 
 void remove_enemy(EnemySet *e, i32 id) {

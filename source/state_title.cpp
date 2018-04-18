@@ -63,7 +63,7 @@ void update_title_state() {
         t->camera.target_orientation = v3(PI*(4.f/3), 0, 0);
     }
     
-    do_light(&t->map, t->camera.pos, v3(1, 0.8, 0.6), 20, 0.9);
+    do_light(&t->map, t->camera.pos, v3(1, 0.8, 0.6), 20, 2);
     
     update_camera(&t->camera);
     update_dungeon_map(&t->map, 0);

@@ -82,46 +82,53 @@ void update_dungeon_state() {
         set_source_volume(d->bg_music, 1-state_t);
     }
     
-    if(d->game_over) {
-        set_ui_title("GAME OVER");
-        
-        begin_block(0, UI_STANDARD_W, UI_STANDARD_H*3);
-        {
-            if(do_button(GEN_ID, UI_STANDARD_W*2, UI_STANDARD_H, "RETURN TO HOUSE") && !next_state.type) {
-                next_state = init_title_state();
+    if(d->paused && !d->game_over) { // paused update
+        if(d->settings.state < 0) {
+            set_ui_title("PAUSED");
+            
+            begin_block(0, UI_STANDARD_W, UI_STANDARD_H*3);
+            {
+                if(do_button(GEN_ID, UI_STANDARD_W, UI_STANDARD_H, "RESUME")) {
+                    d->paused = 0;
+                }
+                if(do_button(GEN_ID, UI_STANDARD_W, UI_STANDARD_H, "SETTINGS")) {
+                    d->settings.state = 0;
+                }
+                if(do_button(GEN_ID, UI_STANDARD_W, UI_STANDARD_H, "RETURN TO HOUSE") && !next_state.type) {
+                    next_state = init_house_state();
+                }
             }
-            if(do_button(GEN_ID, UI_STANDARD_W*2, UI_STANDARD_H, "NEW DUNGEON") && !next_state.type) {
-                next_state = init_dungeon_state();
-            }
-            if(do_button(GEN_ID, UI_STANDARD_W*2, UI_STANDARD_H, "QUIT")) {
-                glfwSetWindowShouldClose(window, 1);
-            }
+            end_block();
         }
-        end_block();
     }
     else {
-        if(d->paused) { // paused update
-            if(d->settings.state < 0) {
-                set_ui_title("PAUSED");
-                
-                begin_block(0, UI_STANDARD_W, UI_STANDARD_H*3);
-                {
-                    if(do_button(GEN_ID, UI_STANDARD_W, UI_STANDARD_H, "RESUME")) {
-                        d->paused = 0;
-                    }
-                    if(do_button(GEN_ID, UI_STANDARD_W, UI_STANDARD_H, "SETTINGS")) {
-                        d->settings.state = 0;
-                    }
-                    if(do_button(GEN_ID, UI_STANDARD_W, UI_STANDARD_H, "RETURN TO HOUSE") && !next_state.type) {
-                        next_state = init_house_state();
-                    }
+        r32 movement_speed = 30;
+        
+        if(d->game_over) {
+            set_ui_title("GAME OVER");
+            
+            begin_block(0, UI_STANDARD_W, UI_STANDARD_H*3);
+            {
+                if(do_button(GEN_ID, UI_STANDARD_W*2, UI_STANDARD_H, "RETURN TO HOUSE") && !next_state.type) {
+                    next_state = init_title_state();
                 }
-                end_block();
+                if(do_button(GEN_ID, UI_STANDARD_W*2, UI_STANDARD_H, "NEW DUNGEON") && !next_state.type) {
+                    next_state = init_dungeon_state();
+                }
+                if(do_button(GEN_ID, UI_STANDARD_W*2, UI_STANDARD_H, "QUIT")) {
+                    glfwSetWindowShouldClose(window, 1);
+                }
             }
+            end_block();
         }
-        else { // @Dungeon Update
-            r32 movement_speed = 30;
+        else {
             control_player_and_camera(&d->camera, &d->player, movement_speed);
+        }
+        
+        { // @Dungeon Update
+            if(d->player.health.val <= 0.f) {
+                d->game_over = 1;
+            }
             
             { // camera update
                 movement_factor = (HMM_Length(d->player.box.vel) / (movement_speed*2));
