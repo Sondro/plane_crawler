@@ -5,6 +5,7 @@
 enum {
     COLLECTIBLE_health_pot,
     COLLECTIBLE_key,
+    COLLECTIBLE_mana_pot,
     MAX_COLLECTIBLE
 };
 
@@ -13,6 +14,7 @@ global struct {
 } collectible_data[MAX_COLLECTIBLE] = {
     { 0 },
     { 1 },
+    { 2 },
 };
 
 struct CollectibleSet {

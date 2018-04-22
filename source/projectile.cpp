@@ -5,6 +5,8 @@ enum {
     PROJECTILE_lightning,
     PROJECTILE_ice,
     PROJECTILE_wind,
+    PROJECTILE_jelly,
+    PROJECTILE_dark,
     MAX_PROJECTILE
 };
 
@@ -16,6 +18,8 @@ struct {
     { PARTICLE_lightning },
     { PARTICLE_ice },
     { PARTICLE_wind },
+    { PARTICLE_jelly },
+    { PARTICLE_dark },
 };
 
 struct ProjectileUpdate {

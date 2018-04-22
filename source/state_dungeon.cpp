@@ -296,7 +296,7 @@ void update_dungeon_state() {
 
             }
 
-
+            //draw the boxes for spells
             draw_ui_texture(&textures[TEX_hud], v4(64, 0, 12, 12),
                             v4(window_w - 4*64 + i*64, window_h - 64, 12*4, 12*4));
         }

@@ -32,7 +32,7 @@ void init_enemy(i16 type, v2 pos,
     *b = init_box_component(pos, v2(0.8, 0.8));
     *s = init_sprite_component(TEX_enemy, enemy_data[type].tx*24, 0, 24, 24);
     *h = init_health_component(1);
-    *a = init_attack_component(ATTACK_fireball);
+    *a = init_attack_component(ATTACK_jelly);
     *ai = init_ai_component(AI_STATE_roam, a->type);
 }
 
