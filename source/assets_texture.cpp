@@ -17,5 +17,6 @@ texture(particle_portal_easy),
 texture(particle_portal_medium),
 texture(particle_portal_hard),
 texture(collectible),
+texture(icons),
 
 textures_end
