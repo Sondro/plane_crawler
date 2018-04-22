@@ -2,19 +2,22 @@
 
 struct Dungeon {
     i8 paused, game_over;
-
+    
     // camera data
     r32 camera_bob_sin_pos;
     Camera camera;
-
+    
     // map/game data
     DungeonMap map;
     Player player;
     FBO render_fbo;
-
+    
+    // spell cast sound data
+    SoundSource *charge_build, *charge_hold;
+    
     // bg music data
     SoundSource *bg_music;
-
+    
     // settings data
     SettingsMenu settings;
 };
@@ -24,44 +27,51 @@ State init_dungeon_state() {
     s.type = STATE_DUNGEON;
     s.mem = malloc(sizeof(Dungeon));
     Dungeon *d = (Dungeon *)s.mem;
-
+    
     { // @Dungeon Init
         d->paused = 0;
         d->game_over = 0;
-
+        
         d->camera_bob_sin_pos = 0;
         d->camera.pos = v3(0, 0, 0);
         d->camera.orientation = d->camera.target_orientation = v3(0, 0, 0);
         d->camera.interpolation_rate = 10;
+        d->charge_build = reserve_sound_source();
+        d->charge_hold = reserve_sound_source();
         d->bg_music = reserve_sound_source();
-
+        
         request_dungeon_map_assets();
         request_texture(TEX_hud);
         request_texture(TEX_hand);
+        request_sound(SOUND_charge_build);
+        request_sound(SOUND_charge_hold);
         request_sound(SOUND_dungeon1);
-
+        
         d->settings.state = -1;
-
+        
         glfwSetInputMode(window, GLFW_CURSOR, d->paused ? GLFW_CURSOR_NORMAL : GLFW_CURSOR_DISABLED);
     }
-
+    
     return s;
 }
 
 void clean_up_dungeon_state(State *s) {
     Dungeon *d = (Dungeon *)s->mem;
-
+    
     { // @Dungeon Cleanup
         unrequest_texture(TEX_hud);
         unrequest_texture(TEX_hand);
         unrequest_sound(SOUND_dungeon1);
         unrequest_dungeon_map_assets();
         clean_up_dungeon_map(&d->map);
-
+        
         stop_source(d->bg_music);
+        stop_source(d->charge_hold);
+        unreserve_sound_source(d->charge_build);
+        unreserve_sound_source(d->charge_hold);
         unreserve_sound_source(d->bg_music);
     }
-
+    
     free(s->mem);
     s->mem = 0;
     s->type = 0;
@@ -69,23 +79,23 @@ void clean_up_dungeon_state(State *s) {
 
 void update_dungeon_state() {
     Dungeon *d = (Dungeon *)state.mem;
-
+    
     r32 movement_factor = 0;
-
+    
     // @Dungeon Post Asset Loading Init
     if(first_state_frame) {
         generate_dungeon_map(&d->map);
         d->player = init_player(v2(MAP_W/2, MAP_H/2));
-        play_source(d->bg_music, &sounds[SOUND_dungeon1], 1, 1, 1, AUDIO_MUSIC);
+        play_source(d->bg_music, &sounds[SOUND_dungeon1], 1, 1, 1, AUDIO_music);
     }
     else {
         set_source_volume(d->bg_music, 1-state_t);
     }
-
+    
     if(d->paused && !d->game_over) { // paused update
         if(d->settings.state < 0) {
             set_ui_title("PAUSED");
-
+            
             begin_block(0, UI_STANDARD_W, UI_STANDARD_H*3);
             {
                 if(do_button(GEN_ID, UI_STANDARD_W, UI_STANDARD_H, "RESUME")) {
@@ -103,10 +113,10 @@ void update_dungeon_state() {
     }
     else {
         r32 movement_speed = 30;
-
+        
         if(d->game_over) {
             set_ui_title("GAME OVER");
-
+            
             begin_block(0, UI_STANDARD_W, UI_STANDARD_H*3);
             {
                 if(do_button(GEN_ID, UI_STANDARD_W*2, UI_STANDARD_H, "RETURN TO HOUSE") && !next_state.type) {
@@ -122,47 +132,63 @@ void update_dungeon_state() {
             end_block();
         }
         else {
+            i8 last_charging = d->player.attack.attacking;
             control_player_and_camera(&d->camera, &d->player, movement_speed);
+            if(d->player.attack.attacking) {
+                if(!last_charging) {
+                    play_source(d->charge_build, &sounds[SOUND_charge_build], 1, 1, 0, AUDIO_entity);
+                }
+                else {
+                    if(!source_playing(d->charge_build) && !source_playing(d->charge_hold)) {
+                        play_source(d->charge_hold, &sounds[SOUND_charge_hold], 1, 1, 1, AUDIO_entity);
+                    }
+                }
+            }
+            else {
+                set_source_volume(d->charge_build, d->player.attack.transition);
+                stop_source(d->charge_hold);
+            }
         }
-
+        
         { // @Dungeon Update
             if(d->player.health.val <= 0.f) {
                 d->game_over = 1;
             }
-
+            
             { // camera update
                 movement_factor = (HMM_Length(d->player.box.vel) / (movement_speed*2));
-
+                
                 d->camera_bob_sin_pos += 15*delta_t;
                 d->camera.pos.x = d->player.box.pos.x;
                 d->camera.pos.z = d->player.box.pos.y;
-
+                
                 d->camera.pos.y = dungeon_coordinate_height(&d->map, d->camera.pos.x, d->camera.pos.z) + 0.8;
                 d->camera.pos.y += sin(d->camera_bob_sin_pos)*0.42*movement_factor;
-
+                
                 update_camera(&d->camera);
-
+                set_listener_position(d->camera.pos.x, d->camera.pos.y, d->camera.pos.z);
+                
                 do_light(&d->map, d->camera.pos, v3(1, 0.9, 0.8), 15, 2);
             }
-
+            
             update_dungeon_map(&d->map, &d->player);
         }
     }
-
+    
     prepare_for_world_render(); // @Dungeon World Render
     {
         set_view_with_camera(&d->camera);
         draw_dungeon_map_begin(&d->map);
-
+        
         { // Spell/hand drawing
             disable_depth();
-
+            
             // NOTE(Ryan): We want to keep the perspective identical across
             //             all resolutions for the hand so it always fits
             //             and appears correctly
             m4 old_proj = projection;
             projection = HMM_Perspective(90.f, (r32)window_w/window_h, 0.01f, 10.f);
-
+            
             if(d->player.attack.attacking) {
                 v3 target = d->camera.pos + v3(
                     cos(d->camera.orientation.x + 0.5)*0.025,
@@ -181,37 +207,37 @@ void update_dungeon_state() {
                     );
                 draw_billboard_texture(&textures[TEX_hand], v4(64, 0, 64, 64), target, v2(0.01, 0.01));
             }
-
+            
             projection = old_proj;
-
+            
             enable_depth();
         }
-
+        
         draw_dungeon_map_end(&d->map);
     }
-
+    
     prepare_for_ui_render(); // @Dungeon UI Render
     {
         // draw health/mana bars
-
+        
         // health bar
         draw_ui_texture(&textures[TEX_hud], v4(0, 12, 64 * d->player.health.val, 12),
                         v4(16, window_h - 120, 64*4 * d->player.health.val, 12*4));
-
+        
         // health bar container
         draw_ui_texture(&textures[TEX_hud], v4(0, 0, 64, 12),
                         v4(16, window_h - 120, 64*4, 12*4));
-
+        
         // mana bar
         draw_ui_texture(&textures[TEX_hud], v4(0, 24, 64 * d->player.attack.mana, 12),
                         v4(16, window_h - 64, 64*4 * d->player.attack.mana, 12*4));
-
+        
         draw_ui_filled_rect(v4(0.8, 0.8, 0.8, 0.8), v4(16 + 64*4*d->player.attack.mana - 64*4*d->player.attack.charge, window_h - 64, 64*4 * d->player.attack.charge, 12*4));
-
+        
         // mana bar container
         draw_ui_texture(&textures[TEX_hud], v4(0, 0, 64, 12),
                         v4(16, window_h - 64, 64*4, 12*4));
-
+        
         // draw inventory
         foreach(i, 3) {
             if(d->player.inventory[i] >= 0) {
@@ -224,37 +250,37 @@ void update_dungeon_state() {
         foreach(i, 4) {
             //draw the spell particles in the boxes
             if(d->player.attack.type == ATTACK_fireball){
-
+                
             } else if(d->player.attack.type == ATTACK_lightning){
-
+                
             } else if(d->player.attack.type == ATTACK_ice){
-
+                
             } else if(d->player.attack.type == ATTACK_wind){
-
+                
             }
-
-
+            
+            
             draw_ui_texture(&textures[TEX_hud], v4(64, 0, 12, 12),
                             v4(window_w - 4*64 + i*64, window_h - 64, 12*4, 12*4));
         }
     }
-
+    
     if(d->game_over) {
         draw_ui_filled_rect(v4(0.6, 0, 0, 0.6), v4(0, 0, window_w, window_h));
     }
-
+    
     if(d->paused) {
         draw_ui_filled_rect(v4(0, 0, 0, 0.6), v4(0, 0, window_w, window_h));
         if(d->settings.state >= 0) {
             do_settings_menu(&d->settings);
         }
     }
-
+    
     if(key_control_pressed(KC_PAUSE) ||
        gamepad_control_pressed(GC_PAUSE)) {
         d->paused = !d->paused;
         ui.current_focus = 0;
-
+        
         glfwSetInputMode(window, GLFW_CURSOR, d->paused ? GLFW_CURSOR_NORMAL : GLFW_CURSOR_DISABLED);
     }
 }

@@ -4,11 +4,10 @@ global ALCdevice *audio_device;
 global ALCcontext *audio_context;
 
 enum {
-    AUDIO_MASTER,
-    AUDIO_MUSIC,
-    AUDIO_PLAYER,
-    AUDIO_ENEMY,
-    AUDIO_UI,
+    AUDIO_master,
+    AUDIO_music,
+    AUDIO_entity,
+    AUDIO_ui,
     MAX_AUDIO
 };
 
@@ -19,8 +18,7 @@ struct {
 } audio_type_data[MAX_AUDIO] = {
     { "MASTER", 1, 1 },
     { "MUSIC", 1, 1 },
-    { "PLAYER", 1, 1 },
-    { "ENEMIES", 1, 1 },
+    { "ENTITIES", 1, 1 },
     { "USER INTERFACE", 1, 1 },
 };
 
@@ -40,10 +38,10 @@ struct SoundSource {
 #define set_source_velocity(source, x, y, z) { alSource3f((source)->id, AL_VELOCITY, x, y, z); }
 #define set_listener_position(x, y, z) { alListener3f(AL_POSITION, x, y, z); }
 #define set_listener_velocity(x, y, z) { alListener3f(AL_VELOCITY, x, y, z); }
-#define audio_type_volume(i) (audio_type_data[i].volume * audio_type_data[AUDIO_MASTER].volume)
+#define audio_type_volume(i) (audio_type_data[i].volume * audio_type_data[AUDIO_master].volume)
 
 global SoundSource sound_sources[SOUND_SOURCE_COUNT];
-global r32 audio_type_volume_modifiers[MAX_AUDIO] = { 1, 1, 1, 1, 1 };
+global r32 audio_type_volume_modifiers[MAX_AUDIO] = { 1, 1, 1, 1 };
 
 i8 source_playing(SoundSource *source) {
     ALint state = 0;
@@ -85,12 +83,38 @@ SoundSource *play_sound(Sound *sound, r32 volume, r32 pitch, i8 loop, i8 volume_
                 set_source_position(sound_sources+i, 0, 0, 0);
                 alSourcePlay(sound_sources[i].id);
                 sound_sources[i].sound = sound;
-
+                
                 return sound_sources + i;
             }
         }
     }
     return NULL;
+}
+
+SoundSource *play_sound_at_point(Sound *sound, r32 volume, r32 pitch, i8 loop, i8 volume_type, v3 pos) {
+    if(sound->id) {
+        for(i16 i = 0; i < SOUND_SOURCE_COUNT; i++) {
+            if(!source_playing(sound_sources + i) && !sound_sources[i].reserved) {
+                sound_sources[i].volume_type = volume_type;
+                sound_sources[i].volume = volume;
+                ALint buffer;
+                alGetSourcei(sound_sources[i].id, AL_BUFFER, &buffer);
+                if((ALuint)buffer != sound->id) {
+                    alSourcei(sound_sources[i].id, AL_BUFFER, sound->id);
+                }
+                alSourcei(sound_sources[i].id, AL_LOOPING, (ALint)loop);
+                alSourcef(sound_sources[i].id, AL_GAIN, volume * audio_type_volume(volume_type));
+                alSourcef(sound_sources[i].id, AL_PITCH, pitch);
+                set_source_relative(sound_sources+i, 0);
+                set_source_position(sound_sources+i, pos.x, pos.y, pos.z);
+                alSourcePlay(sound_sources[i].id);
+                sound_sources[i].sound = sound;
+                
+                return sound_sources + i;
+            }
+        }
+    }
+    return 0;
 }
 
 void play_source(SoundSource *source, Sound *sound, r32 volume, r32 pitch, i8 loop, i8 volume_type) {
@@ -156,8 +180,8 @@ SoundSource init_sound_source() {
     s.volume_type = 0;
     alGenSources(1, &s.id);
     alSourcef(s.id, AL_ROLLOFF_FACTOR, 1);
-    alSourcef(s.id, AL_REFERENCE_DISTANCE, 256);
-    alSourcef(s.id, AL_MAX_DISTANCE, 1024);
+    alSourcef(s.id, AL_REFERENCE_DISTANCE, 10);
+    alSourcef(s.id, AL_MAX_DISTANCE, 10);
     s.sound = NULL;
     return s;
 }

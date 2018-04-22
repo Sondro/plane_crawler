@@ -53,6 +53,7 @@ void request_dungeon_map_assets() {
     request_texture(TEX_enemy);
     request_texture(TEX_collectible);
     request_sound(SOUND_key_get);
+    request_sound(SOUND_spell_fire);
     
     foreach(i, MAX_PARTICLE) {
         request_texture(particle_types[i].texture);
@@ -68,6 +69,7 @@ void unrequest_dungeon_map_assets() {
     unrequest_texture(TEX_enemy);
     unrequest_texture(TEX_collectible);
     unrequest_sound(SOUND_key_get);
+    unrequest_sound(SOUND_spell_fire);
     
     foreach(i, MAX_PARTICLE) {
         unrequest_texture(particle_types[i].texture);
@@ -906,6 +908,7 @@ void update_attacks(DungeonMap *d, i32 *id, AttackComponent *a, i32 count) {
                                a[i].pos,
                                a[i].target,
                                a[i].charge);
+                play_sound_at_point(&sounds[SOUND_spell_fire], 1, random32(0.8, 1.2), 0, AUDIO_entity, v3(a[i].pos.x, 0, a[i].pos.y));
             }
             a[i].mana += (1-a[i].mana) * delta_t * 0.25;
             a[i].transition -= a[i].transition * 2 * delta_t;
@@ -948,6 +951,9 @@ void update_ai(AIComponent *a, AttackComponent *attack, DungeonMap *d, Player *p
                 break;
             }
             case AI_STATE_attack: {
+                if(distance2_32(target_pos, a->pos) >= 64.f) {
+                    a->state = AI_STATE_roam;
+                }
                 a->move_vel = 2*(target_pos - a->pos) / length(target_pos - a->pos);
                 a->moving = 1;
                 attack->target = ((target_pos - a->pos) / length(target_pos - a->pos))*16;
@@ -1044,7 +1050,7 @@ void update_dungeon_map(DungeonMap *d, Player *p) {
                     }
                     if(collected) {
                         if(d->collectibles.type[i] == COLLECTIBLE_key) {
-                            play_sound(&sounds[SOUND_key_get], 1, 1, 0, AUDIO_PLAYER);
+                            play_sound(&sounds[SOUND_key_get], 1, 1, 0, AUDIO_entity);
                         }
                         remove_collectible(d, i);
                     }
