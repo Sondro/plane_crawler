@@ -21,8 +21,8 @@
 #define ui_down_down            (key_down[KEY_DOWN]  || key_down[KEY_S] || gamepad_control_down(GC_MOVE_BACKWARD))
 #define ui_fire_down            (key_down[KEY_SPACE] || key_down[KEY_ENTER] || gamepad_control_down(GC_ATTACK))
 
-#define play_ui_hot_sound()     (play_sound(&sounds[SOUND_ui_hot], 1, 1, 0, AUDIO_UI))
-#define play_ui_fire_sound()    (play_sound(&sounds[SOUND_ui_fire], 1, 1, 0, AUDIO_UI))
+#define play_ui_hot_sound()     (play_sound(&sounds[SOUND_ui_hot], 1, 1, 0, AUDIO_ui))
+#define play_ui_fire_sound()    (play_sound(&sounds[SOUND_ui_fire], 1, 1, 0, AUDIO_ui))
 
 typedef r64 ui_id;
 
@@ -39,16 +39,16 @@ struct UIRender {
     v4 bb;
     r32 t_hot, t_active;
     char text[MAX_UI_RENDER_TEXT_SIZE];
-
+    
     union {
         struct { // @Toggler (checkbox or radio button)
             i8 checked;
         };
-
+        
         struct { // @Slider
             r32 slider_val;
         };
-
+        
         struct { // @Line-edit
             char empty_text[MAX_UI_RENDER_TEXT_SIZE];
         };
@@ -59,28 +59,28 @@ global struct {
     // input data
     ui_id hot, active;
     r64 last_mouse_x, last_mouse_y;
-
+    
     // renders
     u32 render_count;
     UIRender renders[MAX_UI_RENDER];
-
+    
     // focus data
     i8 focusing;
     u32 focus_count;
     ui_id focus_ids[MAX_UI_RENDER];
     i32 current_focus;
-
+    
     // block/auto-layout data
     i8 block_mode;
     u32 current_block;
     v2 current_block_size,
-       current_element_pos;
+    current_element_pos;
     v4 current_block_bb;
-
+    
     // ui title data
     const char *title;
     r32 title_y;
-
+    
     u32 update_pos;
 } ui;
 
@@ -103,22 +103,22 @@ void init_ui() {
     ui.active = -1;
     ui.last_mouse_x = mouse_x;
     ui.last_mouse_y = mouse_y;
-
+    
     // render data
     ui.render_count = 0;
-
+    
     // focus data
     ui.focusing = 0;
     ui.focus_count = 0;
     ui.current_focus = 0;
-
+    
     // block/auto-layout data
     ui.block_mode = BLOCK_MODE_VERTICAL;
     ui.current_block = 0;
     ui.current_element_pos = v2(0, 0);
-
+    
     ui.update_pos = 0;
-
+    
     request_sound(SOUND_ui_hot);
     request_sound(SOUND_ui_fire);
 }
@@ -146,7 +146,7 @@ void ui_end() {
                 }
                 play_ui_hot_sound();
             }
-
+            
             if((int)ui.last_mouse_x != (int)mouse_x || (int)ui.last_mouse_y != (int)mouse_y) {
                 ui.current_focus = -1;
                 ui.active = -1;
@@ -170,12 +170,12 @@ void ui_end() {
             }
         }
     }
-
+    
     ui.last_mouse_x = mouse_x;
     ui.last_mouse_y = mouse_y;
-
+    
     prepare_for_ui_render();
-
+    
     for(u32 i = ui.render_count - 1; i >= 0 && i < ui.render_count; --i) {
         if(ui.renders[i].updated) {
             if(ui_id_equ(ui.hot, ui.renders[i].id)) {
@@ -184,17 +184,17 @@ void ui_end() {
             else {
                 ui.renders[i].t_hot -= (ui.renders[i].t_hot*8*delta_t);
             }
-
+            
             if(ui_id_equ(ui.active, ui.renders[i].id)) {
                 ui.renders[i].t_active += (1-ui.renders[i].t_active) * 15*delta_t;
             }
             else {
                 ui.renders[i].t_active *= (ui.renders[i].t_active*8*delta_t);
             }
-
+            
             { // @UI Element Rendering
                 v4 bb = ui.renders[i].bb;
-
+                
                 draw_ui_filled_rect(ui.renders[i].t_hot * v4(0.8, 0.8, 0.8, 1),
                                     v4(bb.x + bb.z/2 - (bb.z/2)*ui.renders[i].t_hot,
                                        bb.y + bb.w/2 + 24,
@@ -203,50 +203,50 @@ void ui_end() {
                                     v4(bb.x + bb.z/2 - (bb.z/2)*ui.renders[i].t_hot,
                                        bb.y + bb.w/2 - 28,
                                        (bb.z - 4)*ui.renders[i].t_hot, 4));
-
+                
                 if(ui.renders[i].type == ELEMENT_SLIDER) {
                     draw_ui_filled_rect(ui.renders[i].t_hot*v4(0.2, 0.2, 0.2, 0.2) + v4(0.5, 0.5, 0.5, 0.5),
                                         v4(bb.x, bb.y + 4, (bb.z-4)*ui.renders[i].slider_val, bb.w - 8));
                 }
-
+                
                 if(ui.renders[i].type == ELEMENT_TOGGLER) {
                     draw_ui_text(ui.renders[i].text, 0,
                                  v2(
-                                     bb.x + 10 - 2*ui.renders[i].t_hot,
-                                     bb.y + bb.w/2
-                                 )
-                                );
-
+                        bb.x + 10 - 2*ui.renders[i].t_hot,
+                        bb.y + bb.w/2
+                        )
+                                 );
+                    
                     draw_ui_text(ui.renders[i].text, 0,
                                  v2(
-                                     bb.x + 10 + 2*ui.renders[i].t_hot,
-                                     bb.y + bb.w/2
-                                 )
-                                );
-
+                        bb.x + 10 + 2*ui.renders[i].t_hot,
+                        bb.y + bb.w/2
+                        )
+                                 );
+                    
                     draw_ui_rect(v4(0.6, 0.6, 0.6, 0.6) + ui.renders[i].t_hot * v4(0.2, 0.2, 0.2, 0.4),
                                  v4(bb.x + bb.z-48, bb.y+bb.w/2 - 16, 32, 32), 4);
-
+                    
                     if(ui.renders[i].checked) {
                         draw_ui_filled_rect(v4(0.6, 0.6, 0.6, 0.6) + ui.renders[i].t_hot * v4(0.2, 0.2, 0.2, 0.4),
                                             v4(bb.x + bb.z-40, bb.y+bb.w/2 - 8, 16, 16));
-
+                        
                     }
                 }
                 else {
                     draw_ui_text(ui.renders[i].text, ALIGN_CENTER,
                                  v2(
-                                     bb.x + bb.z/2 - 2*ui.renders[i].t_hot,
-                                     bb.y + bb.w/2
-                                 )
-                                );
-
+                        bb.x + bb.z/2 - 2*ui.renders[i].t_hot,
+                        bb.y + bb.w/2
+                        )
+                                 );
+                    
                     draw_ui_text(ui.renders[i].text, ALIGN_CENTER,
                                  v2(
-                                     bb.x + bb.z/2 + 2*ui.renders[i].t_hot,
-                                     bb.y + bb.w/2
-                                 )
-                                );
+                        bb.x + bb.z/2 + 2*ui.renders[i].t_hot,
+                        bb.y + bb.w/2
+                        )
+                                 );
                 }
             }
             ui.renders[i].updated = 0;
@@ -263,7 +263,7 @@ void ui_end() {
             --ui.render_count;
         }
     }
-
+    
     if(ui.title) {
         draw_ui_filled_rect(v4(0.5, 0.5, 0.5, 0.5), v4(0, ui.title_y - 32, window_w, 64));
         draw_ui_text(ui.title, ALIGN_CENTER, v2(window_w/2 + 2, ui.title_y));
@@ -281,7 +281,7 @@ void begin_block(u32 block_number, r32 x, r32 y, r32 w, r32 h) {
         ui.title_y = y - 32;
         y += 64;
     }
-
+    
     ui.current_block_bb = v4(x, y, w, h);
     ui.focusing = (ui.current_block == block_number) || !block_number;
     ui.current_element_pos = v2(x, y);
@@ -321,7 +321,7 @@ UIRender *find_previous_ui_render(ui_id id) {
 void do_divider() {
     ui.block_mode == BLOCK_MODE_VERTICAL ?
         move_to_next_ui_pos(0, 24) :
-        move_to_next_ui_pos(24, 0);
+    move_to_next_ui_pos(24, 0);
 }
 
 i8 do_button(ui_id id, r32 w, r32 h, const char *text) {
@@ -330,17 +330,17 @@ i8 do_button(ui_id id, r32 w, r32 h, const char *text) {
         if(ui.focusing) {
             ui.focus_ids[ui.focus_count++] = id;
         }
-
+        
         r32 x = ui.current_element_pos.x,
-            y = ui.current_element_pos.y;
-
+        y = ui.current_element_pos.y;
+        
         if(ui.block_mode == BLOCK_MODE_VERTICAL) {
             x += (ui.current_block_bb.z-w) / 2;
         }
         else {
             y += (ui.current_block_bb.w-h) / 2;
         }
-
+        
         if(ui.current_focus >= 0) { // @Keyboard controls
             if(ui_id_equ(id, ui.hot) && ui_fire_pressed) {
                 fired = 1;
@@ -353,7 +353,7 @@ i8 do_button(ui_id id, r32 w, r32 h, const char *text) {
                mouse_y >= y && mouse_y <= y+h) {
                 mouse_over = 1;
             }
-
+            
             if(ui_id_equ(id, ui.hot)) {
                 if(mouse_over) {
                     if(ui_id_equ(id, ui.active)) {
@@ -385,9 +385,9 @@ i8 do_button(ui_id id, r32 w, r32 h, const char *text) {
                 }
             }
         }
-
+        
         move_to_next_ui_pos(w, h);
-
+        
         UIRender *prev_loop = find_previous_ui_render(id);
         if(prev_loop) {
             prev_loop->bb.x = x;
@@ -402,9 +402,9 @@ i8 do_button(ui_id id, r32 w, r32 h, const char *text) {
             ui.renders[ui.render_count++] = render;
         }
     }
-
+    
     ++ui.update_pos;
-
+    
     return fired;
 }
 
@@ -414,17 +414,17 @@ i8 do_toggler(ui_id id, r32 w, r32 h, const char *text, i8 value) {
         if(ui.focusing) {
             ui.focus_ids[ui.focus_count++] = id;
         }
-
+        
         r32 x = ui.current_element_pos.x,
-            y = ui.current_element_pos.y;
-
+        y = ui.current_element_pos.y;
+        
         if(ui.block_mode == BLOCK_MODE_VERTICAL) {
             x += (ui.current_block_bb.z-w) / 2;
         }
         else {
             y += (ui.current_block_bb.w-h) / 2;
         }
-
+        
         if(ui.current_focus >= 0) { // @Keyboard controls
             if(ui_id_equ(id, ui.hot) && ui_fire_pressed) {
                 fired = 1;
@@ -437,7 +437,7 @@ i8 do_toggler(ui_id id, r32 w, r32 h, const char *text, i8 value) {
                mouse_y >= y && mouse_y <= y+h) {
                 mouse_over = 1;
             }
-
+            
             if(ui_id_equ(id, ui.hot)) {
                 if(mouse_over) {
                     if(ui_id_equ(id, ui.active)) {
@@ -469,9 +469,9 @@ i8 do_toggler(ui_id id, r32 w, r32 h, const char *text, i8 value) {
                 }
             }
         }
-
+        
         move_to_next_ui_pos(w, h);
-
+        
         UIRender *prev_loop = find_previous_ui_render(id);
         if(prev_loop) {
             prev_loop->bb.x = x;
@@ -487,13 +487,13 @@ i8 do_toggler(ui_id id, r32 w, r32 h, const char *text, i8 value) {
             ui.renders[ui.render_count++] = render;
         }
     }
-
+    
     ++ui.update_pos;
-
+    
     if(fired) {
         value = !value;
     }
-
+    
     return value;
 }
 
@@ -502,17 +502,17 @@ r32 do_slider(ui_id id, r32 w, r32 h, const char *text, r32 value) {
         if(ui.focusing) {
             ui.focus_ids[ui.focus_count++] = id;
         }
-
+        
         r32 x = ui.current_element_pos.x,
-            y = ui.current_element_pos.y;
-
+        y = ui.current_element_pos.y;
+        
         if(ui.block_mode == BLOCK_MODE_VERTICAL) {
             x += (ui.current_block_bb.z-w) / 2;
         }
         else {
             y += (ui.current_block_bb.w-h) / 2;
         }
-
+        
         if(ui.current_focus >= 0) { // @Keyboard controls
             if(ui_id_equ(id, ui.hot)) {
                 if(ui_right_down) {
@@ -529,7 +529,7 @@ r32 do_slider(ui_id id, r32 w, r32 h, const char *text, r32 value) {
                mouse_y >= y && mouse_y <= y+h) {
                 mouse_over = 1;
             }
-
+            
             if(ui_id_equ(id, ui.hot)) {
                 if(mouse_over) {
                     if(!ui_id_equ(id, ui.active)) {
@@ -550,7 +550,7 @@ r32 do_slider(ui_id id, r32 w, r32 h, const char *text, r32 value) {
                     }
                 }
             }
-
+            
             if(ui_id_equ(ui.active, id)) {
                 if(left_mouse_down) {
                     value = (mouse_x - x) / w;
@@ -560,16 +560,16 @@ r32 do_slider(ui_id id, r32 w, r32 h, const char *text, r32 value) {
                 }
             }
         }
-
+        
         if(value > 1) {
             value = 1.f;
         }
         else if(value < 0) {
             value = 0.f;
         }
-
+        
         move_to_next_ui_pos(w, h);
-
+        
         UIRender *prev_loop = find_previous_ui_render(id);
         if(prev_loop) {
             prev_loop->bb.x = x;
@@ -586,9 +586,9 @@ r32 do_slider(ui_id id, r32 w, r32 h, const char *text, r32 value) {
             ui.renders[ui.render_count++] = render;
         }
     }
-
+    
     ++ui.update_pos;
-
+    
     return value;
 }
 
@@ -612,7 +612,7 @@ void do_settings_menu(SettingsMenu *s) {
         SETTINGS_VIDEO,
         MAX_SETTINGS
     };
-
+    
     const char *settings_titles[MAX_SETTINGS] = {
         "SETTINGS",
         "CONTROLS",
@@ -620,9 +620,9 @@ void do_settings_menu(SettingsMenu *s) {
         "AUDIO",
         "VIDEO",
     };
-
+    
     set_ui_title(settings_titles[s->state]);
-
+    
     switch(s->state) {
         case SETTINGS_MAIN: {
             begin_block(0, UI_STANDARD_W, UI_STANDARD_H*(MAX_SETTINGS)+24);
@@ -648,7 +648,7 @@ void do_settings_menu(SettingsMenu *s) {
                 last_key = 0;
                 s->selected_control = -1;
             }
-
+            
             begin_block(0, UI_STANDARD_W, UI_STANDARD_H*MAX_KC);
             {
                 char control_name[32] = { 0 };
@@ -672,7 +672,7 @@ void do_settings_menu(SettingsMenu *s) {
             {
                 foreach(i, MAX_AUDIO) {
                     audio_type_data[i].volume = do_slider(GEN_ID + i/100.f, UI_STANDARD_W*2, UI_STANDARD_H, audio_type_data[i].name,
-                              audio_type_data[i].volume);
+                                                          audio_type_data[i].volume);
                 }
                 do_divider();
                 if(do_button(GEN_ID, UI_STANDARD_W, UI_STANDARD_H, "BACK")) {
@@ -706,7 +706,7 @@ void do_settings_menu(SettingsMenu *s) {
                 if(do_button(GEN_ID, UI_STANDARD_W, UI_STANDARD_H, "BACK")) {
                     s->state = 0;
                 }
-
+                
                 glfwSwapInterval(vsync ? 1 : 0);
             }
             end_block();
