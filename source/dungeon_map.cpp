@@ -865,7 +865,7 @@ void collide_boxes_with_projectiles(DungeonMap *d, i32 *id, BoxComponent *b, Hea
                        proj_pos.y <= b[i].pos.y + b[i].size.y/2) {
                         h[i].val -= d->projectiles.update[j].strength;
                         h[i].target = h[i].val;
-                        b[i].vel += (proj_vel / 1.2) * d->projectiles.update[j].strength;
+                        b[i].vel += (proj_vel / 0.5) * d->projectiles.update[j].strength;
                         proj_hit = 1;
                         break;
                     }

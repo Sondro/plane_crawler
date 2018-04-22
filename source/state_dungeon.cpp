@@ -193,20 +193,22 @@ void update_dungeon_state() {
     prepare_for_ui_render(); // @Dungeon UI Render
     {
         // draw health/mana bars
+        
+        // health bar
         draw_ui_texture(&textures[TEX_hud], v4(0, 12, 64 * d->player.health.val, 12),
                         v4(16, window_h - 120, 64*4 * d->player.health.val, 12*4));
         
+        // health bar container
         draw_ui_texture(&textures[TEX_hud], v4(0, 0, 64, 12),
                         v4(16, window_h - 120, 64*4, 12*4));
         
+        // mana bar
         draw_ui_texture(&textures[TEX_hud], v4(0, 24, 64 * d->player.attack.mana, 12),
                         v4(16, window_h - 64, 64*4 * d->player.attack.mana, 12*4));
         
-        /*
-        draw_ui_texture(&textures[TEX_hud], v4(64 * (1-d->player.attack.charge), 24, 64 * d->player.attack.charge, 12),
-                        v4(16 + 64*4 * d->player.attack.mana, window_h - 64, 64*4 * d->player.attack.charge, 12*4));
-        */
+        draw_ui_filled_rect(v4(0.8, 0.8, 0.8, 0.8), v4(16 + 64*4*d->player.attack.mana - 64*4*d->player.attack.charge, window_h - 64, 64*4 * d->player.attack.charge, 12*4));
         
+        // mana bar container
         draw_ui_texture(&textures[TEX_hud], v4(0, 0, 64, 12),
                         v4(16, window_h - 64, 64*4, 12*4));
         
