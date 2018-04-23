@@ -71,32 +71,24 @@ void control_player_and_camera(Camera *c, Player *p, r32 movement_speed) {
     }
     p->attack.target = v2(cos(c->orientation.x), sin(c->orientation.x)) * 16;
 
-    if(key_control_down(KC_I1)){    //player inventory 1
-        if(p->inventory[0] == 0){
-            p->health.target = p->health.val + .25;
-            p->inventory[0] = -1;
-        } else if(p->inventory[0] == 2){
-            p->attack.mana += .25;
-            p->inventory[0] = -1;
-        }
-    } else if(key_control_down(KC_I2)){     //player inventory 2
-        if(p->inventory[1] == 0){
-            p->health.target = p->health.val + .25;
-            p->inventory[1] = -1;
-        } else if(p->inventory[1] == 2){
-            p->attack.mana += .25;
-            p->inventory[1] = -1;
-        }
-    } else if(key_control_down(KC_I3)){    //player inventory 3
-        if(p->inventory[2] == 0){
-            p->health.target = p->health.val + .25;
-            p->inventory[2] = -1;
-        } else if(p->inventory[2] == 2){
-            p->attack.mana += .25;
-            p->inventory[2] = -1;
-        }
-    } else {
+    foreach(i, 3){
+        if(key_control_down(KC_I1+i)){    //player inventory 1
+            if(p->inventory[i] == COLLECTIBLE_health_pot && p->health.val < 1){
+                p->health.target = p->health.val + .25;
+                if(p->health.target >= 1){
+                    p->health.target = 1;
+                }
+                p->inventory[i] = -1;
+            } else if(p->inventory[i] == COLLECTIBLE_mana_pot){
+                p->attack.mana += .25;
+                if(p->attack.mana >= 1){
+                    p->attack.mana = 1;
+                }
+                p->inventory[i] = -1;
+            }
+        } else {
         //play noise if inventory is key
+        }
     }
 
 }
