@@ -1122,7 +1122,7 @@ void update_dungeon_map(DungeonMap *d, Player *p) {
                 case AI_STATE_attack: {
                     if(d->enemies.attack[i].attacking) {
                         d->enemies.sprite[i].ty = 48;
-                        d->enemies.anim_wait[i] = 0.5f;
+                        d->enemies.anim_wait[i] = 0.2f;
                     }
                     else {
                         if(d->enemies.anim_wait[i] >= 0.f) {
