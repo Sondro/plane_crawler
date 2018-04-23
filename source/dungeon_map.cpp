@@ -926,7 +926,7 @@ void update_ai(i32 *type, AIComponent *a, AttackComponent *attack, DungeonMap *d
     v2 target_pos;
     foreach(i, count) {
         if(!a->target_id) {
-            target_pos = p ? p->box.pos : v2(-10000, -10000);
+            target_pos = p ? p->box.pos+(p->box.vel*delta_t) : v2(-10000, -10000);
         }
         else {
             foreach(j, d->enemies.count) {
@@ -969,7 +969,7 @@ void update_ai(i32 *type, AIComponent *a, AttackComponent *attack, DungeonMap *d
                 attack->pos = a->pos;
                 
                 if(attack->charge > attack->mana*0.5) {
-                    if(random32(0, attack->mana) < attack->charge/2) {
+                    if(random32(0, attack->mana) < attack->charge/6) {
                         attack->attacking = 0;
                     }
                 }
