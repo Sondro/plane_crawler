@@ -9,11 +9,11 @@
 #define BLOCK_MODE_VERTICAL     0
 #define BLOCK_MODE_HORIZONTAL   1
 
-#define ui_left_pressed         (last_key == KEY_LEFT  || last_key == KEY_A || gamepad_control_pressed(GC_MOVE_LEFT))
-#define ui_right_pressed        (last_key == KEY_RIGHT || last_key == KEY_D || gamepad_control_pressed(GC_MOVE_RIGHT))
-#define ui_up_pressed           (last_key == KEY_UP    || last_key == KEY_W || gamepad_control_pressed(GC_MOVE_FORWARD))
-#define ui_down_pressed         (last_key == KEY_DOWN  || last_key == KEY_S || gamepad_control_pressed(GC_MOVE_BACKWARD))
-#define ui_fire_pressed         (key_pressed[KEY_SPACE] || key_pressed[KEY_ENTER] || gamepad_control_pressed(GC_ATTACK))
+#define ui_left_pressed         (last_key == KEY_LEFT  || gamepad_control_pressed(GC_MOVE_LEFT))
+#define ui_right_pressed        (last_key == KEY_RIGHT || gamepad_control_pressed(GC_MOVE_RIGHT))
+#define ui_up_pressed           (last_key == KEY_UP    || gamepad_control_pressed(GC_MOVE_FORWARD))
+#define ui_down_pressed         (last_key == KEY_DOWN  || gamepad_control_pressed(GC_MOVE_BACKWARD))
+#define ui_fire_pressed         (key_pressed[KEY_ENTER] || gamepad_control_pressed(GC_ATTACK))
 
 #define ui_left_down            (key_down[KEY_LEFT]  || key_down[KEY_A] || gamepad_control_down(GC_MOVE_LEFT))
 #define ui_right_down           (key_down[KEY_RIGHT] || key_down[KEY_D] || gamepad_control_down(GC_MOVE_RIGHT))

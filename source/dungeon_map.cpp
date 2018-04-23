@@ -118,6 +118,7 @@ void add_enemy(DungeonMap *d, i16 type, v2 pos) {
         }
         
         d->enemies.id[it] = max_id;
+        d->enemies.anim_wait[it] = 0;
         init_enemy(type, pos,
                    d->enemies.box + it,
                    d->enemies.sprite + it,
@@ -158,6 +159,8 @@ void add_projectile(DungeonMap *d, i32 origin, i16 type, v2 pos, v2 vel, r32 str
         d->projectiles.update[d->projectiles.count].vel = vel;
         d->projectiles.update[d->projectiles.count].strength = strength;
         d->projectiles.update[d->projectiles.count].particle_start_time = current_time;
+        d->projectiles.update[d->projectiles.count].range_sq = projectile_data[type].range*projectile_data[type].range;
+        d->projectiles.update[d->projectiles.count].distance_traveled_sq = 0.f;
         ++d->projectiles.count;
     }
 }
@@ -865,9 +868,10 @@ void collide_boxes_with_projectiles(DungeonMap *d, i32 *id, BoxComponent *b, Hea
                        proj_pos.x <= b[i].pos.x + b[i].size.x/2 &&
                        proj_pos.y >= b[i].pos.y - b[i].size.y/2 &&
                        proj_pos.y <= b[i].pos.y + b[i].size.y/2) {
-                        h[i].val -= d->projectiles.update[j].strength;
+                        h[i].val -= d->projectiles.update[j].strength * projectile_data[d->projectiles.type[j]].strength;
                         h[i].target = h[i].val;
-                        b[i].vel += (proj_vel / 0.5) * d->projectiles.update[j].strength;
+                        b[i].vel += (proj_vel / 0.5) * d->projectiles.update[j].strength * 
+                            projectile_data[d->projectiles.type[j]].knockback;
                         proj_hit = 1;
                         break;
                     }
@@ -935,6 +939,7 @@ void update_ai(AIComponent *a, AttackComponent *attack, DungeonMap *d, Player *p
         switch(a->state) {
             case AI_STATE_idle:
             case AI_STATE_roam: { 
+                attack->attacking = 0;
                 if(a->attack_type >= 0 && distance2_32(target_pos, a->pos) <= 64.f) {
                     a->state = AI_STATE_attack;
                 }
@@ -957,11 +962,13 @@ void update_ai(AIComponent *a, AttackComponent *attack, DungeonMap *d, Player *p
                 a->move_vel = 2*(target_pos - a->pos) / length(target_pos - a->pos);
                 a->moving = 1;
                 attack->target = ((target_pos - a->pos) / length(target_pos - a->pos))*16;
-                attack->attacking = 1;
+                if(attack->mana > 0.3) {
+                    attack->attacking = 1;
+                }
                 attack->pos = a->pos;
                 
-                if(attack->charge > attack->mana*0.2) {
-                    if(random32(0, attack->mana) < attack->charge) {
+                if(attack->charge > attack->mana*0.5) {
+                    if(random32(0, attack->mana) < attack->charge/2) {
                         attack->attacking = 0;
                     }
                 }
@@ -986,14 +993,18 @@ void track_sprites_to_boxes(DungeonMap *d, SpriteComponent *s, BoxComponent *b, 
 void update_dungeon_map(DungeonMap *d, Player *p) {
     { // @Update dungeon projectiles
         for(u32 i = 0; i < (u32)d->projectiles.count;) {
+            v2 last_pos = d->projectiles.update[i].pos;
             d->projectiles.update[i].pos += d->projectiles.update[i].vel*delta_t;
+            d->projectiles.update[i].distance_traveled_sq += distance2_32(last_pos, d->projectiles.update[i].pos);
+            
             do_light(d,
                      v3(d->projectiles.update[i].pos.x,
                         dungeon_coordinate_height(d, d->projectiles.update[i].pos.x, d->projectiles.update[i].pos.y) + 0.5,
                         d->projectiles.update[i].pos.y),
-                     v3(1, 1, 0.8), 10 + 10*d->projectiles.update[i].strength, 2 + 2*d->projectiles.update[i].strength);
+                     projectile_data[d->projectiles.type[i]].color, 10 + 10*d->projectiles.update[i].strength, 2 + 2*d->projectiles.update[i].strength);
             
-            if(current_time >= d->projectiles.update[i].particle_start_time + 1/60.f) {
+            if(current_time >= d->projectiles.update[i].particle_start_time + 1/60.f &&
+               projectile_data[d->projectiles.type[i]].particle_type >= 0) {
                 foreach(j, 1) {
                     do_particle(d, projectile_data[d->projectiles.type[i]].particle_type,
                                 v3(d->projectiles.update[i].pos.x,
@@ -1009,7 +1020,9 @@ void update_dungeon_map(DungeonMap *d, Player *p) {
             tile_z = d->projectiles.update[i].pos.y;
             
             if(tile_x < 0 || tile_x >= MAP_W || tile_z < 0 || tile_z >= MAP_H ||
-               dungeon_tile_data[d->tiles[tile_x][tile_z]].flags & WALL) {
+               dungeon_tile_data[d->tiles[tile_x][tile_z]].flags & WALL ||
+               (d->projectiles.update[i].distance_traveled_sq >= d->projectiles.update[i].range_sq &&
+                d->projectiles.update[i].range_sq > 0.f)) {
                 remove_projectile(d, i);
             }
             else {
@@ -1092,6 +1105,36 @@ void update_dungeon_map(DungeonMap *d, Player *p) {
             d->enemies.ai[i].pos = d->enemies.box[i].pos;
         }
         update_ai(d->enemies.ai, d->enemies.attack, d, p, d->enemies.count);
+        
+        // update sprite animation TY
+        foreach(i, d->enemies.count) {
+            switch(d->enemies.ai[i].state) {
+                case AI_STATE_idle:
+                case AI_STATE_roam: {
+                    d->enemies.anim_wait[i] -= delta_t;
+                    if(d->enemies.anim_wait[i] <= 0.f) {
+                        d->enemies.sprite[i].ty = !d->enemies.sprite[i].ty ? 24 : 0;
+                        d->enemies.anim_wait[i] = 1.f;
+                    }
+                    break;
+                }
+                case AI_STATE_attack: {
+                    if(d->enemies.attack[i].attacking) {
+                        d->enemies.sprite[i].ty = 48;
+                        d->enemies.anim_wait[i] = 0.5f;
+                    }
+                    else {
+                        if(d->enemies.anim_wait[i] >= 0.f) {
+                            d->enemies.sprite[i].ty = 72;
+                        }
+                        else {
+                            d->enemies.sprite[i].ty = 0;
+                        }
+                    }
+                    default: break;
+                }
+            }
+        }
         
         // update enemy health
         update_health(d->enemies.health, d->enemies.count);

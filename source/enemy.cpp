@@ -10,6 +10,7 @@ enum {
 struct EnemySet {
     u32 count;
     i32               id[MAX_ENEMY_COUNT];
+    r32               anim_wait[MAX_ENEMY_COUNT];
     BoxComponent      box[MAX_ENEMY_COUNT];
     SpriteComponent   sprite[MAX_ENEMY_COUNT];
     HealthComponent   health[MAX_ENEMY_COUNT];
@@ -40,6 +41,7 @@ void remove_enemy(EnemySet *e, i32 id) {
     foreach(i, e->count) {
         if(e->id[i] == id) {
             memmove(e->id + i, e->id + i+1, sizeof(i32) * (e->count - i - 1));
+            memmove(e->anim_wait + i, e->anim_wait + i+1, sizeof(r32) * (e->count - i -1));
             memmove(e->box + i, e->box + i+1, sizeof(BoxComponent) * (e->count - i - 1));
             memmove(e->sprite + i, e->sprite + i+1, sizeof(SpriteComponent) * (e->count - i - 1));
             memmove(e->health + i, e->health + i+1, sizeof(HealthComponent) * (e->count - i - 1));

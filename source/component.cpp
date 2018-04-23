@@ -43,7 +43,7 @@ void draw_sprite_components(SpriteComponent *s, i32 count) {
                                v4(s->tx, s->ty, s->tw, s->th),
                                s->pos,
                                v2(0.5 * (s->tw / 16.f), 0.5 * (s->th / 16.f)));
-
+        
         ++s;
     }
 }
@@ -68,6 +68,7 @@ void update_health(HealthComponent *h, i32 count) {
 // @Attack Component
 
 enum {
+    ATTACK_melee,
     ATTACK_fireball,
     ATTACK_lightning,
     ATTACK_ice,
@@ -80,10 +81,13 @@ enum {
 global struct {
     i32 projectile_type;
 } attack_data[MAX_ATTACK] = {
+    { PROJECTILE_melee, },
     { PROJECTILE_fire, },
     { PROJECTILE_lightning, },
     { PROJECTILE_ice, },
     { PROJECTILE_wind, },
+    { PROJECTILE_jelly, },
+    { PROJECTILE_dark, },
 };
 
 struct AttackComponent {
@@ -138,7 +142,7 @@ void move_boxes_with_ai(BoxComponent *b, AIComponent *a, i32 count) {
     foreach(i, count) {
         a->pos = b->pos;
         b->vel += (a->move_vel - b->vel) * 6 * delta_t;
-
+        
         ++a;
         ++b;
     }
