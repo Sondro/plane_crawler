@@ -10,5 +10,10 @@ uniform sampler2D tex;
 
 void main() {
     out_albedo = texture(tex, uv).rgba;
-	out_normal = vec4(vert_normal, 1);
+	if(out_albedo.a > 0.5) {
+		out_normal = vec4(vert_normal, 1);
+	}
+	else {
+		discard;
+	}
 }
