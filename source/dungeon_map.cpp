@@ -120,6 +120,7 @@ void add_enemy(DungeonMap *d, i16 type, v2 pos) {
         d->enemies.id[it] = max_id;
         d->enemies.anim_wait[it] = 0;
         init_enemy(type, pos,
+                   d->enemies.type + it,
                    d->enemies.box + it,
                    d->enemies.sprite + it,
                    d->enemies.health + it,
@@ -159,7 +160,7 @@ void add_projectile(DungeonMap *d, i32 origin, i16 type, v2 pos, v2 vel, r32 str
         d->projectiles.update[d->projectiles.count].vel = vel;
         d->projectiles.update[d->projectiles.count].strength = strength;
         d->projectiles.update[d->projectiles.count].particle_start_time = current_time;
-        d->projectiles.update[d->projectiles.count].range_sq = projectile_data[type].range*projectile_data[type].range;
+        d->projectiles.update[d->projectiles.count].range_sq = projectile_data[type].range < 0 ? -1 : projectile_data[type].range*projectile_data[type].range;
         d->projectiles.update[d->projectiles.count].distance_traveled_sq = 0.f;
         ++d->projectiles.count;
     }
@@ -921,7 +922,7 @@ void update_attacks(DungeonMap *d, i32 *id, AttackComponent *a, i32 count) {
     }
 }
 
-void update_ai(AIComponent *a, AttackComponent *attack, DungeonMap *d, Player *p, i32 count) {
+void update_ai(i32 *type, AIComponent *a, AttackComponent *attack, DungeonMap *d, Player *p, i32 count) {
     v2 target_pos;
     foreach(i, count) {
         if(!a->target_id) {
@@ -959,7 +960,7 @@ void update_ai(AIComponent *a, AttackComponent *attack, DungeonMap *d, Player *p
                 if(distance2_32(target_pos, a->pos) >= 64.f) {
                     a->state = AI_STATE_roam;
                 }
-                a->move_vel = 2*(target_pos - a->pos) / length(target_pos - a->pos);
+                a->move_vel = (2*(target_pos - a->pos) / length(target_pos - a->pos)) * enemy_data[type[i]].speed;
                 a->moving = 1;
                 attack->target = ((target_pos - a->pos) / length(target_pos - a->pos))*16;
                 if(attack->mana > 0.3) {
@@ -1104,7 +1105,7 @@ void update_dungeon_map(DungeonMap *d, Player *p) {
         foreach(i, d->enemies.count) {
             d->enemies.ai[i].pos = d->enemies.box[i].pos;
         }
-        update_ai(d->enemies.ai, d->enemies.attack, d, p, d->enemies.count);
+        update_ai(d->enemies.type, d->enemies.ai, d->enemies.attack, d, p, d->enemies.count);
         
         // update sprite animation TY
         foreach(i, d->enemies.count) {

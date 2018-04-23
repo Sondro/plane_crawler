@@ -17,7 +17,7 @@ struct {
     r32 strength, knockback, range;
     v3 color;
 } projectile_data[MAX_PROJECTILE] = {
-    { PARTICLE_wind,       1, 1, 0.5f, v3(1, 0, 0) },
+    { PARTICLE_wind,       1, 1, 0.8f, v3(1, 0, 0) },
     { PARTICLE_fire,       1, 1, -1, v3(1, 0.7, 0.4) },
     { PARTICLE_lightning,  1, 1, -1, v3(1, 1, 0.2) },
     { PARTICLE_ice,        1, 1, -1, v3(0.2, 0.8, 1) },
