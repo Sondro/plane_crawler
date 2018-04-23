@@ -187,6 +187,9 @@ enum { // @Key Controls
     KC_S_LIGHTNING,
     KC_S_ICE,
     KC_S_WIND,
+    KC_I1,
+    KC_I2,
+    KC_I3,
     MAX_KC
 };
 
@@ -203,6 +206,9 @@ i16 key_control_maps[MAX_KC] = {
     KEY_2,
     KEY_3,
     KEY_4,
+    KEY_Q,
+    KEY_E,
+    KEY_R,
 };
 
 const char *key_control_names[MAX_KC] = {
@@ -218,6 +224,9 @@ const char *key_control_names[MAX_KC] = {
     "Switch: Lightning",
     "Switch: Ice",
     "Switch: Wind",
+    "Bag Slot 1",
+    "Bag Slot 2",
+    "Bag Slot 3",
 };
 
 enum { // @Gamepad Controls

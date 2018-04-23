@@ -5,6 +5,7 @@ O: pits
 $: key
 +: consumable
 &: Trophy
+L: Ladder
 S: (S)keleton
 J: (J)elly
 G: (G)host
