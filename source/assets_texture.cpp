@@ -20,5 +20,7 @@ texture(collectible),
 texture(icons),
 texture(particle_jelly),
 texture(particle_dark),
+texture(particle_melee),
+texture(particle_death),
 
 textures_end

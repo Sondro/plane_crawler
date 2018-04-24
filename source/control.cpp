@@ -72,22 +72,25 @@ void control_player_and_camera(Camera *c, Player *p, r32 movement_speed) {
     p->attack.target = v2(cos(c->orientation.x), sin(c->orientation.x)) * 16;
 
     foreach(i, 3){
-        if(key_control_down(KC_I1+i)){    //player inventory 1
-            if(p->inventory[i] == COLLECTIBLE_health_pot && p->health.val < 1){
+        if(key_control_down(KC_I1+i)){
+            if(p->inventory[i] == COLLECTIBLE_health_pot && p->health.val < 1){ //NOTE eat red mushroom
                 p->health.target = p->health.val + .25;
                 if(p->health.target >= 1){
                     p->health.target = 1;
                 }
                 p->inventory[i] = -1;
-            } else if(p->inventory[i] == COLLECTIBLE_mana_pot){
+            } else if(p->inventory[i] == COLLECTIBLE_key){          //NOTE drop key
+                //add_collectible(d, COLLECTIBLE_key, p->box.pos);
+                //p->inventory[i] = -1;
+            } else if(p->inventory[i] == COLLECTIBLE_mana_pot){     //NOTE eat blue mushroom
                 p->attack.mana += .25;
                 if(p->attack.mana >= 1){
                     p->attack.mana = 1;
                 }
                 p->inventory[i] = -1;
+            }else {                                                //NOTE if inventory slot is empty
+
             }
-        } else {
-        //play noise if inventory is key
         }
     }
 

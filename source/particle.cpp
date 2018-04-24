@@ -14,6 +14,8 @@ enum {
     PARTICLE_portal_easy,
     PARTICLE_portal_medium,
     PARTICLE_portal_hard,
+    PARTICLE_melee,
+    PARTICLE_death,
     MAX_PARTICLE
 };
 
@@ -30,6 +32,8 @@ struct {
     { TEX_particle_portal_easy, 12 },
     { TEX_particle_portal_medium, 12 },
     { TEX_particle_portal_hard, 12 },
+    { TEX_particle_melee, 16},
+    { TEX_particle_death, 16},
 };
 
 struct ParticleSet {

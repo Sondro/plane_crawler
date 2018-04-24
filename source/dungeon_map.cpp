@@ -1144,6 +1144,7 @@ void update_dungeon_map(DungeonMap *d, Player *p) {
                 if(random32(0,1) >= .5f){
                     add_collectible(d, random32(0, 2), d->enemies.box[i].pos);
                 }
+                //do_particle(d, PARTICLE_death, d->enemies.box[i].pos, d->enemies.box[i].vel, 1);
                 remove_enemy(d, d->enemies.id[i]);
             }
             else {
