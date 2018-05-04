@@ -3,6 +3,4 @@
 *.out
 *.zip
 *.layout
-build.bat
-build.sh
 plane_crawler
