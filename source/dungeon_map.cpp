@@ -860,39 +860,55 @@ void collide_boxes_with_projectiles(DungeonMap *d, i32 *id, BoxComponent *b, Hea
     foreach(i, count) {
         for(i32 j = 0; j < d->projectiles.count;) {
             if(d->projectiles.update[j].origin != id[i]) {
-                //@OnHit effects
-                if(random32(0, 1)>1/projectile_data[d->projectiles.type[j]].strength){
-                    switch(projectile_data[d->projectiles.type[j]].effect_type){
-                        case EFFECT_dot:{
-                            //@Todo
-                            break;
-                        }case EFFECT_aoe:{
-                            //@Todo
-                            break;
-                        }case EFFECT_slow:{
-                            //@Todo
-                            break;
-                        }case EFFECT_knockback:{
-                            projectile_data[d->projectiles.type[j]].knockback+=5;
-                            break;
-                        }default:
-                        break;
-                    }
-                }
-                v2 proj_pos0 = d->projectiles.update[j].pos,
-                proj_vel = d->projectiles.update[j].vel;
+                v2 proj_pos0 = d->projectiles.update[j].pos;
+                v2 proj_vel = d->projectiles.update[j].vel;
                 i8 proj_hit = 0;
-                for(r32 k = 0.2; k <= 1.0; k += 0.2) {
+                
+                for(r32 k = 0.2; k <= 1.0; k += 0.1) {
                     v2 proj_pos = proj_pos0 + proj_vel * k * delta_t;
+                    // NOTE(Ryan): Check if the projectile is inside this box
                     if(proj_pos.x >= b[i].pos.x - b[i].size.x/2 &&
                        proj_pos.x <= b[i].pos.x + b[i].size.x/2 &&
                        proj_pos.y >= b[i].pos.y - b[i].size.y/2 &&
                        proj_pos.y <= b[i].pos.y + b[i].size.y/2) {
-                        h[i].val -= d->projectiles.update[j].strength * projectile_data[d->projectiles.type[j]].strength;
+                        
+                        r32 health_to_take = d->projectiles.update[j].strength * 
+                            projectile_data[d->projectiles.type[j]].strength;
+                        
+                        r32 knockback_magnitude =2 * d->projectiles.update[j].strength * projectile_data[d->projectiles.type[j]].knockback;
+                        
+                        
+                        // @On-hit effects
+                        switch(projectile_data[d->projectiles.type[j]].effect_type) {
+                            case EFFECT_dot: {
+                                break;
+                            }
+                            case EFFECT_aoe: {
+                                break;
+                            }
+                            case EFFECT_slow: {
+                                break;
+                            }
+                            case EFFECT_knockback: {
+                                // NOTE(Ryan): If a random number in [0, 1] is < 0.3, 
+                                //             add some knockback
+                                if(random32(0, 1) < 0.3) {
+                                    knockback_magnitude *= 1.5;
+                                }
+                                break;
+                            }
+                            default: break;
+                        }
+                        
+                        // subtract health
+                        h[i].val -= health_to_take;
                         h[i].target = h[i].val;
-                        b[i].vel += (proj_vel / 0.5) * d->projectiles.update[j].strength *
-                            projectile_data[d->projectiles.type[j]].knockback;
+                        
+                        // add knockback
+                        b[i].vel += (proj_vel) * knockback_magnitude;
+                        
                         proj_hit = 1;
+                        
                         break;
                     }
                 }

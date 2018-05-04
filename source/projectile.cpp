@@ -26,13 +26,13 @@ struct {
     v3 color;
     i32 effect_type;
 } projectile_data[MAX_PROJECTILE] = {
-    { PARTICLE_melee,      2, 1, 0.8f, v3(0, 0, 0), EFFECT_knockback },
-    { PARTICLE_fire,       1, 1, -1, v3(1, 0.7, 0.4), EFFECT_dot },
-    { PARTICLE_lightning,  1, 1, -1, v3(1, 1, 0.2), EFFECT_aoe },
-    { PARTICLE_ice,        1, 1, -1, v3(0.2, 0.8, 1), EFFECT_slow },
-    { PARTICLE_wind,       1, 1, -1, v3(0, 0.4, 0), EFFECT_knockback },
-    { PARTICLE_jelly,      1, 1, -1, v3(0, 0.5, 0), EFFECT_slow  },
-    { PARTICLE_dark,       1, 1, -1, v3(0.3, 0, 0.3), EFFECT_dot },
+    { PARTICLE_melee,      2,   1,     0.8f, v3(0, 0, 0),     EFFECT_knockback },
+    { PARTICLE_fire,       1,   0.7f, -1,    v3(1, 0.7, 0.4), EFFECT_dot },
+    { PARTICLE_lightning,  1,   1,    -1,    v3(1, 1, 0.2),   EFFECT_aoe },
+    { PARTICLE_ice,        1,   1,    -1,    v3(0.2, 0.8, 1), EFFECT_slow },
+    { PARTICLE_wind,       0.1, 2.2,    -1,    v3(0, 0.4, 0),   EFFECT_knockback },
+    { PARTICLE_jelly,      1,   1,    -1,    v3(0, 0.5, 0),   EFFECT_slow  },
+    { PARTICLE_dark,       1,   1,    -1,    v3(0.3, 0, 0.3), EFFECT_dot },
 };
 
 struct ProjectileUpdate {
