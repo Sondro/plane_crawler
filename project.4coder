@@ -1,4 +1,5 @@
 extensions = ".c.cpp.h.hpp.cc";
 
 fkey_command_win[1] = { "build.bat", "*compilation*", true };
+fkey_command_win[2] = { "build_and_run.bat", "*compilation*", true };
 fkey_command_linux[1] = { "build.sh", "*compilation*", true };
