@@ -14,6 +14,7 @@ struct Dungeon {
     
     // spell cast sound data
     SoundSource *charge_build, *charge_hold;
+    r32 hold_t;
     
     // bg music data
     SoundSource *bg_music;
@@ -38,6 +39,7 @@ State init_dungeon_state() {
         d->camera.interpolation_rate = 10;
         d->charge_build = reserve_sound_source();
         d->charge_hold = reserve_sound_source();
+        d->hold_t = 0.f;
         d->bg_music = reserve_sound_source();
         
         request_dungeon_map_assets();
@@ -138,11 +140,8 @@ void update_dungeon_state() {
             if(d->player.attack.attacking) {
                 if(!last_charging) {
                     play_source(d->charge_build, &sounds[SOUND_charge_build], 1, 1, 0, AUDIO_entity);
-                }
-                else {
-                    if(!source_playing(d->charge_build) && !source_playing(d->charge_hold)) {
-                        play_source(d->charge_hold, &sounds[SOUND_charge_hold], 1, 1, 1, AUDIO_entity);
-                    }
+                    
+                    play_source(d->charge_hold, &sounds[SOUND_charge_hold], 1, 1, 1, AUDIO_entity);
                 }
             }
             else {
