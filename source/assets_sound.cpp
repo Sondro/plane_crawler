@@ -7,6 +7,8 @@ sound(ui_fire),
 sound(key_get),
 
 sound(footstep_wood),
+sound(footstep_stone),
+sound(door),
 
 sound(charge_build),
 sound(charge_hold),

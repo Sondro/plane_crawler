@@ -48,6 +48,57 @@ void draw_sprite_components(SpriteComponent *s, i32 count) {
     }
 }
 
+// @Debuff Component
+
+enum {
+    DAMAGE_OVER_TIME_none,
+    DAMAGE_OVER_TIME_fire,
+    DAMAGE_OVER_TIME_poison,
+    MAX_DAMAGE_OVER_TIME
+};
+
+struct DebuffComponent {
+    v2 pos;
+    
+    r32 velocity_modifier;
+    r32 velocity_start_time, velocity_seconds;
+    
+    i8 damage_over_time_modifier;
+    r32 damage_over_time_start_time, damage_over_time_seconds;
+};
+
+DebuffComponent init_debuff_component() {
+    DebuffComponent d = {};
+    d.velocity_modifier = 1.f;
+    return d;
+};
+
+void track_debuffs_to_boxes(DebuffComponent *d, BoxComponent *b, u64 count) {
+    foreach(i, count) {
+        d->pos = b->pos;
+        ++d;
+        ++b;
+    }
+}
+
+void fire_debuff(DebuffComponent *d) {
+    d->damage_over_time_modifier = DAMAGE_OVER_TIME_fire;
+    d->damage_over_time_start_time = current_time;
+    d->damage_over_time_seconds = random32(2, 6);
+}
+
+void poison_debuff(DebuffComponent *d) {
+    d->damage_over_time_modifier = DAMAGE_OVER_TIME_poison;
+    d->damage_over_time_start_time = current_time;
+    d->damage_over_time_seconds = random32(2, 6);
+}
+
+void slow_debuff(DebuffComponent *d) {
+    d->velocity_modifier = 0.5f;
+    d->velocity_start_time = current_time;
+    d->velocity_seconds = random32(2, 6);
+}
+
 // @Health Component
 
 struct HealthComponent {
@@ -59,8 +110,21 @@ HealthComponent init_health_component(r32 health) {
     return h;
 }
 
-void update_health(HealthComponent *h, i32 count) {
+void update_health(HealthComponent *h, DebuffComponent *debuff, i32 count) {
     foreach(i, count) {
+        if(debuff) {
+            switch(debuff[i].damage_over_time_modifier) {
+                case DAMAGE_OVER_TIME_fire: {
+                    h[i].target -= 0.1*delta_t;
+                    break;
+                }
+                case DAMAGE_OVER_TIME_poison: {
+                    h[i].target -= 0.1*delta_t;
+                    break;
+                }
+                default: break;
+            }
+        }
         h[i].val += (h[i].target - h[i].val) * delta_t;
     }
 }
@@ -105,20 +169,6 @@ AttackComponent init_attack_component(i8 type) {
     a.transition = 0;
     a.mana = 0;
     a.target_mana = 0;
-    return a;
-};
-
-
-//@Debuff Component
-struct DebuffComponent{
-    i8 slowModifier;
-    i8 dotModifier;
-};
-
-DebuffComponent init_debuff_component(i8 slo, i8 dot) {
-    DebuffComponent a;
-    a.slowModifier = slo;
-    a.dotModifier = dot;
     return a;
 };
 

@@ -40,7 +40,7 @@ void init_enemy(i32 type, v2 pos,
     *h = init_health_component(1);
     *a = init_attack_component(enemy_data[type].attack_type);
     *ai = init_ai_component(AI_STATE_roam, a->type);
-    *db = init_debuff_component(1, 1);
+    *db = init_debuff_component();
 }
 
 void remove_enemy(EnemySet *e, i32 id) {

@@ -1,6 +1,8 @@
 #include "enemy.cpp"
 #include "collectible.cpp"
 #include "prefab_rooms.cpp"
+#include "door.cpp"
+#include "ladder.cpp"
 
 enum {
     DUNGEON_TILE_brick,
@@ -8,6 +10,8 @@ enum {
     DUNGEON_TILE_dirt,
     DUNGEON_TILE_broken_stone,
     DUNGEON_TILE_pit,
+    DUNGEON_TILE_door,
+    DUNGEON_TILE_ladder,
     MAX_DUNGEON_TILE
 };
 
@@ -21,12 +25,16 @@ struct {
     { 1, 0, 0 },
     { 1, 1, 0 },
     { 1, 0, PIT },
+    { 1, 1, DOOR },
+    { 1, 0, PIT },
 };
 
 struct DungeonMap {
     i8 tiles[MAP_W][MAP_H];
     r32 heights[MAP_W+1][MAP_H+1];
     
+    LadderSet       ladders;
+    DoorSet         doors;
     EnemySet        enemies;
     CollectibleSet  collectibles;
     
@@ -126,7 +134,8 @@ void add_enemy(DungeonMap *d, i16 type, v2 pos) {
                    d->enemies.sprite + it,
                    d->enemies.health + it,
                    d->enemies.attack + it,
-                   d->enemies.ai + it);
+                   d->enemies.ai + it,
+                   d->enemies.debuff + it);
         
         ++d->enemies.count;
     }
@@ -187,10 +196,16 @@ void remove_projectile(DungeonMap *d, i32 i) {
     }
 }
 
+void add_door(DungeonMap *d, i32 x, i32 y) {
+    add_door(&d->doors, x, y);
+    d->doors.sprite[d->doors.count-1].pos.y = dungeon_coordinate_height(d, x + 0.5, y + 0.5);
+}
+
 void generate_dungeon_map(DungeonMap *d) {
+    init_ladder_set(&d->ladders);
+    init_door_set(&d->doors);
     d->enemies.count = 0;
     d->collectibles.count = 0;
-    
     d->projectiles.count = 0;
     init_particle_master(&d->particles);
     
@@ -223,6 +238,8 @@ void generate_dungeon_map(DungeonMap *d) {
         rooms[0].h = 8;
         rooms[0].prefab_index = 0;
         rooms[0].ground_tile = DUNGEON_TILE_brick;
+        
+        i32 ladders_spawned = 0;
         
         foreach(i, current_room) {
             if(current_room < room_count && rooms[i].branch_depth < 6) {
@@ -303,7 +320,7 @@ void generate_dungeon_map(DungeonMap *d) {
             }
         }
         
-        foreach(i, room_count) {
+        for(int i = room_count-1; i>=0; --i) {
             forrng(x, rooms[i].x - rooms[i].w/2, rooms[i].x + rooms[i].w/2)
                 forrng(y, rooms[i].y - rooms[i].h/2, rooms[i].y + rooms[i].h/2) {
                 if(x >= 1 && x < MAP_W-1 && y >= 1 && y < MAP_H-1) {
@@ -343,6 +360,7 @@ void generate_dungeon_map(DungeonMap *d) {
                                 }
                                 // NOTE(Ryan): Door
                                 case '%': {
+                                    d->tiles[x][y] = DUNGEON_TILE_door;
                                     break;
                                 }
                                 // NOTE(Ryan): Key
@@ -366,6 +384,8 @@ void generate_dungeon_map(DungeonMap *d) {
                                 }
                                 // NOTE(Ryan): Ladder
                                 case 'L': {
+                                    d->tiles[x][y] = DUNGEON_TILE_ladder;
+                                    ++ladders_spawned;
                                     break;
                                 }
                                 // NOTE(Ryan): Skeleton
@@ -388,12 +408,14 @@ void generate_dungeon_map(DungeonMap *d) {
                         }
                         else {
                             d->tiles[x][y] = rooms[i].ground_tile;
-                            r32 random_val = random32(0, 1);
-                            if(random_val < 0.025) {
-                                add_enemy(d, ENEMY_jelly, v2(x+0.5f, y+0.5f));
-                            }
-                            else if(random_val < 0.05) {
-                                add_collectible(d, COLLECTIBLE_health_pot, v2(x+0.5f, y+0.5f));
+                            if(i) {
+                                r32 random_val = random32(0, 1);
+                                if(random_val < 0.025) {
+                                    add_enemy(d, ENEMY_jelly, v2(x+0.5f, y+0.5f));
+                                }
+                                else if(random_val < 0.05) {
+                                    add_collectible(d, COLLECTIBLE_health_pot, v2(x+0.5f, y+0.5f));
+                                }
                             }
                         }
                     }
@@ -401,7 +423,35 @@ void generate_dungeon_map(DungeonMap *d) {
             }
         }
         
+        if(!ladders_spawned) {
+            forrng(i, room_count/2, room_count) {
+                if(random32(0, 1) < 0.3 || (i == room_count-1 && !ladders_spawned)) {
+                    i32 place_x = rooms[i].x;
+                    i32 place_y = rooms[i].y;
+                    if(place_x >= 0 && place_x < MAP_W &&
+                       place_y >= 0 && place_y < MAP_H) {
+                        d->tiles[place_x][place_y] = DUNGEON_TILE_ladder;
+                        
+                        if(++ladders_spawned > 2) {
+                            break;
+                        }
+                    }
+                }
+            }
+        }
+        
         free(rooms);
+    }
+    
+    foreach(i, MAP_W) {
+        foreach(j, MAP_H) {
+            if(d->tiles[i][j] == DUNGEON_TILE_door) {
+                add_door(d, i, j);
+            }
+            else if(d->tiles[i][j] == DUNGEON_TILE_ladder) {
+                add_ladder(&d->ladders, i, j);
+            }
+        }
     }
     
     //
@@ -615,6 +665,54 @@ void generate_dungeon_map(DungeonMap *d) {
             }
         }
         else if(dungeon_tile_data[d->tiles[x][z]].flags & PIT) {
+            forrng(k, 1, 2) {
+                r32 verts[] = {
+                    v00.x, v00.y + k*3, v00.z,
+                    v01.x, v01.y + k*3, v01.z,
+                    v10.x, v10.y + k*3, v10.z,
+                    
+                    v11.x, v11.y + k*3, v11.z,
+                    v01.x, v01.y + k*3, v01.z,
+                    v10.x, v10.y + k*3, v10.z,
+                };
+                
+                if(k) {
+                    tx = 64.f / textures[TEX_tile_dungeon].w,
+                    ty = 0.f;
+                }
+                
+                r32 uvs_[] = {
+                    tx, ty,
+                    tx, ty+th,
+                    tx+tw, ty,
+                    
+                    tx+tw, ty+th,
+                    tx, ty+th,
+                    tx+tw, ty
+                };
+                
+                r32 norms[18] = { 0 };
+                
+                calculate_heightmap_normal(verts, norms);
+                calculate_heightmap_normal(verts+9, norms+9);
+                
+                if(k) {
+                    foreach(l, 18) {
+                        norms[l] *= -1;
+                    }
+                }
+                
+                foreach(i, sizeof(verts)/sizeof(verts[0])) {
+                    da_push(vertices, verts[i]);
+                }
+                foreach(i, sizeof(uvs_)/sizeof(uvs_[0])) {
+                    da_push(uvs, uvs_[i]);
+                }
+                foreach(i, sizeof(norms)/sizeof(norms[0])) {
+                    da_push(normals, norms[i]);
+                }
+            }
+            
             if(x && !(dungeon_tile_data[d->tiles[x-1][z]].flags & PIT)) {
                 foreach(height, 4) {
                     
@@ -886,14 +984,16 @@ void collide_boxes_with_tiles(DungeonMap *d, BoxComponent *b, i32 count) {
                 forrng(y, pos1.y - b->size.y/2, pos1.y + b->size.y/2+1) {
                     if(x >= 0 && x < MAP_W && y >= 0 && y < MAP_H) {
                         if(dungeon_tile_data[d->tiles[x][y]].flags & WALL ||
-                           dungeon_tile_data[d->tiles[x][y]].flags & PIT) {
+                           dungeon_tile_data[d->tiles[x][y]].flags & PIT || 
+                           dungeon_tile_data[d->tiles[x][y]].flags & DOOR) {
                             v2 overlap = v2(100000000, 10000000);
                             i8 overlap_x = 0, overlap_y = 0;
                             
                             if(pos1.x > x+0.5) {
                                 if(x < MAP_W-1 &&
                                    !(dungeon_tile_data[d->tiles[x+1][y]].flags & WALL) &&
-                                   !(dungeon_tile_data[d->tiles[x+1][y]].flags & PIT)) {
+                                   !(dungeon_tile_data[d->tiles[x+1][y]].flags & PIT) &&
+                                   !(dungeon_tile_data[d->tiles[x+1][y]].flags & DOOR)) {
                                     overlap.x = (x+1) - (pos1.x-b->size.x/2);
                                     overlap_x = 1;
                                 }
@@ -901,7 +1001,8 @@ void collide_boxes_with_tiles(DungeonMap *d, BoxComponent *b, i32 count) {
                             else {
                                 if(x &&
                                    !(dungeon_tile_data[d->tiles[x-1][y]].flags & WALL) &&
-                                   !(dungeon_tile_data[d->tiles[x-1][y]].flags & PIT)) {
+                                   !(dungeon_tile_data[d->tiles[x-1][y]].flags & PIT) &&
+                                   !(dungeon_tile_data[d->tiles[x-1][y]].flags & DOOR)) {
                                     overlap.x = x-(pos1.x + b->size.x/2);
                                     overlap_x = 1;
                                 }
@@ -910,7 +1011,8 @@ void collide_boxes_with_tiles(DungeonMap *d, BoxComponent *b, i32 count) {
                             if(pos1.y > y+0.5) {
                                 if(y < MAP_H-1 &&
                                    !(dungeon_tile_data[d->tiles[x][y+1]].flags & WALL) &&
-                                   !(dungeon_tile_data[d->tiles[x][y+1]].flags & PIT)) {
+                                   !(dungeon_tile_data[d->tiles[x][y+1]].flags & PIT) &&
+                                   !(dungeon_tile_data[d->tiles[x][y+1]].flags & DOOR)) {
                                     overlap.y = (y+1) - (pos1.y-b->size.y/2);
                                     overlap_y = 1;
                                 }
@@ -918,7 +1020,8 @@ void collide_boxes_with_tiles(DungeonMap *d, BoxComponent *b, i32 count) {
                             else {
                                 if(y &&
                                    !(dungeon_tile_data[d->tiles[x][y-1]].flags & WALL) &&
-                                   !(dungeon_tile_data[d->tiles[x][y-1]].flags & PIT)) {
+                                   !(dungeon_tile_data[d->tiles[x][y-1]].flags & PIT) &&
+                                   !(dungeon_tile_data[d->tiles[x][y-1]].flags & DOOR)) {
                                     overlap.y = y-(pos1.y + b->size.y/2);
                                     overlap_y = 1;
                                 }
@@ -954,7 +1057,7 @@ void collide_boxes_with_tiles(DungeonMap *d, BoxComponent *b, i32 count) {
     }
 }
 
-void collide_boxes_with_projectiles(DungeonMap *d, i32 *id, BoxComponent *b, HealthComponent *h, i32 count) {
+void collide_boxes_with_projectiles(DungeonMap *d, i32 *id, BoxComponent *b, HealthComponent *h, DebuffComponent *debuff, i32 count) {
     foreach(i, count) {
         for(i32 j = 0; j < d->projectiles.count;) {
             if(d->projectiles.update[j].origin != id[i]) {
@@ -978,20 +1081,32 @@ void collide_boxes_with_projectiles(DungeonMap *d, i32 *id, BoxComponent *b, Hea
                         
                         // @On-hit effects
                         switch(projectile_data[d->projectiles.type[j]].effect_type) {
-                            case EFFECT_dot: {
+                            case EFFECT_fire: {
+                                if(random32(0, 1) < d->projectiles.update[j].strength) {
+                                    fire_debuff(debuff+i);
+                                }
+                                break;
+                            }
+                            case EFFECT_poison: {
+                                if(random32(0, 1) < d->projectiles.update[j].strength) {
+                                    poison_debuff(debuff+i);
+                                }
                                 break;
                             }
                             case EFFECT_aoe: {
                                 break;
                             }
                             case EFFECT_slow: {
+                                if(random32(0, 1) < d->projectiles.update[j].strength) {
+                                    slow_debuff(debuff+i);
+                                }
                                 break;
                             }
                             case EFFECT_knockback: {
                                 // NOTE(Ryan): If a random number in [0, 1] is < 0.3, 
                                 //             add some knockback
-                                if(random32(0, 1) < 0.3) {
-                                    knockback_magnitude *= 1.5;
+                                if(random32(0, 1) < d->projectiles.update[j].strength) {
+                                    knockback_magnitude *= 1.8;
                                 }
                                 break;
                             }
@@ -1055,7 +1170,7 @@ void update_attacks(DungeonMap *d, i32 *id, AttackComponent *a, i32 count) {
     }
 }
 
-void update_ai(i32 *type, AIComponent *a, AttackComponent *attack, DungeonMap *d, Player *p, i32 count) {
+void update_ai(i32 *type, AIComponent *a, AttackComponent *attack, DebuffComponent *debuff, DungeonMap *d, Player *p, i32 count) {
     v2 target_pos;
     foreach(i, count) {
         if(!a->target_id) {
@@ -1074,8 +1189,25 @@ void update_ai(i32 *type, AIComponent *a, AttackComponent *attack, DungeonMap *d
             case AI_STATE_idle:
             case AI_STATE_roam: {
                 attack->attacking = 0;
+                r32 distance_to_target_2 = distance2_32(target_pos, a->pos);
                 if(a->attack_type >= 0 && distance2_32(target_pos, a->pos) <= 64.f) {
-                    a->state = AI_STATE_attack;
+                    r32 distance_to_target = sqrtf(distance_to_target_2);
+                    v2 ai_to_target = target_pos - a->pos;
+                    v2 ray_to_target = a->pos;
+                    i8 blocked_by_wall = 0;
+                    for(r32 j = 0.5f; j <= distance_to_target; j += 0.5f) {
+                        ray_to_target += (ai_to_target / distance_to_target)*0.5f;
+                        if((int)ray_to_target.x >= 0 && (int)ray_to_target.y < MAP_W &&
+                           (int)ray_to_target.y >= 0 && (int)ray_to_target.y < MAP_H) {
+                            if(dungeon_tile_data[d->tiles[(int)ray_to_target.x][(int)ray_to_target.y]].flags & WALL) {
+                                blocked_by_wall = 1;
+                                break;
+                            }
+                        }
+                    }
+                    if(!blocked_by_wall) {
+                        a->state = AI_STATE_attack;
+                    }
                 }
                 
                 if(a->state == AI_STATE_roam) {
@@ -1090,8 +1222,28 @@ void update_ai(i32 *type, AIComponent *a, AttackComponent *attack, DungeonMap *d
                 break;
             }
             case AI_STATE_attack: {
-                if(distance2_32(target_pos, a->pos) >= 64.f) {
+                r32 distance_to_target_2 = distance2_32(target_pos, a->pos);
+                if(distance_to_target_2 >= 64.f) {
                     a->state = AI_STATE_roam;
+                }
+                else {
+                    r32 distance_to_target = sqrtf(distance_to_target_2);
+                    v2 ai_to_target = target_pos - a->pos;
+                    v2 ray_to_target = a->pos;
+                    i8 blocked_by_wall = 0;
+                    for(r32 j = 0.5f; j <= distance_to_target; j += 0.5f) {
+                        ray_to_target += (ai_to_target / distance_to_target)*0.5f;
+                        if((int)ray_to_target.x >= 0 && (int)ray_to_target.y < MAP_W &&
+                           (int)ray_to_target.y >= 0 && (int)ray_to_target.y < MAP_H) {
+                            if(dungeon_tile_data[d->tiles[(int)ray_to_target.x][(int)ray_to_target.y]].flags & WALL) {
+                                blocked_by_wall = 1;
+                                break;
+                            }
+                        }
+                    }
+                    if(blocked_by_wall) {
+                        a->state = AI_STATE_roam;
+                    }
                 }
                 a->move_vel = (2*(target_pos - a->pos) / length(target_pos - a->pos)) * enemy_data[type[i]].speed;
                 a->moving = 1;
@@ -1111,6 +1263,11 @@ void update_ai(i32 *type, AIComponent *a, AttackComponent *attack, DungeonMap *d
             }
             default: break;
         }
+        
+        if(debuff) {
+            a->move_vel *= debuff->velocity_modifier;
+        }
+        
         ++a;
         ++attack;
     }
@@ -1121,6 +1278,45 @@ void track_sprites_to_boxes(DungeonMap *d, SpriteComponent *s, BoxComponent *b, 
         s->pos = v3(b->pos.x, dungeon_coordinate_height(d, b->pos.x, b->pos.y) + (s->th / 16.f) * 0.5, b->pos.y);
         ++s;
         ++b;
+    }
+}
+
+void update_debuffs(DebuffComponent *d, u64 count, DungeonMap *map) {
+    foreach(i, count) {
+        v3 pos_3d = v3(d->pos.x, 0, d->pos.y);
+        pos_3d.y = dungeon_coordinate_height(map, pos_3d.x, pos_3d.z) + 0.5;
+        
+        switch(d->damage_over_time_modifier) {
+            case DAMAGE_OVER_TIME_fire: {
+                do_particle(map, PARTICLE_fire, pos_3d, 
+                            v3(random32(-0.1, 0.1), random32(0.5, 1.f), random32(-0.1, 0.1)),
+                            random32(0.2, 0.6));
+                break;
+            }
+            case DAMAGE_OVER_TIME_poison: {
+                do_particle(map, PARTICLE_dark, pos_3d,
+                            v3(random32(-0.5, 0.5), random32(0.5, 1.f), random32(-0.5, 0.5)),
+                            random32(0.2, 0.6));
+                break;
+            }
+            default: break;
+        }
+        
+        if(d->velocity_modifier < 1) {
+            do_particle(map, PARTICLE_ice, pos_3d + v3(random32(-0.5, 0.5), random32(-0.5, 0.5), random32(-0.5, 0.5)),
+                        v3(random32(-0.1, 0.1), random32(-0.1, 0.1), random32(-0.1, 0.1)),
+                        random32(0.2, 0.6));
+        }
+        
+        if(d->velocity_modifier < 1 && 
+           current_time >= d->velocity_start_time + d->velocity_seconds) {
+            d->velocity_modifier = 1;
+        }
+        if(d->damage_over_time_modifier &&
+           current_time >= d->damage_over_time_start_time + d->damage_over_time_seconds) {
+            d->damage_over_time_modifier = 0;
+        }
+        ++d;
     }
 }
 
@@ -1169,7 +1365,7 @@ void update_dungeon_map(DungeonMap *d, Player *p) {
         i32 player_id = 0;
         
         collide_boxes_with_tiles(d, &p->box, 1);
-        collide_boxes_with_projectiles(d, &player_id, &p->box, &p->health, 1);
+        collide_boxes_with_projectiles(d, &player_id, &p->box, &p->health, &p->debuff, 1);
         update_boxes(&p->box, 1);
         
         { // collide with collectibles
@@ -1211,23 +1407,68 @@ void update_dungeon_map(DungeonMap *d, Player *p) {
             }
         }
         
-        p->attack.pos = p->box.pos;
+        { // collide with doors
+            foreach(i, 3) {
+                if(p->inventory[i] == COLLECTIBLE_key) {
+                    r32 player_x = p->box.pos.x - p->box.size.x/2;
+                    r32 player_y = p->box.pos.y - p->box.size.y/2;
+                    r32 player_w = p->box.size.x;
+                    r32 player_h = p->box.size.y;
+                    foreach(j, d->doors.count) {
+                        if(player_x + player_w >= d->doors.x[j] && 
+                           player_x <= d->doors.x[j] + 1 && 
+                           player_y + player_h >= d->doors.y[j] && 
+                           player_y <= d->doors.y[j] + 1) {
+                            p->inventory[i] = -1;
+                            d->tiles[d->doors.x[j]][d->doors.y[j]] = DUNGEON_TILE_broken_stone;
+                            remove_door(&d->doors, j);
+                            play_sound(&sounds[SOUND_door], 1, 1, 0, AUDIO_entity);
+                            break;
+                        }
+                    }
+                    
+                    break;
+                }
+            }
+        }
         
+        { // collide with ladders
+            r32 player_x = p->box.pos.x - p->box.size.x/2;
+            r32 player_y = p->box.pos.y - p->box.size.y/2;
+            r32 player_w = p->box.size.x;
+            r32 player_h = p->box.size.y;
+            foreach(j, d->ladders.count) {
+                if(player_x + player_w >= d->ladders.x[j] && 
+                   player_x <= d->ladders.x[j] + 1 && 
+                   player_y + player_h >= d->ladders.y[j] && 
+                   player_y <= d->ladders.y[j] + 1) {
+                    next_state = init_dungeon_state();
+                }
+            }
+        }
+        
+        p->attack.pos = p->debuff.pos = p->box.pos;
+        
+        update_debuffs(&p->debuff, 1, d);
         update_attacks(d, &player_id, &p->attack, 1);
-        update_health(&p->health, 1);
+        update_health(&p->health, &p->debuff, 1);
     }
     
     { // @Update dungeon enemies
         move_boxes_with_ai(d->enemies.box, d->enemies.ai, d->enemies.count);
         
         collide_boxes_with_tiles(d, d->enemies.box, d->enemies.count);
-        collide_boxes_with_projectiles(d, d->enemies.id, d->enemies.box, d->enemies.health, d->enemies.count);
+        collide_boxes_with_projectiles(d, d->enemies.id, d->enemies.box, d->enemies.health, d->enemies.debuff, d->enemies.count);
         update_boxes(d->enemies.box, d->enemies.count);
         
         // update sprite position
         track_sprites_to_boxes(d, d->enemies.sprite, d->enemies.box, d->enemies.count);
         
-        // update attack position
+        // update_debuffs
+        track_debuffs_to_boxes(d->enemies.debuff, d->enemies.box, d->enemies.count);
+        update_debuffs(d->enemies.debuff, d->enemies.count, d);
+        
+        // update attacks
         foreach(i, d->enemies.count) {
             d->enemies.attack[i].pos = d->enemies.box[i].pos;
         }
@@ -1238,7 +1479,7 @@ void update_dungeon_map(DungeonMap *d, Player *p) {
         foreach(i, d->enemies.count) {
             d->enemies.ai[i].pos = d->enemies.box[i].pos;
         }
-        update_ai(d->enemies.type, d->enemies.ai, d->enemies.attack, d, p, d->enemies.count);
+        update_ai(d->enemies.type, d->enemies.ai, d->enemies.attack, d->enemies.debuff, d, p, d->enemies.count);
         
         // update sprite animation TY
         foreach(i, d->enemies.count) {
@@ -1271,7 +1512,7 @@ void update_dungeon_map(DungeonMap *d, Player *p) {
         }
         
         // update enemy health
-        update_health(d->enemies.health, d->enemies.count);
+        update_health(d->enemies.health, d->enemies.debuff, d->enemies.count);
         for(u32 i = 0; i < d->enemies.count;) {
             if(d->enemies.health[i].val <= 0.f) {
                 if(random32(0,1) >= .5f){
@@ -1438,6 +1679,12 @@ void draw_dungeon_map_begin(DungeonMap *d) {
         
         set_shader(0);
     }
+    
+    // @Draw doors
+    draw_sprite_components(d->doors.sprite, d->doors.count);
+    
+    // @Draw ladders
+    draw_sprite_components(d->ladders.sprite, d->ladders.count);
     
     // @Draw enemies
     draw_sprite_components(d->enemies.sprite, d->enemies.count);

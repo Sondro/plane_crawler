@@ -238,11 +238,27 @@ enum { // @Gamepad Controls
     GC_TURN_RIGHT,
     GC_ATTACK,
     GC_PAUSE,
-    //GC_S_FIRE,
-    //GC_S_LIGHTNING,
-    //GC_S_ICE,
-    //GC_S_WIND,
+    GC_NEXT_ITEM,
+    GC_LAST_ITEM,
+    GC_USE_ITEM,
+    GC_SWITCH_SPELL,
 };
+
+// 0 A
+// 1 B
+// 2 X
+// 3 Y
+// 4 Bumper-L
+// 5 Bumper-R
+// 6 ???
+// 7 Start
+// 8 JS-L-Push
+// 9 JS-R-Push
+// 10 dpad
+// 11 dpad
+// 12 dpad
+// 13 dpad
+// 14
 
 i16 gamepad_control_maps[MAX_KC] = {
     10,
@@ -253,6 +269,12 @@ i16 gamepad_control_maps[MAX_KC] = {
     5,
     0,
     7,
+    
+    1,
+    -1,
+    
+    3,
+    2,
 };
 
 const char *gamepad_control_names[MAX_KC] = {
@@ -299,14 +321,14 @@ void update_input() {
     glfwPollEvents();
     glfwGetWindowSize(window, &window_w, &window_h);
     glfwGetCursorPos(window, &mouse_x, &mouse_y);
-
+    
     mouse_pos_used = 0;
     mouse_buttons_used = 0;
     keyboard_used = 0;
-
+    
     i32 left_mouse_button = glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT),
     right_mouse_button = glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_RIGHT);
-
+    
     mouse_state >>= 2;
     if(left_mouse_button) {
         mouse_state |= (1<<7);
@@ -314,14 +336,14 @@ void update_input() {
     else {
         mouse_state &= ~(1<<7);
     }
-
+    
     if(right_mouse_button) {
         mouse_state |= (1<<6);
     }
     else {
         mouse_state &= ~(1<<6);
     }
-
+    
     for(i16 i = 0; i < GLFW_KEY_LAST; i++) {
         i32 key_state = glfwGetKey(window, i);
         if(key_state == GLFW_PRESS) {
@@ -333,14 +355,14 @@ void update_input() {
             key_pressed[i] = 0;
         }
     }
-
+    
     for(i8 i = 0; i < 16 && i < gamepad_button_count; i++) {
         last_gamepad_button_states[i] = gamepad_button_states[i];
     }
     gamepad_axes = glfwGetJoystickAxes(0, &gamepad_axis_count);
     gamepad_button_states = glfwGetJoystickButtons(0, &gamepad_button_count);
-
-
+    
+    
 }
 
 const char *key_name(u16 key) {

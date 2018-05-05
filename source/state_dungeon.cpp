@@ -19,6 +19,9 @@ struct Dungeon {
     // bg music data
     SoundSource *bg_music;
     
+    // item selection
+    i8 selected_item;
+    
     // settings data
     SettingsMenu settings;
 };
@@ -49,6 +52,10 @@ State init_dungeon_state() {
         request_sound(SOUND_charge_build);
         request_sound(SOUND_charge_hold);
         request_sound(SOUND_dungeon1);
+        request_sound(SOUND_footstep_stone);
+        request_sound(SOUND_door);
+        
+        d->selected_item = 0;
         
         d->settings.state = -1;
         
@@ -65,6 +72,11 @@ void clean_up_dungeon_state(State *s) {
         unrequest_texture(TEX_hud);
         unrequest_texture(TEX_hand);
         unrequest_sound(SOUND_dungeon1);
+        unrequest_sound(SOUND_charge_build);
+        unrequest_sound(SOUND_charge_hold);
+        unrequest_sound(SOUND_footstep_stone);
+        unrequest_sound(SOUND_door);
+        
         unrequest_dungeon_map_assets();
         clean_up_dungeon_map(&d->map);
         
@@ -101,13 +113,13 @@ void update_dungeon_state() {
             
             begin_block(0, UI_STANDARD_W, UI_STANDARD_H*3);
             {
-                if(do_button(GEN_ID, UI_STANDARD_W, UI_STANDARD_H, "RESUME")) {
+                if(do_button(GEN_ID, UI_STANDARD_W*2, UI_STANDARD_H, "RESUME")) {
                     d->paused = 0;
                 }
-                if(do_button(GEN_ID, UI_STANDARD_W, UI_STANDARD_H, "SETTINGS")) {
+                if(do_button(GEN_ID, UI_STANDARD_W*2, UI_STANDARD_H, "SETTINGS")) {
                     d->settings.state = 0;
                 }
-                if(do_button(GEN_ID, UI_STANDARD_W, UI_STANDARD_H, "RETURN TO HOUSE") && !next_state.type) {
+                if(do_button(GEN_ID, UI_STANDARD_W*2, UI_STANDARD_H, "RETURN TO HOUSE") && !next_state.type) {
                     next_state = init_house_state();
                 }
             }
@@ -148,6 +160,49 @@ void update_dungeon_state() {
                 set_source_volume(d->charge_build, d->player.attack.transition);
                 stop_source(d->charge_hold);
             }
+            
+            if(gamepad_control_pressed(GC_NEXT_ITEM)) {
+                if(++d->selected_item >= 3) {
+                    d->selected_item = 0;
+                }
+            }
+            if(gamepad_control_pressed(GC_LAST_ITEM)) {
+                if(--d->selected_item < 0) {
+                    d->selected_item = 3;
+                }
+            }
+            
+            {
+                Player *p = &d->player;
+                
+                foreach(i, 3) {
+                    if(key_control_down(KC_I1+i) || (gamepad_control_pressed(GC_USE_ITEM) && d->selected_item == (i8)i)) {
+                        if(p->inventory[i] == COLLECTIBLE_health_pot && p->health.val < 1) { // NOTE: eat red mushroom
+                            p->health.target = p->health.val + .25;
+                            if(p->health.target >= 1){
+                                p->health.target = 1;
+                            }
+                            p->inventory[i] = -1;
+                        } 
+                        else if(p->inventory[i] == COLLECTIBLE_key) {          
+                            // NOTE: drop key
+                            //add_collectible(d, COLLECTIBLE_key, p->box.pos);
+                            //p->inventory[i] = -1;
+                        } 
+                        else if(p->inventory[i] == COLLECTIBLE_mana_pot){     
+                            // NOTE: eat blue mushroom
+                            p->attack.mana += .25;
+                            if(p->attack.mana >= 1){
+                                p->attack.mana = 1;
+                            }
+                            p->inventory[i] = -1;
+                        }
+                        else {                                                
+                            // NOTE: if inventory slot is empty
+                        }
+                    }
+                }
+            }
         }
         
         { // @Dungeon Update
@@ -158,6 +213,7 @@ void update_dungeon_state() {
             { // camera update
                 movement_factor = (HMM_Length(d->player.box.vel) / (movement_speed*2));
                 
+                r32 last_camera_bob_sin_pos = d->camera_bob_sin_pos;
                 d->camera_bob_sin_pos += 15*delta_t;
                 d->camera.pos.x = d->player.box.pos.x;
                 d->camera.pos.z = d->player.box.pos.y;
@@ -166,6 +222,11 @@ void update_dungeon_state() {
                 d->camera.pos.y += sin(d->camera_bob_sin_pos)*0.42*movement_factor;
                 
                 update_camera(&d->camera);
+                
+                if(HMM_Length(d->player.box.vel) > 0.1 && cos(last_camera_bob_sin_pos) < 0 && cos(d->camera_bob_sin_pos) > 0) {
+                    play_sound(&sounds[SOUND_footstep_stone], 1, random32(0.6, 1.4), 0, AUDIO_entity);
+                }
+                
                 set_listener_position(d->camera.pos.x, d->camera.pos.y, d->camera.pos.z);
                 
                 do_light(&d->map, d->camera.pos, v3(1, 0.9, 0.8), 15, 2);
@@ -246,6 +307,11 @@ void update_dungeon_state() {
             }
             draw_ui_texture(&textures[TEX_hud], v4(64, 0, 12, 12),
                             v4(window_w - 3*64 + i*64, window_h - 120, 12*4, 12*4));
+            
+            if(d->selected_item == (i8)i) {
+                draw_ui_texture(&textures[TEX_hud], v4(64, 12, 12, 12),
+                                v4(window_w - 3*64 + i*64, window_h - 120, 12*4, 12*4));
+            }
         }
         
         // draw spell UI

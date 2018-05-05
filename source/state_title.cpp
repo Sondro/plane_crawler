@@ -107,7 +107,8 @@ void update_title_state() {
                 do_divider();
                 
                 if(do_button(GEN_ID, UI_STANDARD_W, UI_STANDARD_H, "PLAY")) {
-                    t->state = TITLE_SAVES;
+                    //t->state = TITLE_SAVES;
+                    next_state = init_house_state();
                 }
                 if(do_button(GEN_ID, UI_STANDARD_W, UI_STANDARD_H, "SETTINGS")) {
                     t->settings.state = 0;
