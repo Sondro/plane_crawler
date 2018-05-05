@@ -17,6 +17,7 @@ struct EnemySet {
     HealthComponent   health[MAX_ENEMY_COUNT];
     AttackComponent   attack[MAX_ENEMY_COUNT];
     AIComponent       ai[MAX_ENEMY_COUNT];
+    DebuffComponent   debuff[MAX_ENEMY_COUNT];
 };
 
 global
@@ -32,13 +33,14 @@ struct {
 
 void init_enemy(i32 type, v2 pos,
                 i32 *types, 
-                BoxComponent *b, SpriteComponent *s, HealthComponent *h, AttackComponent *a, AIComponent *ai) {
+                BoxComponent *b, SpriteComponent *s, HealthComponent *h, AttackComponent *a, AIComponent *ai, DebuffComponent *db) {
     *types = type;
     *b = init_box_component(pos, v2(0.8, 0.8));
     *s = init_sprite_component(TEX_enemy, enemy_data[type].tx*24, 0, 24, 24);
     *h = init_health_component(1);
     *a = init_attack_component(enemy_data[type].attack_type);
     *ai = init_ai_component(AI_STATE_roam, a->type);
+    *db = init_debuff_component(1, 1);
 }
 
 void remove_enemy(EnemySet *e, i32 id) {
@@ -52,6 +54,8 @@ void remove_enemy(EnemySet *e, i32 id) {
             memmove(e->health + i, e->health + i+1, sizeof(HealthComponent) * (e->count - i - 1));
             memmove(e->attack + i, e->attack + i+1, sizeof(AttackComponent) * (e->count - i - 1));
             memmove(e->ai + i, e->ai + i+1, sizeof(AIComponent) * (e->count - i - 1));
+            memmove(e->debuff + i, e->debuff + i+1, 
+                    sizeof(DebuffComponent) * (e->count -  i - 1));
             --e->count;
             break;
         }
