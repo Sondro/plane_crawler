@@ -1,5 +1,6 @@
 #include "enemy.cpp"
 #include "collectible.cpp"
+#include "prefab_rooms.cpp"
 
 enum {
     DUNGEON_TILE_brick,
@@ -210,6 +211,7 @@ void generate_dungeon_map(DungeonMap *d) {
         struct Room {
             i8 origin_dir, branch_depth;
             i16 x, y, w, h, ground_tile;
+            i16 prefab_index;
         };
         Room *rooms = heap_alloc(Room, room_count);
         
@@ -219,6 +221,7 @@ void generate_dungeon_map(DungeonMap *d) {
         rooms[0].y = MAP_H/2;
         rooms[0].w = 8;
         rooms[0].h = 8;
+        rooms[0].prefab_index = 0;
         rooms[0].ground_tile = DUNGEON_TILE_brick;
         
         foreach(i, current_room) {
@@ -227,8 +230,30 @@ void generate_dungeon_map(DungeonMap *d) {
                     if(rooms[i].origin_dir != (int)dir && (random32(0, 1) < 0.3 || !i)) {
                         rooms[current_room].origin_dir = !i ? is_even(dir) ? dir+1 : dir-1 : rooms[i].origin_dir;
                         rooms[current_room].branch_depth = rooms[i].branch_depth + 1;
-                        rooms[current_room].w = random32(4, 16);
-                        rooms[current_room].h = random32(rooms[current_room].w-3, rooms[current_room].w+3);
+                        
+                        if(random32(0, 1) < 0.5f) {
+                            rooms[current_room].prefab_index = (int)random32(0, sizeof(prefab_rooms)/sizeof(prefab_rooms[0]) - 1) + 1;
+                            
+                            const char *prefab_room_str = prefab_rooms[rooms[current_room].prefab_index];
+                            
+                            i8 found_first_newline = 0;
+                            rooms[current_room].w = 0;
+                            rooms[current_room].h = 0;
+                            for(u64 j = 0; prefab_room_str[j]; ++j) {
+                                if(prefab_room_str[j] == '\n') {
+                                    if(!found_first_newline) {
+                                        rooms[current_room].w = j;
+                                        found_first_newline = 1;
+                                    }
+                                    ++rooms[current_room].h;
+                                }
+                            }
+                        }
+                        else {
+                            rooms[current_room].w = random32(4, 16);
+                            rooms[current_room].h = random32(rooms[current_room].w-3, rooms[current_room].w+3);
+                        }
+                        
                         rooms[current_room].ground_tile = random32(0, 1) < 0.5 ? DUNGEON_TILE_broken_stone : DUNGEON_TILE_dirt;
                         
                         i16 x_change = 0, y_change = 0;
@@ -259,8 +284,8 @@ void generate_dungeon_map(DungeonMap *d) {
                         rooms[current_room].x = rooms[i].x + x_change;
                         rooms[current_room].y = rooms[i].y + y_change;
                         
-                        i16 hall_x = min(rooms[current_room].x, rooms[i].x),
-                        hall_y = min(rooms[current_room].y, rooms[i].y);
+                        i16 hall_x = min(rooms[current_room].x, rooms[i].x);
+                        i16 hall_y = min(rooms[current_room].y, rooms[i].y);
                         
                         forrng(x, hall_x, hall_x + abs(x_change)+1) {
                             forrng(y, hall_y, hall_y + abs(y_change)+1) {
@@ -284,7 +309,93 @@ void generate_dungeon_map(DungeonMap *d) {
                 if(x >= 1 && x < MAP_W-1 && y >= 1 && y < MAP_H-1) {
                     if(x < rooms[i].x + rooms[i].w && x < MAP_W-2 &&
                        y < rooms[i].y + rooms[i].h && y < MAP_H-2) {
-                        d->tiles[x][y] = rooms[i].ground_tile;
+                        if(rooms[i].prefab_index > 0 && rooms[i].prefab_index < (i16)(sizeof(prefab_rooms)/sizeof(prefab_rooms[0]))) {
+                            i32 room_x = x - (rooms[i].x - rooms[i].w/2);
+                            i32 room_y = y - (rooms[i].y - rooms[i].h/2);
+                            u64 tile_i = room_y*(rooms[i].w+1) + room_x;
+                            
+                            char tile_char = 
+                                tile_i < strlen(prefab_rooms[rooms[i].prefab_index]) &&
+                                room_x >= 0 && room_x < MAP_W &&
+                                room_y >= 0 && room_y < MAP_H ? 
+                            
+                                prefab_rooms[rooms[i].prefab_index][tile_i] 
+                            
+                                : 
+                            
+                            0;
+                            
+                            switch(tile_char) {
+                                // NOTE(Ryan): Wall
+                                case '#': {
+                                    d->tiles[x][y] = DUNGEON_TILE_brick_wall;
+                                    break;
+                                }
+                                // NOTE(Ryan): Ground
+                                case ' ': {
+                                    d->tiles[x][y] = rooms[i].ground_tile;
+                                    break;
+                                }
+                                // NOTE(Ryan): Pit
+                                case 'O': {
+                                    d->tiles[x][y] = DUNGEON_TILE_pit;
+                                    break;
+                                }
+                                // NOTE(Ryan): Door
+                                case '%': {
+                                    break;
+                                }
+                                // NOTE(Ryan): Key
+                                case '$': {
+                                    add_collectible(d, COLLECTIBLE_key, v2(x+0.5f, y+0.5f));
+                                    break;
+                                }
+                                // NOTE(Ryan): Consumable
+                                case '+': {
+                                    if(random32(0, 1) < 0.5) {
+                                        add_collectible(d, COLLECTIBLE_mana_pot, v2(x+0.5f, y+0.5f));
+                                    }
+                                    else {
+                                        add_collectible(d, COLLECTIBLE_health_pot, v2(x+0.5f, y+0.5f));
+                                    }
+                                    break;
+                                }
+                                // NOTE(Ryan): Trophy
+                                case '&': {
+                                    break;
+                                }
+                                // NOTE(Ryan): Ladder
+                                case 'L': {
+                                    break;
+                                }
+                                // NOTE(Ryan): Skeleton
+                                case 'S': {
+                                    add_enemy(d, ENEMY_skeleton, v2(x+0.5f, y+0.5f));
+                                    break;
+                                }
+                                // NOTE(Ryan): Jelly
+                                case 'J': {
+                                    add_enemy(d, ENEMY_jelly, v2(x+0.5f, y+0.5f));
+                                    break;
+                                }
+                                // NOTE(Ryan): Ghost
+                                case 'G': {
+                                    add_enemy(d, ENEMY_spirit, v2(x+0.5f, y+0.5f));
+                                    break;
+                                }
+                                default: break;
+                            }
+                        }
+                        else {
+                            d->tiles[x][y] = rooms[i].ground_tile;
+                            r32 random_val = random32(0, 1);
+                            if(random_val < 0.025) {
+                                add_enemy(d, ENEMY_jelly, v2(x+0.5f, y+0.5f));
+                            }
+                            else if(random_val < 0.05) {
+                                add_collectible(d, COLLECTIBLE_health_pot, v2(x+0.5f, y+0.5f));
+                            }
+                        }
                     }
                 }
             }
@@ -303,10 +414,10 @@ void generate_dungeon_map(DungeonMap *d) {
     z = 0;
     
     while(1) {
-        v3 v00 = v3(x,   d->heights[x][z],     z),
-        v01 = v3(x+1, d->heights[x+1][z],   z),
-        v10 = v3(x,   d->heights[x][z+1],   z+1),
-        v11 = v3(x+1, d->heights[x+1][z+1], z+1);
+        v3 v00 = v3(x,   d->heights[x][z],     z);
+        v3 v01 = v3(x+1, d->heights[x+1][z],   z);
+        v3 v10 = v3(x,   d->heights[x][z+1],   z+1);
+        v3 v11 = v3(x+1, d->heights[x+1][z+1], z+1);
         
         r32 tx = (dungeon_tile_data[d->tiles[x][z]].tx*(r32)TILE_SET_TILE_SIZE)/(r32)textures[TEX_tile_dungeon].w,
         ty = (dungeon_tile_data[d->tiles[x][z]].ty*(r32)TILE_SET_TILE_SIZE)/(r32)textures[TEX_tile_dungeon].h,
@@ -747,19 +858,6 @@ void generate_dungeon_map(DungeonMap *d) {
     da_free(vertices);
     da_free(uvs);
     da_free(normals);
-    
-    foreach(i, MAP_W)
-        foreach(j, MAP_H) {
-        if(!(dungeon_tile_data[d->tiles[i][j]].flags & WALL) &&
-           !(dungeon_tile_data[d->tiles[i][j]].flags & PIT)) {
-            if(random32(0, 1) < 0.01) {
-                add_enemy(d, random32(0, MAX_ENEMY - 0.0001), v2(i, j));
-            }
-            if(random32(0, 1) < 0.01) {
-                add_collectible(d, random32(0, MAX_COLLECTIBLE - 0.0001), v2(i, j));
-            }
-        }
-    }
     
     d->render = init_g_buffer(window_w, window_h);
     init_light_state(&d->lighting);
