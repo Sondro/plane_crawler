@@ -37,7 +37,7 @@ void init_enemy(i32 type, v2 pos,
     *types = type;
     *b = init_box_component(pos, v2(0.8, 0.8));
     *s = init_sprite_component(TEX_enemy, enemy_data[type].tx*24, 0, 24, 24);
-    *h = init_health_component(1);
+    *h = init_health_component(0.5);
     *a = init_attack_component(enemy_data[type].attack_type);
     *ai = init_ai_component(AI_STATE_roam, a->type);
     *db = init_debuff_component();
