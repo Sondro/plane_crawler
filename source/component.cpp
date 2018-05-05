@@ -106,7 +106,21 @@ AttackComponent init_attack_component(i8 type) {
     a.mana = 0;
     a.target_mana = 0;
     return a;
-}
+};
+
+
+//@Debuff Component
+struct DebuffComponent{
+    i8 slowModifier;
+    i8 dotModifier;
+};
+
+DebuffComponent init_debuff_component(i8 slo, i8 dot) {
+    DebuffComponent a;
+    a.slowModifier = slo;
+    a.dotModifier = dot;
+    return a;
+};
 
 // @AI Component
 
