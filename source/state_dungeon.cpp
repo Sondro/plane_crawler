@@ -327,6 +327,8 @@ void update_dungeon_state() {
             draw_ui_texture(&textures[TEX_hud], v4(64, 0, 12, 12),
                             v4(window_w - 4*64 + i*64, window_h - 64, 12*4, 12*4));
         }
+        
+        draw_ui_filled_rect(v4(1, 1, 1, 0.8), v4(window_w/2 - 2, window_h/2 - 2, 4, 4));
     }
     
     if(d->game_over) {
